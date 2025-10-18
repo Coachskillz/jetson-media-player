@@ -1,0 +1,20 @@
+{
+  "video_001": {
+    "filename": "sample_video.mp4",
+    "path": "test_content/sample_video.mp4",
+    "hash": null,
+    "metadata": {
+      "duration": 30,
+      "resolution": "1920x1080"
+    }
+  },
+  "video_002": {
+    "filename": "another_video.mp4",
+    "path": "test_content/another_video.mp4",
+    "hash": null,
+    "metadata": {
+      "duration": 15,
+      "resolution": "1280x720"
+    }
+  }
+}

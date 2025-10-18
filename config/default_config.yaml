@@ -1,0 +1,74 @@
+# Device Configuration
+device:
+  id: "jetson-001"
+  name: "Media Player 1"
+  location: "Store Front"
+
+# CMS API Configuration
+cms:
+  base_url: "https://cms.example.com/api/v1"
+  api_key: ""
+  sync_interval: 300  # seconds
+  heartbeat_interval: 60  # seconds
+
+# Playback Configuration
+playback:
+  content_dir: "/media/ssd"
+  default_playlist: "default"
+  transition_time: 0.1  # seconds (100ms target)
+  loop_default: true
+
+# ML Trigger Configuration
+ml:
+  face_recognition:
+    enabled: true
+    confidence_threshold: 0.7
+    model_path: "/opt/models/arcface.onnx"
+  age_estimation:
+    enabled: true
+    model_path: "/opt/models/age_estimator.onnx"
+    age_ranges:
+      - name: "child"
+        min: 0
+        max: 12
+      - name: "teen"
+        min: 13
+        max: 19
+      - name: "adult"
+        min: 20
+        max: 64
+      - name: "senior"
+        min: 65
+        max: 120
+
+# Camera Configuration
+cameras:
+  trigger_camera:
+    sensor_id: 0
+    resolution: "1920x1080"
+    framerate: 30
+  rtsp_camera:
+    sensor_id: 1
+    resolution: "1920x1080"
+    framerate: 30
+
+# RTSP Configuration
+rtsp:
+  enabled: true
+  port: 8554
+  path: "/stream"
+  bitrate: 4000000  # 4 Mbps
+
+# IPC Configuration
+ipc:
+  method: "zmq"  # zeromq
+  playback_port: 5555
+  trigger_port: 5556
+  ui_port: 5557
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "/var/log/jetson-media-player.log"
+  max_size: 10485760  # 10 MB
+  backup_count: 5
