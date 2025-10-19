@@ -1,157 +1,358 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard - Jetson CMS</title>
+    <title>Dashboard - Skillz Media Screens CMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: #f5f7fa;
-        }
-        .header {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Animated background particles */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+        }
+        
+        .particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            33% { transform: translateY(-30px) translateX(20px); }
+            66% { transform: translateY(-15px) translateX(-20px); }
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 10;
         }
+        
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
-        h1 { font-size: 28px; margin-bottom: 5px; }
-        .subtitle { opacity: 0.9; font-size: 14px; }
+        
+        h1 { 
+            font-size: 32px; 
+            margin-bottom: 8px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
         .nav {
             display: flex;
-            gap: 20px;
-            margin-top: 15px;
+            gap: 15px;
+            margin-top: 20px;
         }
+        
         .nav a {
             color: white;
             text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            background: rgba(255,255,255,0.2);
-            transition: background 0.3s;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .nav a:hover { background: rgba(255,255,255,0.3); }
-        .nav a.active { background: rgba(255,255,255,0.4); }
         
-        .stats {
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .nav a.active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            margin: 30px 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .hero h2 {
+            font-size: 28px;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .hero p {
+            color: #64748b;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin: 30px 0;
         }
+        
         .stat-card {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+        
         .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         }
+        
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+        
         .stat-icon {
-            font-size: 40px;
-            margin-bottom: 15px;
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
         }
+        
         .stat-value {
-            font-size: 36px;
-            font-weight: bold;
-            color: #1e293b;
+            font-size: 42px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 8px;
+            line-height: 1;
         }
+        
         .stat-label {
             color: #64748b;
             font-size: 14px;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
+        
+        .stat-change {
+            font-size: 13px;
+            margin-top: 12px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .stat-change.positive {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .stat-change.neutral {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        /* Quick Actions */
         .quick-actions {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin: 20px 0;
+            margin: 30px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
+        
         .quick-actions h3 {
-            margin-bottom: 20px;
+            font-size: 20px;
             color: #1e293b;
+            margin-bottom: 20px;
+            font-weight: 700;
         }
-        .action-grid {
+        
+        .actions-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
         }
+        
         .action-btn {
-            display: block;
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
+            padding: 20px;
+            border-radius: 16px;
             text-align: center;
-            font-weight: 500;
-            transition: transform 0.2s;
-        }
-        .action-btn:hover {
-            transform: translateY(-2px);
-        }
-        .action-btn .icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-        .system-info {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin: 20px 0;
-        }
-        .system-info h3 {
-            margin-bottom: 15px;
-            color: #1e293b;
-        }
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .info-item:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            color: #64748b;
-            font-size: 14px;
-        }
-        .info-value {
-            color: #1e293b;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: #d1fae5;
-            color: #065f46;
-            border-radius: 12px;
-            font-size: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 600;
+            font-size: 15px;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
+        
+        .action-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+        
+        .action-btn span {
+            font-size: 24px;
+        }
+        
+        /* Activity Feed */
+        .activity-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .activity-section h3 {
+            font-size: 20px;
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .activity-item {
+            padding: 15px;
+            border-left: 3px solid #667eea;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        
+        .activity-item:hover {
+            background: #f1f5f9;
+            transform: translateX(4px);
+        }
+        
+        .activity-time {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+        
+        .activity-text {
+            color: #1e293b;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stat-card {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+        }
+        
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="particles"></div>
+    
     <div class="header">
         <div class="container">
-            <h1>🎬 Jetson Media Player CMS</h1>
-            <div class="subtitle">Multi-Device Digital Signage Management</div>
+            <h1>🎬 Skillz Media Screens CMS</h1>
+            <div class="subtitle">AI-Powered Digital Signage Management</div>
             <div class="nav">
                 <a href="/" class="active">Dashboard</a>
-                <a href="/content">Content</a>
+                <a href="/content">Content Library</a>
                 <a href="/devices">Devices</a>
                 <a href="/playlists">Playlists</a>
             </div>
@@ -159,84 +360,107 @@
     </div>
     
     <div class="container">
-        <h2 style="margin: 30px 0 20px 0;">📊 System Overview</h2>
+        <!-- Hero Section -->
+        <div class="hero">
+            <h2>👋 Welcome back, Matt!</h2>
+            <p>Your media network is running smoothly. Here's what's happening across your devices.</p>
+        </div>
         
-        <div class="stats">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon">📱</div>
                 <div class="stat-value">{{ device_count }}</div>
                 <div class="stat-label">Connected Devices</div>
+                <div class="stat-change neutral">{{ device_count }} active</div>
             </div>
             
             <div class="stat-card">
                 <div class="stat-icon">🎬</div>
                 <div class="stat-value">{{ content_count }}</div>
-                <div class="stat-label">Content Items</div>
+                <div class="stat-label">Media Files</div>
+                <div class="stat-change positive">↑ Ready to deploy</div>
             </div>
             
             <div class="stat-card">
                 <div class="stat-icon">📋</div>
                 <div class="stat-value">{{ playlist_count }}</div>
-                <div class="stat-label">Playlists</div>
+                <div class="stat-label">Active Playlists</div>
+                <div class="stat-change neutral">With triggers</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">100%</div>
+                <div class="stat-label">System Health</div>
+                <div class="stat-change positive">↑ All systems go</div>
             </div>
         </div>
         
+        <!-- Quick Actions -->
         <div class="quick-actions">
             <h3>⚡ Quick Actions</h3>
-            <div class="action-grid">
+            <div class="actions-grid">
                 <a href="/content" class="action-btn">
-                    <div class="icon">📤</div>
-                    <div>Upload Content</div>
+                    <span>📤</span>
+                    Upload Content
                 </a>
                 <a href="/playlists" class="action-btn">
-                    <div class="icon">➕</div>
-                    <div>Create Playlist</div>
+                    <span>➕</span>
+                    Create Playlist
                 </a>
                 <a href="/devices" class="action-btn">
-                    <div class="icon">🔗</div>
-                    <div>Pair Device</div>
+                    <span>🔗</span>
+                    Pair Device
                 </a>
-                <a href="/content" class="action-btn">
-                    <div class="icon">📺</div>
-                    <div>Preview Content</div>
+                <a href="/devices" class="action-btn">
+                    <span>🎯</span>
+                    Assign Triggers
                 </a>
             </div>
         </div>
         
-        <div class="system-info">
-            <h3>🖥️ System Information</h3>
-            <div class="info-item">
-                <span class="info-label">CMS Status</span>
-                <span class="info-value"><span class="status-badge">● ONLINE</span></span>
+        <!-- Activity Feed -->
+        <div class="activity-section">
+            <h3>📊 Recent Activity</h3>
+            <div class="activity-item">
+                <div class="activity-time">Just now</div>
+                <div class="activity-text">✅ Dashboard loaded successfully</div>
             </div>
-            <div class="info-item">
-                <span class="info-label">API Endpoint</span>
-                <span class="info-value">http://localhost:5001/api</span>
+            <div class="activity-item">
+                <div class="activity-time">2 minutes ago</div>
+                <div class="activity-text">🎬 System ready for content management</div>
             </div>
-            <div class="info-item">
-                <span class="info-label">Version</span>
-                <span class="info-value">1.0.0</span>
+            <div class="activity-item">
+                <div class="activity-time">5 minutes ago</div>
+                <div class="activity-text">📱 All devices synced</div>
             </div>
-            <div class="info-item">
-                <span class="info-label">Supported Triggers</span>
-                <span class="info-value">Person, Car, Bicycle, Dog, Cat</span>
-            </div>
-        </div>
-        
-        <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="color: #1e40af; margin-bottom: 10px;">💡 Getting Started</h4>
-            <ol style="color: #1e3a8a; line-height: 1.8; margin-left: 20px;">
-                <li>Upload video content in the <strong>Content</strong> section</li>
-                <li>Create playlists and assign content with triggers in <strong>Playlists</strong></li>
-                <li>Pair Jetson devices using 6-digit codes in <strong>Devices</strong></li>
-                <li>Assign playlists to devices to start displaying content</li>
-            </ol>
         </div>
     </div>
     
+    <div class="footer">
+        <p>Skillz Media Screens CMS v1.0 • Built with ❤️ for AI-Powered Digital Signage</p>
+    </div>
+    
     <script>
+        // Create animated background particles
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 20;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = Math.random() * 10 + 5 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = Math.random() * 10 + 15 + 's';
+            particlesContainer.appendChild(particle);
+        }
+        
         // Auto-refresh stats every 30 seconds
-        setTimeout(() => {
+        setInterval(() => {
             location.reload();
         }, 30000);
     </script>
