@@ -1,5 +1,5 @@
 """
-Jetson Media Player CMS - Complete with Playlists
+Jetson Media Player CMS - Playlists with Trigger Assignment
 """
 
 from flask import Flask, render_template, jsonify, request, send_from_directory
@@ -39,10 +39,8 @@ def init_db():
             pairing_code TEXT,
             paired INTEGER DEFAULT 0,
             mac_address TEXT,
-            playlist_id INTEGER,
             last_seen TIMESTAMP,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (playlist_id) REFERENCES playlists (id)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
         CREATE TABLE IF NOT EXISTS content (
@@ -65,14 +63,22 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             playlist_id INTEGER NOT NULL,
             content_id INTEGER NOT NULL,
-            triggers TEXT NOT NULL,
             position INTEGER DEFAULT 0,
             FOREIGN KEY (playlist_id) REFERENCES playlists (id),
             FOREIGN KEY (content_id) REFERENCES content (id)
         );
+        
+        CREATE TABLE IF NOT EXISTS device_playlists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT NOT NULL,
+            playlist_id INTEGER NOT NULL,
+            triggers TEXT NOT NULL,
+            FOREIGN KEY (device_id) REFERENCES devices (id),
+            FOREIGN KEY (playlist_id) REFERENCES playlists (id)
+        );
     ''')
     db.commit()
-    print("✅ Database initialized with playlists support")
+    print("✅ Database initialized - Triggers at playlist level")
 
 
 with app.app_context():
@@ -101,14 +107,23 @@ def content_page():
 @app.route('/devices')
 def devices_page():
     db = get_db()
-    devices = db.execute('''
-        SELECT d.*, p.name as playlist_name 
-        FROM devices d 
-        LEFT JOIN playlists p ON d.playlist_id = p.id
-        ORDER BY d.last_seen DESC
-    ''').fetchall()
+    devices = db.execute('SELECT * FROM devices ORDER BY last_seen DESC').fetchall()
     playlists = db.execute('SELECT * FROM playlists ORDER BY name').fetchall()
-    return render_template('devices.html', devices=devices, playlists=playlists)
+    
+    # Get assigned playlists for each device
+    device_list = []
+    for device in devices:
+        device_dict = dict(device)
+        assigned = db.execute('''
+            SELECT p.name, dp.triggers 
+            FROM device_playlists dp 
+            JOIN playlists p ON dp.playlist_id = p.id 
+            WHERE dp.device_id = ?
+        ''', (device['id'],)).fetchall()
+        device_dict['assigned_playlists'] = [dict(a) for a in assigned]
+        device_list.append(device_dict)
+    
+    return render_template('devices.html', devices=device_list, playlists=playlists)
 
 
 @app.route('/playlists')
@@ -206,11 +221,19 @@ def get_device_config(device_id):
     db.execute('UPDATE devices SET last_seen = ? WHERE id = ?', (datetime.now(), device_id))
     db.commit()
     
+    # Get assigned playlists with triggers
+    assigned = db.execute('''
+        SELECT dp.playlist_id, p.name, dp.triggers
+        FROM device_playlists dp
+        JOIN playlists p ON dp.playlist_id = p.id
+        WHERE dp.device_id = ?
+    ''', (device_id,)).fetchall()
+    
     return jsonify({
         "device_id": device['id'],
         "name": device['name'],
         "location": device['location'],
-        "playlist_id": device['playlist_id'],
+        "playlists": [dict(a) for a in assigned],
         "last_seen": device['last_seen']
     })
 
@@ -296,28 +319,51 @@ def get_playlist_items(playlist_id):
 def add_playlist_item(playlist_id):
     data = request.json
     content_id = data.get('content_id')
-    triggers = data.get('triggers', [])
     
     db = get_db()
     cursor = db.execute('''
-        INSERT INTO playlist_items (playlist_id, content_id, triggers)
-        VALUES (?, ?, ?)
-    ''', (playlist_id, content_id, json.dumps(triggers)))
+        INSERT INTO playlist_items (playlist_id, content_id)
+        VALUES (?, ?)
+    ''', (playlist_id, content_id))
     db.commit()
     
     return jsonify({"status": "ok", "item_id": cursor.lastrowid})
 
 
-@app.route('/api/devices/<device_id>/playlist', methods=['PUT'])
-def assign_playlist_to_device(device_id):
+@app.route('/api/devices/<device_id>/assign-playlist', methods=['POST'])
+def assign_playlist_with_triggers(device_id):
     data = request.json
     playlist_id = data.get('playlist_id')
+    triggers = data.get('triggers', [])
+    
+    if not triggers:
+        return jsonify({"error": "No triggers selected"}), 400
     
     db = get_db()
-    db.execute('UPDATE devices SET playlist_id = ? WHERE id = ?', (playlist_id, device_id))
+    
+    # Check if already assigned
+    existing = db.execute('''
+        SELECT * FROM device_playlists 
+        WHERE device_id = ? AND playlist_id = ?
+    ''', (device_id, playlist_id)).fetchone()
+    
+    if existing:
+        # Update triggers
+        db.execute('''
+            UPDATE device_playlists 
+            SET triggers = ? 
+            WHERE device_id = ? AND playlist_id = ?
+        ''', (json.dumps(triggers), device_id, playlist_id))
+    else:
+        # Insert new assignment
+        db.execute('''
+            INSERT INTO device_playlists (device_id, playlist_id, triggers)
+            VALUES (?, ?, ?)
+        ''', (device_id, playlist_id, json.dumps(triggers)))
+    
     db.commit()
     
-    return jsonify({"status": "ok", "device_id": device_id, "playlist_id": playlist_id})
+    return jsonify({"status": "ok", "device_id": device_id, "playlist_id": playlist_id, "triggers": triggers})
 
 
 if __name__ == '__main__':

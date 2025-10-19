@@ -70,7 +70,7 @@
             font-weight: 500;
             font-size: 13px;
         }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e1;
@@ -102,10 +102,6 @@
             background: #10b981;
             color: white;
         }
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #475569;
-        }
         
         .playlists-grid {
             display: grid;
@@ -129,17 +125,39 @@
             font-size: 18px;
             font-weight: 600;
             color: #1e293b;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
         .playlist-description {
             color: #64748b;
             font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .trigger-display {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
             margin-bottom: 15px;
+        }
+        .trigger-display.default {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .trigger-display.age {
+            background: #fce7f3;
+            color: #831843;
+        }
+        .trigger-display.loyalty {
+            background: #d1fae5;
+            color: #065f46;
         }
         .playlist-items {
             border-top: 1px solid #e2e8f0;
             padding-top: 15px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
         }
         .item {
@@ -157,6 +175,10 @@
             background: #e0e7ff;
             transform: translateX(4px);
         }
+        .item.playing {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+        }
         .item-info {
             flex: 1;
         }
@@ -165,20 +187,10 @@
             color: #1e293b;
             font-size: 14px;
         }
-        .item-triggers {
+        .item-duration {
             font-size: 11px;
             color: #64748b;
             margin-top: 3px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            background: #eff6ff;
-            color: #1e40af;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 600;
-            margin-right: 4px;
         }
         .empty-playlist {
             text-align: center;
@@ -194,7 +206,6 @@
             font-size: 13px;
         }
         
-        /* Preview Panel Styles */
         .player-box {
             background: white;
             border-radius: 12px;
@@ -264,6 +275,18 @@
             margin-bottom: 15px;
             opacity: 0.3;
         }
+        .playlist-progress {
+            background: #e2e8f0;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .playlist-progress-fill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s;
+        }
         
         .modal {
             display: none;
@@ -303,18 +326,19 @@
             color: #64748b;
         }
         .content-selector {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 10px;
         }
         .content-item {
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             margin: 5px 0;
             cursor: pointer;
             transition: all 0.2s;
+            border: 2px solid transparent;
         }
         .content-item:hover {
             background: #f1f5f9;
@@ -323,24 +347,18 @@
             background: #dbeafe;
             border: 2px solid #3b82f6;
         }
-        .trigger-selector {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 15px 0;
+        .info-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
         }
-        .trigger-btn {
-            padding: 8px 16px;
-            border: 2px solid #e2e8f0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .trigger-btn.selected {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
+        .info-box p {
+            color: #92400e;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 5px 0;
         }
     </style>
 </head>
@@ -360,8 +378,14 @@
     <div class="container">
         <h2 style="margin: 20px 0 15px 0;">📋 Playlist Management</h2>
         
+        <div class="info-box">
+            <p><strong>💡 How Triggers Work:</strong> Each playlist has a trigger that determines when it plays.</p>
+            <p><strong>Default:</strong> Plays when no other triggers are active</p>
+            <p><strong>Age Detection:</strong> Adult (27-61) or Senior (61+)</p>
+            <p><strong>Loyalty:</strong> Plays when a recognized customer face is detected</p>
+        </div>
+        
         <div class="layout">
-            <!-- Main Content Area -->
             <div class="main-content">
                 <div class="create-box">
                     <h3 style="margin-bottom: 15px; font-size: 16px;">➕ Create New Playlist</h3>
@@ -374,6 +398,23 @@
                             <label>Description</label>
                             <textarea id="playlistDescription" placeholder="What is this playlist for?"></textarea>
                         </div>
+                        
+                        <div class="form-group">
+                            <label>Trigger Type</label>
+                            <select id="triggerType" onchange="updateTriggerValue()">
+                                <option value="default">🔄 Default (Always Playing)</option>
+                                <option value="age">👤 Age Detection</option>
+                                <option value="loyalty">⭐ Loyalty (Facial Recognition)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="triggerValueGroup" style="display: none;">
+                            <label id="triggerValueLabel">Trigger Value</label>
+                            <select id="triggerValue">
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                        
                         <button type="submit" class="btn btn-primary">Create Playlist</button>
                         <div id="createStatus"></div>
                     </form>
@@ -388,13 +429,27 @@
                         <div class="playlist-header">
                             <div class="playlist-title">{{ playlist.name }}</div>
                             <div class="playlist-description">{{ playlist.description or 'No description' }}</div>
+                            <div class="trigger-display {{ playlist.trigger_type }}">
+                                {% if playlist.trigger_type == 'default' %}
+                                🔄 Default
+                                {% elif playlist.trigger_type == 'age' %}
+                                👤 Age: {{ playlist.trigger_value }}
+                                {% elif playlist.trigger_type == 'loyalty' %}
+                                ⭐ Loyalty: {{ playlist.trigger_value or 'Recognized Customer' }}
+                                {% endif %}
+                            </div>
                         </div>
                         
                         <div class="playlist-items" id="playlist-{{ playlist.id }}-items">
                             <div class="empty-playlist">Loading items...</div>
                         </div>
                         
-                        <button class="btn btn-success" style="width: 100%; margin-top: 15px;" 
+                        <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" 
+                                onclick="previewEntirePlaylist({{ playlist.id }}, '{{ playlist.name }}')">
+                            ▶ Preview Entire Playlist
+                        </button>
+                        
+                        <button class="btn btn-success" style="width: 100%;" 
                                 onclick="openAddContent({{ playlist.id }}, '{{ playlist.name }}')">
                             ➕ Add Content
                         </button>
@@ -409,28 +464,30 @@
                 {% endif %}
             </div>
             
-            <!-- Video Preview Panel -->
             <div class="preview-panel">
                 <div class="player-box">
-                    <h3 style="margin-bottom: 15px; font-size: 16px;">📺 Content Preview (16:9)</h3>
+                    <h3 style="margin-bottom: 15px; font-size: 16px;">📺 Playlist Preview (16:9)</h3>
                     <div class="player-container" id="playerContainer">
                         <div class="no-preview">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                             </svg>
-                            <p>Click on playlist content to preview</p>
+                            <p>Click "Preview Entire Playlist" to see how it plays</p>
                         </div>
                     </div>
                     <div class="player-info" id="playerInfo" style="display: none;">
                         <div class="player-title" id="playerTitle"></div>
+                        <div class="playlist-progress">
+                            <div class="playlist-progress-fill" id="progressFill"></div>
+                        </div>
                         <div class="player-meta">
                             <div class="meta-item">
-                                <div class="meta-label">Duration</div>
-                                <div class="meta-value" id="playerDuration"></div>
+                                <div class="meta-label">Playing</div>
+                                <div class="meta-value" id="playerPosition">1 of 3</div>
                             </div>
                             <div class="meta-item">
-                                <div class="meta-label">Triggers</div>
-                                <div class="meta-value" id="playerTriggers"></div>
+                                <div class="meta-label">Total Duration</div>
+                                <div class="meta-value" id="playerTotalDuration">90s</div>
                             </div>
                         </div>
                     </div>
@@ -439,7 +496,6 @@
         </div>
     </div>
     
-    <!-- Add Content Modal -->
     <div class="modal" id="addContentModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -450,24 +506,18 @@
             <div class="form-group">
                 <label>Select Content</label>
                 <div class="content-selector" id="contentSelector">
+                    {% if content %}
                     {% for item in content %}
                     <div class="content-item" data-id="{{ item.id }}" onclick="selectContent({{ item.id }})">
                         <strong>{{ item.title }}</strong><br>
                         <span style="font-size: 12px; color: #64748b;">{{ item.duration }}s • {{ item.filename }}</span>
                     </div>
                     {% endfor %}
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>Assign Triggers (Select multiple)</label>
-                <div class="trigger-selector">
-                    <button type="button" class="trigger-btn" data-trigger="person_detected" onclick="toggleTrigger(this)">👤 Person</button>
-                    <button type="button" class="trigger-btn" data-trigger="car_detected" onclick="toggleTrigger(this)">🚗 Car</button>
-                    <button type="button" class="trigger-btn" data-trigger="bicycle_detected" onclick="toggleTrigger(this)">🚴 Bicycle</button>
-                    <button type="button" class="trigger-btn" data-trigger="dog_detected" onclick="toggleTrigger(this)">🐕 Dog</button>
-                    <button type="button" class="trigger-btn" data-trigger="cat_detected" onclick="toggleTrigger(this)">🐈 Cat</button>
-                    <button type="button" class="trigger-btn" data-trigger="always" onclick="toggleTrigger(this)">⏰ Always</button>
+                    {% else %}
+                    <div style="text-align: center; padding: 20px; color: #94a3b8;">
+                        No content available. Upload videos first!
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             
@@ -478,21 +528,57 @@
     <script>
         let currentPlaylistId = null;
         let selectedContentId = null;
-        let selectedTriggers = [];
+        let playlistQueue = [];
+        let currentVideoIndex = 0;
+        let currentPlaylistName = '';
         
-        // Create playlist
+        // Trigger values - matching device configuration
+        const triggerValues = {
+            age: ['Adult (27-61)', 'Senior (61+)'],
+            loyalty: ['Recognized Customer']
+        };
+        
+        function updateTriggerValue() {
+            const triggerType = document.getElementById('triggerType').value;
+            const triggerValueGroup = document.getElementById('triggerValueGroup');
+            const triggerValue = document.getElementById('triggerValue');
+            const triggerValueLabel = document.getElementById('triggerValueLabel');
+            
+            if (triggerType === 'default') {
+                triggerValueGroup.style.display = 'none';
+            } else {
+                triggerValueGroup.style.display = 'block';
+                
+                const options = triggerValues[triggerType] || [];
+                triggerValue.innerHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                
+                if (triggerType === 'age') {
+                    triggerValueLabel.textContent = 'Target Age Group';
+                } else if (triggerType === 'loyalty') {
+                    triggerValueLabel.textContent = 'Customer Type';
+                }
+            }
+        }
+        
         document.getElementById('createPlaylistForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const name = document.getElementById('playlistName').value;
             const description = document.getElementById('playlistDescription').value;
+            const triggerType = document.getElementById('triggerType').value;
+            const triggerValue = triggerType === 'default' ? '' : document.getElementById('triggerValue').value;
             const statusDiv = document.getElementById('createStatus');
             
             try {
                 const response = await fetch('/api/playlists', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name, description })
+                    body: JSON.stringify({ 
+                        name, 
+                        description,
+                        trigger_type: triggerType,
+                        trigger_value: triggerValue
+                    })
                 });
                 
                 const data = await response.json();
@@ -501,7 +587,7 @@
                     statusDiv.style.display = 'block';
                     statusDiv.style.background = '#d1fae5';
                     statusDiv.style.color = '#065f46';
-                    statusDiv.textContent = '✅ Playlist created!';
+                    statusDiv.textContent = '✅ Playlist created with trigger: ' + (triggerValue || 'Default');
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     statusDiv.style.display = 'block';
@@ -514,7 +600,6 @@
             }
         });
         
-        // Load playlist items
         async function loadPlaylistItems(playlistId) {
             try {
                 const response = await fetch(`/api/playlists/${playlistId}/items`);
@@ -525,15 +610,12 @@
                 if (items.length === 0) {
                     container.innerHTML = '<div class="empty-playlist">No content added yet</div>';
                 } else {
-                    container.innerHTML = items.map(item => {
-                        const triggers = JSON.parse(item.triggers);
+                    container.innerHTML = items.map((item, index) => {
                         return `
-                            <div class="item" onclick="previewPlaylistItem('${item.filename}', '${item.title}', ${item.duration}, '${item.triggers}')">
+                            <div class="item" id="item-${playlistId}-${index}" onclick="previewSingleItem('${item.filename}', '${item.title}', ${item.duration}, ${index + 1})">
                                 <div class="item-info">
-                                    <div class="item-title">${item.title}</div>
-                                    <div class="item-triggers">
-                                        ${triggers.map(t => `<span class="badge">${t}</span>`).join('')}
-                                    </div>
+                                    <div class="item-title">${index + 1}. ${item.title}</div>
+                                    <div class="item-duration">${item.duration}s</div>
                                 </div>
                             </div>
                         `;
@@ -544,9 +626,7 @@
             }
         }
         
-        // Preview playlist item
-        function previewPlaylistItem(filename, title, duration, triggersJson) {
-            const triggers = JSON.parse(triggersJson);
+        function previewSingleItem(filename, title, duration, position) {
             const playerContainer = document.getElementById('playerContainer');
             const playerInfo = document.getElementById('playerInfo');
             
@@ -558,13 +638,75 @@
             `;
             
             document.getElementById('playerTitle').textContent = title;
-            document.getElementById('playerDuration').textContent = duration + 's';
-            document.getElementById('playerTriggers').textContent = triggers.join(', ');
+            document.getElementById('playerPosition').textContent = 'Video ' + position;
+            document.getElementById('playerTotalDuration').textContent = duration + 's';
+            document.getElementById('progressFill').style.width = '0%';
             
             playerInfo.style.display = 'block';
         }
         
-        // Load all playlists on page load
+        async function previewEntirePlaylist(playlistId, playlistName) {
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}/items`);
+                const items = await response.json();
+                
+                if (items.length === 0) {
+                    alert('This playlist is empty! Add content first.');
+                    return;
+                }
+                
+                playlistQueue = items;
+                currentVideoIndex = 0;
+                currentPlaylistName = playlistName;
+                
+                const totalDuration = items.reduce((sum, item) => sum + item.duration, 0);
+                document.getElementById('playerTotalDuration').textContent = totalDuration + 's total';
+                
+                document.getElementById('playerInfo').style.display = 'block';
+                
+                playNextVideo(playlistId);
+            } catch (error) {
+                console.error(error);
+                alert('Failed to load playlist');
+            }
+        }
+        
+        function playNextVideo(playlistId) {
+            if (currentVideoIndex >= playlistQueue.length) {
+                currentVideoIndex = 0;
+            }
+            
+            const item = playlistQueue[currentVideoIndex];
+            const playerContainer = document.getElementById('playerContainer');
+            
+            document.querySelectorAll('.item').forEach(el => el.classList.remove('playing'));
+            const currentItem = document.getElementById(`item-${playlistId}-${currentVideoIndex}`);
+            if (currentItem) {
+                currentItem.classList.add('playing');
+                currentItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            
+            playerContainer.innerHTML = `
+                <video id="playlistVideo" autoplay>
+                    <source src="/cms/uploads/${item.filename}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+            
+            const video = document.getElementById('playlistVideo');
+            
+            document.getElementById('playerTitle').textContent = `${currentPlaylistName} - ${item.title}`;
+            document.getElementById('playerPosition').textContent = `${currentVideoIndex + 1} of ${playlistQueue.length}`;
+            
+            const progress = ((currentVideoIndex + 1) / playlistQueue.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            video.addEventListener('ended', () => {
+                currentVideoIndex++;
+                playNextVideo(playlistId);
+            });
+        }
+        
         {% for playlist in playlists %}
         loadPlaylistItems({{ playlist.id }});
         {% endfor %}
@@ -578,9 +720,7 @@
         function closeModal() {
             document.getElementById('addContentModal').classList.remove('active');
             selectedContentId = null;
-            selectedTriggers = [];
             document.querySelectorAll('.content-item').forEach(el => el.classList.remove('selected'));
-            document.querySelectorAll('.trigger-btn').forEach(el => el.classList.remove('selected'));
         }
         
         function selectContent(contentId) {
@@ -594,26 +734,9 @@
             });
         }
         
-        function toggleTrigger(btn) {
-            const trigger = btn.dataset.trigger;
-            
-            if (selectedTriggers.includes(trigger)) {
-                selectedTriggers = selectedTriggers.filter(t => t !== trigger);
-                btn.classList.remove('selected');
-            } else {
-                selectedTriggers.push(trigger);
-                btn.classList.add('selected');
-            }
-        }
-        
         async function savePlaylistItem() {
             if (!selectedContentId) {
                 alert('Please select content');
-                return;
-            }
-            
-            if (selectedTriggers.length === 0) {
-                alert('Please select at least one trigger');
                 return;
             }
             
@@ -622,8 +745,7 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        content_id: selectedContentId,
-                        triggers: selectedTriggers
+                        content_id: selectedContentId
                     })
                 });
                 

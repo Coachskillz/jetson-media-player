@@ -85,7 +85,7 @@
             font-weight: 500;
             font-size: 13px;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e1;
@@ -101,36 +101,58 @@
         
         .devices-grid {
             display: grid;
-            gap: 15px;
+            gap: 20px;
         }
         .device-card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            padding: 25px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             transition: all 0.2s;
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 20px;
-            align-items: center;
         }
         .device-card:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
+        .device-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
         .device-status {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             position: relative;
+            flex-shrink: 0;
         }
-        .device-status.paired {
+        .device-status.online {
             background: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+        .device-status.offline {
+            background: #ef4444;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
         }
         .device-status.pending {
             background: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
             animation: blink 1.5s infinite;
+        }
+        .device-status.online::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0; transform: scale(1.8); }
         }
         @keyframes blink {
             0%, 100% { opacity: 1; }
@@ -140,7 +162,7 @@
             flex: 1;
         }
         .device-name {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             color: #1e293b;
             margin-bottom: 8px;
@@ -149,17 +171,52 @@
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
-        }
-        .device-meta-item {
-            color: #64748b;
             font-size: 13px;
+            color: #64748b;
         }
         .device-meta-item strong {
             color: #475569;
         }
-        .device-actions {
-            display: flex;
+        .device-content {
+            margin-top: 20px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .assigned-playlists {
+            display: grid;
             gap: 10px;
+            margin-bottom: 20px;
+        }
+        .playlist-item {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .playlist-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        .playlist-trigger {
+            font-size: 12px;
+            color: #64748b;
+        }
+        .trigger-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #eff6ff;
+            color: #1e40af;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 4px;
         }
         .btn {
             padding: 10px 20px;
@@ -178,13 +235,6 @@
             background: #5568d3;
             transform: translateY(-1px);
         }
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #475569;
-        }
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
         .btn-success {
             background: #10b981;
             color: white;
@@ -199,9 +249,13 @@
             font-size: 11px;
             font-weight: 600;
         }
-        .badge-paired {
+        .badge-online {
             background: #d1fae5;
             color: #065f46;
+        }
+        .badge-offline {
+            background: #fee2e2;
+            color: #991b1b;
         }
         .badge-pending {
             background: #fef3c7;
@@ -240,6 +294,74 @@
             display: none;
             font-size: 13px;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .playlist-selector {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .playlist-option {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .playlist-option:hover {
+            background: #f1f5f9;
+        }
+        .playlist-option.selected {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+        }
+        .playlist-option-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        .playlist-option-trigger {
+            font-size: 12px;
+            color: #64748b;
+        }
     </style>
 </head>
 <body>
@@ -250,6 +372,7 @@
                 <a href="/">Dashboard</a>
                 <a href="/content">Content</a>
                 <a href="/devices" class="active">Devices</a>
+                <a href="/playlists">Playlists</a>
             </div>
         </div>
     </div>
@@ -263,10 +386,8 @@
                 <div class="stat-label">Total Devices</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color: #10b981;">
-                    {{ devices|selectattr('paired', 'equalto', 1)|list|length }}
-                </div>
-                <div class="stat-label">Paired Devices</div>
+                <div class="stat-value" style="color: #10b981;" id="onlineCount">0</div>
+                <div class="stat-label">Online Now</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" style="color: #f59e0b;">
@@ -284,7 +405,7 @@
             <form id="pairingForm" class="pairing-form">
                 <div class="form-group">
                     <label>6-Digit Pairing Code</label>
-                    <input type="text" id="pairingCode" placeholder="794411" maxlength="6" pattern="[0-9]{6}" required>
+                    <input type="text" id="pairingCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required>
                 </div>
                 <div class="form-group">
                     <label>Location (Optional)</label>
@@ -298,61 +419,74 @@
         </div>
         
         <div class="info-box">
-            <p><strong>💡 How it works:</strong> Devices generate a unique 6-digit code when they try to connect. Enter the code above to approve and pair the device with your CMS.</p>
+            <p><strong>💡 How it works:</strong> Pair devices using the 6-digit code, then assign playlists (with triggers) to each device.</p>
+            <p><strong>🟢 Online Status:</strong> Devices are online if they've checked in within the last 5 minutes.</p>
         </div>
         
         {% if devices %}
         <h3 style="margin: 25px 0 15px 0; font-size: 16px;">All Devices ({{ devices|length }})</h3>
         <div class="devices-grid">
             {% for device in devices %}
-            <div class="device-card">
-                <div class="device-status {% if device.paired == 1 %}paired{% else %}pending{% endif %}"></div>
-                
-                <div class="device-info">
-                    <div class="device-name">
-                        {{ device.name }}
-                        {% if device.paired == 1 %}
-                        <span class="badge badge-paired">● PAIRED</span>
-                        {% else %}
-                        <span class="badge badge-pending">⏳ PENDING</span>
-                        {% endif %}
-                    </div>
-                    <div class="device-meta">
-                        <div class="device-meta-item">
-                            <strong>ID:</strong> {{ device.id[:20] }}...
+            <div class="device-card" data-last-seen="{{ device.last_seen or '' }}">
+                <div class="device-header">
+                    <div class="device-status" id="status-{{ device.id }}"></div>
+                    
+                    <div class="device-info">
+                        <div class="device-name">
+                            {{ device.name }}
+                            <span class="badge" id="badge-{{ device.id }}"></span>
                         </div>
-                        {% if device.pairing_code and device.paired == 0 %}
-                        <div class="device-meta-item" style="color: #f59e0b; font-weight: 600;">
-                            <strong>Code:</strong> {{ device.pairing_code }}
+                        <div class="device-meta">
+                            <div class="device-meta-item">
+                                <strong>Location:</strong> {{ device.location or 'Not set' }}
+                            </div>
+                            {% if device.last_seen %}
+                            <div class="device-meta-item">
+                                <strong>Last Seen:</strong> <span id="time-{{ device.id }}">{{ device.last_seen }}</span>
+                            </div>
+                            {% endif %}
+                            {% if device.mac_address %}
+                            <div class="device-meta-item">
+                                <strong>MAC:</strong> {{ device.mac_address }}
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                        {% if device.mac_address %}
-                        <div class="device-meta-item">
-                            <strong>MAC:</strong> {{ device.mac_address }}
-                        </div>
-                        {% endif %}
-                        <div class="device-meta-item">
-                            <strong>Location:</strong> {{ device.location or 'Not set' }}
-                        </div>
-                        {% if device.last_seen %}
-                        <div class="device-meta-item">
-                            <strong>Last Seen:</strong> {{ device.last_seen }}
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
                 
-                <div class="device-actions">
-                    {% if device.paired == 1 %}
-                    <button class="btn btn-primary" onclick="manageDevice('{{ device.id }}', '{{ device.name }}')">
-                        ⚙️ Manage
-                    </button>
+                {% if device.paired == 1 %}
+                <div class="device-content">
+                    <div class="section-title">📋 Assigned Playlists</div>
+                    
+                    {% if device.assigned_playlists %}
+                    <div class="assigned-playlists">
+                        {% for playlist in device.assigned_playlists %}
+                        <div class="playlist-item">
+                            <div class="playlist-name">{{ playlist.name }}</div>
+                            <div class="playlist-trigger">
+                                <span class="trigger-badge">{{ playlist.trigger_type }}</span>
+                                {% if playlist.trigger_value %}
+                                <span class="trigger-badge">{{ playlist.trigger_value }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                     {% else %}
-                    <button class="btn btn-success" onclick="quickPair('{{ device.pairing_code }}')">
-                        ✓ Quick Pair
-                    </button>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; color: #94a3b8; margin-bottom: 15px;">
+                        No playlists assigned yet
+                    </div>
                     {% endif %}
+                    
+                    <button class="btn btn-primary" style="width: 100%;" onclick="openAssignPlaylist('{{ device.id }}', '{{ device.name }}')">
+                        ➕ Assign Playlist
+                    </button>
                 </div>
+                {% else %}
+                <button class="btn btn-success" style="width: 100%;" onclick="quickPair('{{ device.pairing_code }}')">
+                    ✓ Quick Pair
+                </button>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -367,7 +501,90 @@
         {% endif %}
     </div>
     
+    <!-- Assign Playlist Modal -->
+    <div class="modal" id="assignModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Assign Playlist</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+                Select a playlist to assign to this device. The device will download and cache the content for offline playback.
+            </p>
+            
+            <div class="form-group">
+                <label>Select Playlist</label>
+                <div class="playlist-selector" id="playlistSelector">
+                    {% if playlists %}
+                    {% for playlist in playlists %}
+                    <div class="playlist-option" data-id="{{ playlist.id }}" onclick="selectPlaylist({{ playlist.id }})">
+                        <div class="playlist-option-name">{{ playlist.name }}</div>
+                        <div class="playlist-option-trigger">
+                            Trigger: {{ playlist.trigger_type }}
+                            {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div style="text-align: center; padding: 20px; color: #94a3b8;">
+                        No playlists available. Create playlists first!
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%;" onclick="assignPlaylist()">Assign to Device</button>
+        </div>
+    </div>
+    
     <script>
+        let currentDeviceId = null;
+        let selectedPlaylistId = null;
+        
+        // Calculate online status
+        function isOnline(lastSeenStr) {
+            if (!lastSeenStr) return false;
+            const lastSeen = new Date(lastSeenStr);
+            const now = new Date();
+            const diff = (now - lastSeen) / 1000 / 60;
+            return diff < 5;
+        }
+        
+        // Update device statuses
+        function updateDeviceStatuses() {
+            let onlineCount = 0;
+            
+            document.querySelectorAll('.device-card').forEach(card => {
+                const lastSeen = card.dataset.lastSeen;
+                const deviceId = card.querySelector('[id^="status-"]').id.replace('status-', '');
+                const statusEl = document.getElementById('status-' + deviceId);
+                const badgeEl = document.getElementById('badge-' + deviceId);
+                
+                const paired = !card.querySelector('.btn-success');
+                
+                if (!paired) {
+                    statusEl.className = 'device-status pending';
+                    badgeEl.className = 'badge badge-pending';
+                    badgeEl.textContent = '⏳ PENDING';
+                } else if (isOnline(lastSeen)) {
+                    statusEl.className = 'device-status online';
+                    badgeEl.className = 'badge badge-online';
+                    badgeEl.textContent = '● ONLINE';
+                    onlineCount++;
+                } else {
+                    statusEl.className = 'device-status offline';
+                    badgeEl.className = 'badge badge-offline';
+                    badgeEl.textContent = '○ OFFLINE';
+                }
+            });
+            
+            document.getElementById('onlineCount').textContent = onlineCount;
+        }
+        
+        updateDeviceStatuses();
+        
+        // Pairing form
         document.getElementById('pairingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -393,7 +610,6 @@
                     statusDiv.style.background = '#d1fae5';
                     statusDiv.style.color = '#065f46';
                     statusDiv.textContent = `✅ Device paired successfully! ${data.name}`;
-                    
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     statusDiv.style.background = '#fee2e2';
@@ -412,13 +628,58 @@
             document.getElementById('location').focus();
         }
         
-        function manageDevice(id, name) {
-            alert(`Managing device: ${name}\n\nDevice ID: ${id}\n\nFeatures coming soon:\n• Edit name and location\n• Assign playlist\n• View analytics\n• Remote control`);
+        // Assign playlist modal
+        function openAssignPlaylist(deviceId, deviceName) {
+            currentDeviceId = deviceId;
+            document.getElementById('modalTitle').textContent = `Assign Playlist to ${deviceName}`;
+            document.getElementById('assignModal').classList.add('active');
         }
         
+        function closeModal() {
+            document.getElementById('assignModal').classList.remove('active');
+            selectedPlaylistId = null;
+            document.querySelectorAll('.playlist-option').forEach(el => el.classList.remove('selected'));
+        }
+        
+        function selectPlaylist(playlistId) {
+            selectedPlaylistId = playlistId;
+            document.querySelectorAll('.playlist-option').forEach(el => {
+                if (el.dataset.id == playlistId) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+        }
+        
+        async function assignPlaylist() {
+            if (!selectedPlaylistId) {
+                alert('Please select a playlist');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/devices/${currentDeviceId}/assign-playlist`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ playlist_id: selectedPlaylistId })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Playlist assigned successfully! Device will sync content on next check-in.');
+                    location.reload();
+                } else {
+                    alert('❌ Failed to assign playlist');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+        
+        // Auto-refresh every 30 seconds
         setInterval(() => {
             location.reload();
-        }, 10000);
+        }, 30000);
     </script>
 </body>
 </html>
