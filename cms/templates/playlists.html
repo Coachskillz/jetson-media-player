@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Playlists - Jetson CMS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { font-size: 28px; margin-bottom: 5px; }
+        .nav {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.3s;
+        }
+        .nav a:hover { background: rgba(255,255,255,0.3); }
+        .nav a.active { background: rgba(255,255,255,0.4); }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 500px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .main-content {
+            min-width: 0;
+        }
+        
+        .preview-panel {
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        
+        .create-box {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #475569;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        
+        .playlists-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .playlist-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+        .playlist-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .playlist-header {
+            margin-bottom: 15px;
+        }
+        .playlist-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        .playlist-description {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        .playlist-items {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .item:hover {
+            background: #e0e7ff;
+            transform: translateX(4px);
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-title {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 14px;
+        }
+        .item-triggers {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #eff6ff;
+            color: #1e40af;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        .empty-playlist {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        #createStatus {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            font-size: 13px;
+        }
+        
+        /* Preview Panel Styles */
+        .player-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .player-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .player-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .player-info {
+            margin-top: 15px;
+        }
+        .player-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        .player-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .meta-item {
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .meta-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 3px;
+        }
+        .no-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #94a3b8;
+            flex-direction: column;
+            padding: 40px 20px;
+        }
+        .no-preview svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .content-selector {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .content-item {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .content-item:hover {
+            background: #f1f5f9;
+        }
+        .content-item.selected {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+        }
+        .trigger-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .trigger-btn {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .trigger-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🎬 Jetson Media Player CMS</h1>
+            <div class="nav">
+                <a href="/">Dashboard</a>
+                <a href="/content">Content</a>
+                <a href="/devices">Devices</a>
+                <a href="/playlists" class="active">Playlists</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2 style="margin: 20px 0 15px 0;">📋 Playlist Management</h2>
+        
+        <div class="layout">
+            <!-- Main Content Area -->
+            <div class="main-content">
+                <div class="create-box">
+                    <h3 style="margin-bottom: 15px; font-size: 16px;">➕ Create New Playlist</h3>
+                    <form id="createPlaylistForm">
+                        <div class="form-group">
+                            <label>Playlist Name</label>
+                            <input type="text" id="playlistName" placeholder="e.g., Store Promotions" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="playlistDescription" placeholder="What is this playlist for?"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Playlist</button>
+                        <div id="createStatus"></div>
+                    </form>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px 0; font-size: 16px;">All Playlists ({{ playlists|length }})</h3>
+                
+                {% if playlists %}
+                <div class="playlists-grid">
+                    {% for playlist in playlists %}
+                    <div class="playlist-card">
+                        <div class="playlist-header">
+                            <div class="playlist-title">{{ playlist.name }}</div>
+                            <div class="playlist-description">{{ playlist.description or 'No description' }}</div>
+                        </div>
+                        
+                        <div class="playlist-items" id="playlist-{{ playlist.id }}-items">
+                            <div class="empty-playlist">Loading items...</div>
+                        </div>
+                        
+                        <button class="btn btn-success" style="width: 100%; margin-top: 15px;" 
+                                onclick="openAddContent({{ playlist.id }}, '{{ playlist.name }}')">
+                            ➕ Add Content
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="background: white; padding: 60px; text-align: center; border-radius: 12px; color: #94a3b8;">
+                    <p style="font-size: 18px;">No playlists created yet</p>
+                    <p>Create your first playlist above to get started!</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Video Preview Panel -->
+            <div class="preview-panel">
+                <div class="player-box">
+                    <h3 style="margin-bottom: 15px; font-size: 16px;">📺 Content Preview (16:9)</h3>
+                    <div class="player-container" id="playerContainer">
+                        <div class="no-preview">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            <p>Click on playlist content to preview</p>
+                        </div>
+                    </div>
+                    <div class="player-info" id="playerInfo" style="display: none;">
+                        <div class="player-title" id="playerTitle"></div>
+                        <div class="player-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">Duration</div>
+                                <div class="meta-value" id="playerDuration"></div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Triggers</div>
+                                <div class="meta-value" id="playerTriggers"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Content Modal -->
+    <div class="modal" id="addContentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Content to Playlist</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Select Content</label>
+                <div class="content-selector" id="contentSelector">
+                    {% for item in content %}
+                    <div class="content-item" data-id="{{ item.id }}" onclick="selectContent({{ item.id }})">
+                        <strong>{{ item.title }}</strong><br>
+                        <span style="font-size: 12px; color: #64748b;">{{ item.duration }}s • {{ item.filename }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Assign Triggers (Select multiple)</label>
+                <div class="trigger-selector">
+                    <button type="button" class="trigger-btn" data-trigger="person_detected" onclick="toggleTrigger(this)">👤 Person</button>
+                    <button type="button" class="trigger-btn" data-trigger="car_detected" onclick="toggleTrigger(this)">🚗 Car</button>
+                    <button type="button" class="trigger-btn" data-trigger="bicycle_detected" onclick="toggleTrigger(this)">🚴 Bicycle</button>
+                    <button type="button" class="trigger-btn" data-trigger="dog_detected" onclick="toggleTrigger(this)">🐕 Dog</button>
+                    <button type="button" class="trigger-btn" data-trigger="cat_detected" onclick="toggleTrigger(this)">🐈 Cat</button>
+                    <button type="button" class="trigger-btn" data-trigger="always" onclick="toggleTrigger(this)">⏰ Always</button>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%;" onclick="savePlaylistItem()">Add to Playlist</button>
+        </div>
+    </div>
+    
+    <script>
+        let currentPlaylistId = null;
+        let selectedContentId = null;
+        let selectedTriggers = [];
+        
+        // Create playlist
+        document.getElementById('createPlaylistForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('playlistName').value;
+            const description = document.getElementById('playlistDescription').value;
+            const statusDiv = document.getElementById('createStatus');
+            
+            try {
+                const response = await fetch('/api/playlists', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, description })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = '#d1fae5';
+                    statusDiv.style.color = '#065f46';
+                    statusDiv.textContent = '✅ Playlist created!';
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = '#fee2e2';
+                    statusDiv.style.color = '#991b1b';
+                    statusDiv.textContent = '❌ Failed to create playlist';
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
+        
+        // Load playlist items
+        async function loadPlaylistItems(playlistId) {
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}/items`);
+                const items = await response.json();
+                
+                const container = document.getElementById(`playlist-${playlistId}-items`);
+                
+                if (items.length === 0) {
+                    container.innerHTML = '<div class="empty-playlist">No content added yet</div>';
+                } else {
+                    container.innerHTML = items.map(item => {
+                        const triggers = JSON.parse(item.triggers);
+                        return `
+                            <div class="item" onclick="previewPlaylistItem('${item.filename}', '${item.title}', ${item.duration}, '${item.triggers}')">
+                                <div class="item-info">
+                                    <div class="item-title">${item.title}</div>
+                                    <div class="item-triggers">
+                                        ${triggers.map(t => `<span class="badge">${t}</span>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        // Preview playlist item
+        function previewPlaylistItem(filename, title, duration, triggersJson) {
+            const triggers = JSON.parse(triggersJson);
+            const playerContainer = document.getElementById('playerContainer');
+            const playerInfo = document.getElementById('playerInfo');
+            
+            playerContainer.innerHTML = `
+                <video controls autoplay>
+                    <source src="/cms/uploads/${filename}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+            
+            document.getElementById('playerTitle').textContent = title;
+            document.getElementById('playerDuration').textContent = duration + 's';
+            document.getElementById('playerTriggers').textContent = triggers.join(', ');
+            
+            playerInfo.style.display = 'block';
+        }
+        
+        // Load all playlists on page load
+        {% for playlist in playlists %}
+        loadPlaylistItems({{ playlist.id }});
+        {% endfor %}
+        
+        function openAddContent(playlistId, playlistName) {
+            currentPlaylistId = playlistId;
+            document.getElementById('modalTitle').textContent = `Add Content to "${playlistName}"`;
+            document.getElementById('addContentModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('addContentModal').classList.remove('active');
+            selectedContentId = null;
+            selectedTriggers = [];
+            document.querySelectorAll('.content-item').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.trigger-btn').forEach(el => el.classList.remove('selected'));
+        }
+        
+        function selectContent(contentId) {
+            selectedContentId = contentId;
+            document.querySelectorAll('.content-item').forEach(el => {
+                if (el.dataset.id == contentId) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+        }
+        
+        function toggleTrigger(btn) {
+            const trigger = btn.dataset.trigger;
+            
+            if (selectedTriggers.includes(trigger)) {
+                selectedTriggers = selectedTriggers.filter(t => t !== trigger);
+                btn.classList.remove('selected');
+            } else {
+                selectedTriggers.push(trigger);
+                btn.classList.add('selected');
+            }
+        }
+        
+        async function savePlaylistItem() {
+            if (!selectedContentId) {
+                alert('Please select content');
+                return;
+            }
+            
+            if (selectedTriggers.length === 0) {
+                alert('Please select at least one trigger');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/playlists/${currentPlaylistId}/items`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        content_id: selectedContentId,
+                        triggers: selectedTriggers
+                    })
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadPlaylistItems(currentPlaylistId);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
