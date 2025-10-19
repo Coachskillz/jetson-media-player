@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jetson Media Player CMS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { font-size: 32px; margin-bottom: 5px; }
+        .subtitle { opacity: 0.9; font-size: 14px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .stat-value {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            color: #64748b;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        .info-box p {
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🎬 Jetson Media Player CMS</h1>
+            <p class="subtitle">Content Management System for AI-Powered Digital Signage</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="stats">
+            <div class="card">
+                <div class="stat-value">{{ device_count }}</div>
+                <div class="stat-label">Connected Devices</div>
+            </div>
+            <div class="card">
+                <div class="stat-value">
+                    <span class="status">● ONLINE</span>
+                </div>
+                <div class="stat-label">System Status</div>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h3>✅ CMS Successfully Initialized</h3>
+            <p><strong>What's working:</strong></p>
+            <p>• Flask web server running on port 5001</p>
+            <p>• SQLite database initialized</p>
+            <p>• Dashboard interface loaded</p>
+            <p>• API endpoints ready</p>
+            <br>
+            <p><strong>Next steps:</strong></p>
+            <p>1. Add device registration</p>
+            <p>2. Create content upload system</p>
+            <p>3. Build playlist management</p>
+            <p>4. Enable analytics collection</p>
+        </div>
+    </div>
+</body>
+</html>
