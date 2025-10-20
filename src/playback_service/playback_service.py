@@ -1,266 +1,188 @@
 """
-Playback Service with IPC integration.
-This wraps the PlaybackController and adds network communication.
+Playback Service - Main video player for Jetson Media Player
+Loads playlists from local cache and plays videos in loop
 """
 
 import time
-import threading
-from typing import Optional
-from src.playback_service.playback_controller import PlaybackController, PlaybackState
-from src.playback_service.playlist import Playlist
-from src.playback_service.content_manager import ContentManager
-from src.common.ipc import (
-    MessagePublisher,
-    MessageSubscriber,
-    ReplyServer,
-    MessageType,
-    Message
-)
-from src.common.config import get_config
+import json
+import vlc
+from pathlib import Path
 from src.common.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 
 class PlaybackService:
-    """
-    Playback service with IPC communication.
+    """Main playback service that plays videos from cached playlists."""
     
-    This service:
-    - Publishes playback status updates
-    - Listens for trigger events
-    - Responds to control commands
-    """
-    
-    def __init__(
-        self,
-        controller: PlaybackController,
-        publish_port: int = 5555,
-        trigger_port: int = 5556,
-        command_port: int = 5557
-    ):
-        """
-        Initialize playback service.
+    def __init__(self, media_dir: str = "./media"):
+        self.media_dir = Path(media_dir)
+        self.playlists_file = self.media_dir / "playlists.json"
         
-        Args:
-            controller: PlaybackController instance
-            publish_port: Port to publish status updates
-            trigger_port: Port to listen for triggers
-            command_port: Port to listen for commands
-        """
-        self.controller = controller
-        self.running = False
+        # VLC player instance
+        self.instance = vlc.Instance()
+        self.player = self.instance.media_player_new()
         
-        # Set up IPC
-        self.publisher = MessagePublisher(
-            port=publish_port,
-            service_name="playback_service"
-        )
-        
-        self.trigger_subscriber = MessageSubscriber(
-            host="localhost",
-            port=trigger_port,
-            service_name="playback_service"
-        )
-        # Only listen for trigger messages
-        self.trigger_subscriber.subscribe_to(MessageType.TRIGGER)
-        
-        self.command_server = ReplyServer(
-            port=command_port,
-            service_name="playback_service",
-            handler=self._handle_command
-        )
-        
-        # Set content change callback
-        self.controller.on_content_change = self._on_content_change
+        # Playback state
+        self.current_playlist = None
+        self.current_video_index = 0
+        self.playlists_data = None
         
         logger.info("Playback service initialized")
     
-    def _on_content_change(self, item, trigger):
-        """Called when content changes - publish update."""
-        self.publisher.publish(
-            MessageType.CONTENT_CHANGE,
-            {
-                "content_id": item.id,
-                "filename": item.filename,
-                "trigger": trigger,
-                "timestamp": time.time()
-            }
-        )
-        logger.info(f"Published content change: {item.filename}")
-    
-    def _handle_command(self, request: Message) -> dict:
-        """
-        Handle incoming commands.
+    def load_playlists(self) -> bool:
+        """Load playlists from local cache."""
+        if not self.playlists_file.exists():
+            logger.error(f"Playlists file not found: {self.playlists_file}")
+            return False
         
-        Args:
-            request: Command message
+        try:
+            with open(self.playlists_file, 'r') as f:
+                self.playlists_data = json.load(f)
             
-        Returns:
-            Reply data
-        """
-        command = request.data.get("command")
-        logger.info(f"Received command: {command}")
-        
-        if command == "play":
-            success = self.controller.start()
-            return {"status": "ok" if success else "error", "command": "play"}
-        
-        elif command == "pause":
-            success = self.controller.pause()
-            return {"status": "ok" if success else "error", "command": "pause"}
-        
-        elif command == "resume":
-            success = self.controller.resume()
-            return {"status": "ok" if success else "error", "command": "resume"}
-        
-        elif command == "stop":
-            success = self.controller.stop()
-            return {"status": "ok" if success else "error", "command": "stop"}
-        
-        elif command == "get_status":
-            status = self.controller.get_status()
-            return {
-                "status": "ok",
-                "state": status.state.value,
-                "content": status.current_item.filename if status.current_item else None,
-                "trigger": status.trigger,
-                "position": status.position
-            }
-        
-        else:
-            return {"status": "error", "message": f"Unknown command: {command}"}
-    
-    def _trigger_listener_loop(self):
-        """Listen for trigger events in a loop."""
-        logger.info("Trigger listener started")
-        
-        while self.running:
-            message = self.trigger_subscriber.receive(timeout_ms=1000)
+            logger.info(f"Loaded {len(self.playlists_data['playlists'])} playlists")
+            return True
             
-            if message and message.msg_type == MessageType.TRIGGER:
-                trigger = message.data.get("trigger")
-                if trigger:
-                    logger.info(f"Received trigger: {trigger}")
-                    # Handle the trigger
-                    self.controller.handle_trigger(trigger)
-        
-        logger.info("Trigger listener stopped")
+        except Exception as e:
+            logger.error(f"Failed to load playlists: {e}")
+            return False
     
-    def _status_publisher_loop(self):
-        """Publish status updates periodically."""
-        logger.info("Status publisher started")
+    def get_default_playlist(self):
+        """Get the default playlist."""
+        if not self.playlists_data:
+            return None
         
-        while self.running:
-            # Publish status every 2 seconds
-            status = self.controller.get_status()
-            self.publisher.publish(
-                MessageType.PLAYBACK_STATUS,
-                {
-                    "state": status.state.value,
-                    "content": status.current_item.filename if status.current_item else None,
-                    "trigger": status.trigger,
-                    "position": status.position,
-                    "timestamp": time.time()
-                }
-            )
+        for playlist in self.playlists_data['playlists']:
+            if playlist['trigger_type'] == 'default':
+                return playlist
+        
+        # If no default, return first playlist
+        if self.playlists_data['playlists']:
+            return self.playlists_data['playlists'][0]
+        
+        return None
+    
+    def get_playlist_by_trigger(self, trigger_type: str, trigger_value: str = None):
+        """Get playlist for a specific trigger."""
+        if not self.playlists_data:
+            return None
+        
+        for playlist in self.playlists_data['playlists']:
+            if playlist['trigger_type'] == trigger_type:
+                if trigger_value is None or playlist.get('trigger_value') == trigger_value:
+                    return playlist
+        
+        # Fallback to default
+        return self.get_default_playlist()
+    
+    def play_video(self, video_path: Path) -> bool:
+        """Play a single video."""
+        if not video_path.exists():
+            logger.error(f"Video file not found: {video_path}")
+            return False
+        
+        try:
+            media = self.instance.media_new(str(video_path))
+            self.player.set_media(media)
+            self.player.play()
             
-            time.sleep(2)
+            logger.info(f"Playing: {video_path.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to play video: {e}")
+            return False
+    
+    def play_playlist(self, playlist):
+        """Play all videos in a playlist in loop."""
+        if not playlist or not playlist['content']:
+            logger.error("Empty playlist")
+            return
         
-        logger.info("Status publisher stopped")
+        logger.info(f"Starting playlist: {playlist['name']}")
+        logger.info(f"Trigger: {playlist['trigger_type']}")
+        logger.info(f"Videos: {len(playlist['content'])}")
+        
+        self.current_playlist = playlist
+        self.current_video_index = 0
+        
+        # Play videos in loop
+        while True:
+            try:
+                # Get current video
+                video = playlist['content'][self.current_video_index]
+                video_path = self.media_dir / video['filename']
+                
+                logger.info(f"[{self.current_video_index + 1}/{len(playlist['content'])}] {video['title']}")
+                
+                # Play video
+                if not self.play_video(video_path):
+                    logger.error(f"Failed to play {video['filename']}, skipping...")
+                    self.current_video_index = (self.current_video_index + 1) % len(playlist['content'])
+                    continue
+                
+                # Wait for video to finish
+                duration = video.get('duration', 30.0)
+                time.sleep(duration)
+                
+                # Move to next video
+                self.current_video_index = (self.current_video_index + 1) % len(playlist['content'])
+                
+                # Small delay between videos
+                time.sleep(0.5)
+                
+            except KeyboardInterrupt:
+                logger.info("Playback interrupted")
+                break
+            except Exception as e:
+                logger.error(f"Error during playback: {e}")
+                time.sleep(2)
     
     def start(self):
-        """Start the playback service."""
-        if self.running:
-            logger.warning("Service already running")
+        """Start playback service."""
+        logger.info("=" * 60)
+        logger.info("🎬 Skillz Media Screens - Playback Service")
+        logger.info("=" * 60)
+        
+        # Load playlists
+        if not self.load_playlists():
+            logger.error("Failed to load playlists. Run media sync first!")
             return
         
-        self.running = True
+        # Get default playlist
+        playlist = self.get_default_playlist()
         
-        # Start the playback
-        self.controller.start()
+        if not playlist:
+            logger.error("No playlists found!")
+            return
         
-        # Start trigger listener thread
-        self.trigger_thread = threading.Thread(
-            target=self._trigger_listener_loop,
-            daemon=True
-        )
-        self.trigger_thread.start()
-        
-        # Start status publisher thread
-        self.status_thread = threading.Thread(
-            target=self._status_publisher_loop,
-            daemon=True
-        )
-        self.status_thread.start()
-        
-        # Start command server (blocking)
-        logger.info("Playback service started")
-        try:
-            self.command_server.start()
-        except KeyboardInterrupt:
-            logger.info("Received interrupt signal")
-            self.stop()
+        # Start playing
+        self.play_playlist(playlist)
     
     def stop(self):
-        """Stop the playback service."""
-        if not self.running:
-            return
-        
-        logger.info("Stopping playback service...")
-        self.running = False
-        
-        # Stop controller
-        self.controller.stop()
-        
-        # Close IPC
-        self.publisher.close()
-        self.trigger_subscriber.close()
-        self.command_server.stop()
-        
-        logger.info("Playback service stopped")
+        """Stop playback."""
+        if self.player:
+            self.player.stop()
+        logger.info("Playback stopped")
 
 
 def main():
-    """Main entry point for playback service."""
-    # Load config
-    config = get_config()
+    """Main entry point."""
+    print("\n" + "=" * 60)
+    print("🎬 Skillz Media Screens - Playback Service")
+    print("=" * 60)
+    print("\nStarting playback from locally cached content...")
+    print("Press Ctrl+C to stop\n")
+    print("=" * 60 + "\n")
     
-    # Create content manager
-    content_dir = config.get('playback.content_dir', '/media/ssd')
-    content_mgr = ContentManager(content_dir)
+    service = PlaybackService(media_dir="./media")
     
-    # Load or create playlist
-    # For now, create a test playlist
-    from src.playback_service.playlist import MediaItem
-    
-    playlist = Playlist("default")
-    playlist.add_item(MediaItem(
-        "ad_001", "default_ad.mp4", "/media/ssd/default_ad.mp4",
-        30.0, ["default"], {}
-    ))
-    playlist.add_item(MediaItem(
-        "ad_002", "kids_ad.mp4", "/media/ssd/kids_ad.mp4",
-        15.0, ["age:child", "age:teen"], {}
-    ))
-    playlist.add_item(MediaItem(
-        "ad_003", "adult_ad.mp4", "/media/ssd/adult_ad.mp4",
-        20.0, ["age:adult", "age:senior"], {}
-    ))
-    
-    # Create controller
-    controller = PlaybackController(content_mgr, playlist)
-    
-    # Create and start service
-    service = PlaybackService(
-        controller,
-        publish_port=config.get('ipc.playback_port', 5555),
-        trigger_port=config.get('ipc.trigger_port', 5556),
-        command_port=config.get('ipc.ui_port', 5557)
-    )
-    
-    logger.info("Starting playback service...")
-    service.start()
+    try:
+        service.start()
+    except KeyboardInterrupt:
+        print("\n\nStopping playback...")
+        service.stop()
+        print("✅ Playback service stopped\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,29 @@
+{
+  "device_id": "jetson-8cf96efbb864",
+  "playlists": [
+    {
+      "id": 1,
+      "name": "test",
+      "trigger_type": "default",
+      "trigger_value": "",
+      "content": [
+        {
+          "filename": "8517AleveAleveArthritisPiggybackConnectedTVC15s16915MIAV1096000HInnovid.MP4",
+          "title": "8517AleveAleveArthritisPiggybackConnectedTVC15s16915MIAV1096000HInnovid",
+          "duration": 30.0
+        },
+        {
+          "filename": "bus_ad._4.mp4",
+          "title": "bus ad. 4",
+          "duration": 30.0
+        },
+        {
+          "filename": "social_coachskillz_the_word_look_in_a_dynamic_font_with_eyeballs_in__a79139cb-e492-4549-ba6c-6a5db23cf569_2.mp4",
+          "title": "social_coachskillz_the_word_look_in_a_dynamic_font_with_eyeballs_in__a79139cb-e492-4549-ba6c-6a5db23cf569_2",
+          "duration": 30.0
+        }
+      ]
+    }
+  ],
+  "last_sync": "2025-10-19 19:01:37.847645"
+}
