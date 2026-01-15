@@ -1,0 +1,51 @@
+{
+  "default_playlist": {
+    "id": "default-playlist-uuid",
+    "items": [
+      {
+        "content_id": "content-uuid-1",
+        "filename": "welcome.mp4",
+        "duration": 30
+      },
+      {
+        "content_id": "content-uuid-2",
+        "filename": "promo.mp4",
+        "duration": 15
+      }
+    ]
+  },
+  "triggered_playlists": [
+    {
+      "playlist_id": "demographic-playlist-uuid",
+      "rule": {
+        "type": "demographic",
+        "age_min": 21,
+        "age_max": 35,
+        "gender": "any"
+      },
+      "items": [
+        {
+          "content_id": "content-uuid-3",
+          "filename": "adult_promo.mp4",
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "playlist_id": "loyalty-playlist-uuid",
+      "rule": {
+        "type": "loyalty",
+        "member_id": null
+      },
+      "items": [
+        {
+          "content_id": "content-uuid-4",
+          "filename": "loyalty_welcome.mp4",
+          "duration": 15
+        }
+      ]
+    }
+  ],
+  "version": 1,
+  "updated_at": "2026-01-01T00:00:00Z"
+}

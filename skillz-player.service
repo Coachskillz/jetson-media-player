@@ -1,0 +1,48 @@
+[Unit]
+Description=Skillz Media Player Service
+Documentation=https://github.com/skillzmedia/jetson-media-player
+After=network.target graphical.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=skillz
+Group=skillz
+WorkingDirectory=/home/skillz
+Environment=PYTHONUNBUFFERED=1
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+# Main executable
+ExecStart=/usr/bin/python3 /home/skillz/src/player/player.py
+
+# Crash recovery - restart within 5 seconds
+Restart=always
+RestartSec=5
+
+# Limit restart attempts to prevent infinite loops on persistent failures
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/skillz/logs /home/skillz/media /home/skillz/config /home/skillz/databases
+
+# Resource limits
+MemoryMax=1G
+CPUQuota=80%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=skillz-player
+
+[Install]
+WantedBy=multi-user.target
