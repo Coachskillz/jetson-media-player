@@ -1,0 +1,8 @@
+{
+  "camera_enabled": true,
+  "ncmec_enabled": true,
+  "loyalty_enabled": false,
+  "demographics_enabled": true,
+  "ncmec_db_version": 0,
+  "loyalty_db_version": 0
+}
