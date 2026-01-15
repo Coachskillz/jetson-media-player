@@ -1,0 +1,34 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/skillzmedia/Projects/jetson-media-player/**)",
+      "Write(/Users/skillzmedia/Projects/jetson-media-player/**)",
+      "Edit(/Users/skillzmedia/Projects/jetson-media-player/**)",
+      "Glob(/Users/skillzmedia/Projects/jetson-media-player/**)",
+      "Grep(/Users/skillzmedia/Projects/jetson-media-player/**)",
+      "Read(/Users/skillzmedia/Projects/jetson-media-player/.auto-claude/specs/006-build-the-face-detection-system-using-nvidia-deeps/**)",
+      "Write(/Users/skillzmedia/Projects/jetson-media-player/.auto-claude/specs/006-build-the-face-detection-system-using-nvidia-deeps/**)",
+      "Edit(/Users/skillzmedia/Projects/jetson-media-player/.auto-claude/specs/006-build-the-face-detection-system-using-nvidia-deeps/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}
