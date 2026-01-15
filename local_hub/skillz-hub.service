@@ -1,0 +1,70 @@
+[Unit]
+Description=Skillz Hub - Local Media Distribution Service
+Documentation=https://github.com/skillzmedia/jetson-media-player
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=skillz-hub
+Group=skillz-hub
+
+# Working directory where the application lives
+WorkingDirectory=/opt/skillz-hub
+
+# Python virtual environment and Gunicorn
+Environment="PATH=/opt/skillz-hub/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Gunicorn production server
+# -w 4: 4 worker processes
+# -b 0.0.0.0:5000: bind to all interfaces on port 5000
+# --access-logfile: log access requests
+# --error-logfile: log errors
+# --capture-output: capture stdout/stderr from workers
+# --timeout 120: worker timeout for long requests
+ExecStart=/opt/skillz-hub/venv/bin/gunicorn \
+    --workers 4 \
+    --bind 0.0.0.0:5000 \
+    --access-logfile /var/log/skillz-hub/access.log \
+    --error-logfile /var/log/skillz-hub/error.log \
+    --capture-output \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
+    'app:create_app()'
+
+# Reload command for graceful restart
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Restart on failure - hub is critical for store operation
+Restart=always
+RestartSec=5
+
+# Stop timeout - allow graceful shutdown
+TimeoutStopSec=30
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+# Read-write paths for data and logs
+ReadWritePaths=/var/skillz-hub
+ReadWritePaths=/var/log/skillz-hub
+
+# Read-only paths for configuration
+ReadOnlyPaths=/etc/skillz-hub
+
+# Limit resources to prevent runaway processes
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Standard output and error to journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=skillz-hub
+
+[Install]
+WantedBy=multi-user.target
