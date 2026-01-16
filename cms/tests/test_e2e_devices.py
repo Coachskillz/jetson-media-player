@@ -6,8 +6,10 @@ ID generation, database persistence, and response format validation.
 
 Tests:
 - Direct mode device registration with SKZ-D-XXXX format
+- Hub mode device registration with SKZ-H-CODE-XXXX format
 - Sequential ID generation for multiple devices
 - Response payload validation
+- Network inheritance for hub mode devices
 """
 
 import re
@@ -253,3 +255,339 @@ class TestE2EDirectModeDeviceRegistrationValidation:
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
+
+
+# =============================================================================
+# E2E Device Registration Tests - Hub Mode
+# =============================================================================
+
+class TestE2EHubModeDeviceRegistration:
+    """
+    E2E tests for hub mode device registration.
+
+    Verifies the complete flow:
+    1. POST request to /api/v1/hubs/register to create hub
+    2. POST request to /api/v1/devices/register with hub mode
+    3. Device created with correct mode and hub association
+    4. Device ID generated in SKZ-H-{CODE}-XXXX format
+
+    Subtask: subtask-6-4
+    """
+
+    def test_e2e_register_hub_then_device_full_flow(self, client, app, sample_network):
+        """
+        E2E Test: Register hub with code WM, then register device in hub mode.
+
+        Subtask: subtask-6-4
+        Verification Steps:
+        1. POST /api/v1/hubs/register with code WM
+        2. POST /api/v1/devices/register with mode hub and hub_id
+        3. Verify device_id starts with SKZ-H-WM-
+        """
+        # Step 1: Register a hub with code WM
+        hub_response = client.post('/api/v1/hubs/register', json={
+            'code': 'WM',
+            'name': 'West Marine Hub',
+            'network_id': sample_network.id
+        })
+
+        assert hub_response.status_code == 201, \
+            f"Hub registration failed: {hub_response.get_json()}"
+        hub_data = hub_response.get_json()
+        hub_id = hub_data['id']
+        assert hub_data['code'] == 'WM'
+
+        # Step 2: Register a device in hub mode with the created hub
+        device_response = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-e2e-wm-001',
+            'mode': 'hub',
+            'hub_id': hub_id,
+            'name': 'E2E Hub Mode Device'
+        })
+
+        assert device_response.status_code == 201, \
+            f"Device registration failed: {device_response.get_json()}"
+        device_data = device_response.get_json()
+
+        # Step 3: Verify device_id starts with SKZ-H-WM-
+        device_id = device_data['device_id']
+        assert device_id.startswith('SKZ-H-WM-'), \
+            f"Device ID '{device_id}' does not start with 'SKZ-H-WM-'"
+
+        # Additional verifications
+        assert device_data['mode'] == 'hub'
+        assert device_data['hub_id'] == hub_id
+        assert device_data['network_id'] == sample_network.id
+        assert device_data['status'] == 'pending'
+
+    def test_e2e_hub_device_id_format_skz_h_code_xxxx(self, client, app, sample_network):
+        """
+        E2E Test: Register device in hub mode, verify ID format SKZ-H-{CODE}-XXXX.
+
+        Subtask: subtask-6-4
+        Verification: Device ID matches pattern SKZ-H-[A-Z]{2,4}-[0-9]{4}
+        """
+        import re
+
+        # Create hub with code ABC
+        hub_response = client.post('/api/v1/hubs/register', json={
+            'code': 'ABC',
+            'name': 'ABC Test Hub',
+            'network_id': sample_network.id
+        })
+        assert hub_response.status_code == 201
+        hub_id = hub_response.get_json()['id']
+
+        # Register device in hub mode
+        device_response = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-e2e-format-001',
+            'mode': 'hub',
+            'hub_id': hub_id
+        })
+
+        assert device_response.status_code == 201
+        device_data = device_response.get_json()
+
+        # Verify device_id is present
+        assert 'device_id' in device_data, "Response missing device_id field"
+
+        # Verify device_id format: SKZ-H-{CODE}-XXXX where CODE is 2-4 uppercase letters
+        # and XXXX is 4 digits
+        device_id = device_data['device_id']
+        pattern = r'^SKZ-H-[A-Z]{2,4}-\d{4}$'
+        assert re.match(pattern, device_id), \
+            f"Device ID '{device_id}' does not match format SKZ-H-CODE-XXXX"
+
+        # Verify the hub code is correctly embedded
+        assert 'ABC' in device_id, \
+            f"Device ID '{device_id}' does not contain hub code 'ABC'"
+
+    def test_e2e_hub_device_response_payload(self, client, app, sample_network):
+        """
+        E2E Test: Register hub device, verify complete response payload.
+
+        Subtask: subtask-6-4
+        Verification: Response contains all required fields with correct values
+        """
+        # Create hub
+        hub_response = client.post('/api/v1/hubs/register', json={
+            'code': 'QRS',
+            'name': 'QRS Test Hub',
+            'network_id': sample_network.id
+        })
+        assert hub_response.status_code == 201
+        hub_data = hub_response.get_json()
+        hub_id = hub_data['id']
+
+        # Register device
+        device_response = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-e2e-payload-001',
+            'mode': 'hub',
+            'hub_id': hub_id,
+            'name': 'E2E Hub Device Payload Test'
+        })
+
+        assert device_response.status_code == 201
+        device_data = device_response.get_json()
+
+        # Verify required fields
+        required_fields = [
+            'id', 'device_id', 'hardware_id', 'mode', 'status',
+            'hub_id', 'network_id', 'created_at'
+        ]
+        for field in required_fields:
+            assert field in device_data, f"Response missing required field: {field}"
+
+        # Verify field values
+        assert device_data['hardware_id'] == 'test-hw-hub-e2e-payload-001'
+        assert device_data['mode'] == 'hub'
+        assert device_data['name'] == 'E2E Hub Device Payload Test'
+        assert device_data['status'] == 'pending'
+        assert device_data['hub_id'] == hub_id
+        assert device_data['network_id'] == sample_network.id
+
+        # Verify device_id format
+        assert device_data['device_id'].startswith('SKZ-H-QRS-')
+
+    def test_e2e_hub_device_sequential_ids_within_hub(self, client, app, sample_network):
+        """
+        E2E Test: Register multiple devices under same hub, verify sequential IDs.
+
+        Subtask: subtask-6-4
+        Verification: Each new device under the same hub gets sequential ID
+        """
+        # Create hub
+        hub_response = client.post('/api/v1/hubs/register', json={
+            'code': 'SEQ',
+            'name': 'Sequential ID Test Hub',
+            'network_id': sample_network.id
+        })
+        assert hub_response.status_code == 201
+        hub_id = hub_response.get_json()['id']
+
+        # Register first device
+        response1 = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-seq-001',
+            'mode': 'hub',
+            'hub_id': hub_id
+        })
+        assert response1.status_code == 201
+        device_id_1 = response1.get_json()['device_id']
+
+        # Register second device
+        response2 = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-seq-002',
+            'mode': 'hub',
+            'hub_id': hub_id
+        })
+        assert response2.status_code == 201
+        device_id_2 = response2.get_json()['device_id']
+
+        # Register third device
+        response3 = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-seq-003',
+            'mode': 'hub',
+            'hub_id': hub_id
+        })
+        assert response3.status_code == 201
+        device_id_3 = response3.get_json()['device_id']
+
+        # Verify all IDs have hub code
+        assert device_id_1.startswith('SKZ-H-SEQ-')
+        assert device_id_2.startswith('SKZ-H-SEQ-')
+        assert device_id_3.startswith('SKZ-H-SEQ-')
+
+        # Extract numeric parts and verify sequential
+        num1 = int(device_id_1.split('-')[-1])
+        num2 = int(device_id_2.split('-')[-1])
+        num3 = int(device_id_3.split('-')[-1])
+
+        assert num2 == num1 + 1, \
+            f"Expected {num1 + 1}, got {num2}"
+        assert num3 == num2 + 1, \
+            f"Expected {num2 + 1}, got {num3}"
+
+    def test_e2e_hub_device_persists_to_database(self, client, app, db_session, sample_network):
+        """
+        E2E Test: Register hub device, verify persistence in database.
+
+        Subtask: subtask-6-4
+        Verification: Device is retrievable from database with correct hub association
+        """
+        from cms.models import Device, Hub
+
+        # Create hub
+        hub_response = client.post('/api/v1/hubs/register', json={
+            'code': 'PER',
+            'name': 'Persistence Test Hub',
+            'network_id': sample_network.id
+        })
+        assert hub_response.status_code == 201
+        hub_id = hub_response.get_json()['id']
+
+        hardware_id = 'test-hw-hub-e2e-persist-001'
+
+        # Register device
+        response = client.post('/api/v1/devices/register', json={
+            'hardware_id': hardware_id,
+            'mode': 'hub',
+            'hub_id': hub_id
+        })
+        assert response.status_code == 201
+
+        # Query database directly
+        device = Device.query.filter_by(hardware_id=hardware_id).first()
+        hub = Hub.query.get(hub_id)
+
+        assert device is not None, "Device not found in database"
+        assert device.mode == 'hub'
+        assert device.hub_id == hub_id
+        assert device.device_id.startswith('SKZ-H-PER-')
+        assert device.status == 'pending'
+        assert device.network_id == sample_network.id
+
+        # Verify hub relationship
+        assert hub is not None, "Hub not found in database"
+        assert hub.code == 'PER'
+
+    def test_e2e_hub_device_inherits_network_from_hub(self, client, app, sample_network):
+        """
+        E2E Test: Register hub device, verify network inheritance from hub.
+
+        Subtask: subtask-6-4
+        Verification: Device automatically gets network_id from hub
+        """
+        # Create hub associated with network
+        hub_response = client.post('/api/v1/hubs/register', json={
+            'code': 'NET',
+            'name': 'Network Inheritance Test Hub',
+            'network_id': sample_network.id
+        })
+        assert hub_response.status_code == 201
+        hub_id = hub_response.get_json()['id']
+
+        # Register device - note we don't specify network_id
+        device_response = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-network-inherit-001',
+            'mode': 'hub',
+            'hub_id': hub_id
+        })
+
+        assert device_response.status_code == 201
+        device_data = device_response.get_json()
+
+        # Device should inherit network from hub
+        assert device_data['network_id'] == sample_network.id
+
+    def test_e2e_different_hubs_different_id_prefixes(self, client, app, sample_network):
+        """
+        E2E Test: Devices in different hubs have different ID prefixes.
+
+        Subtask: subtask-6-4
+        Verification: SKZ-H-{CODE1}-XXXX vs SKZ-H-{CODE2}-XXXX
+        """
+        # Create first hub with code AA
+        hub1_response = client.post('/api/v1/hubs/register', json={
+            'code': 'AA',
+            'name': 'Hub AA',
+            'network_id': sample_network.id
+        })
+        assert hub1_response.status_code == 201
+        hub1_id = hub1_response.get_json()['id']
+
+        # Create second hub with code BB
+        hub2_response = client.post('/api/v1/hubs/register', json={
+            'code': 'BB',
+            'name': 'Hub BB',
+            'network_id': sample_network.id
+        })
+        assert hub2_response.status_code == 201
+        hub2_id = hub2_response.get_json()['id']
+
+        # Register device in hub AA
+        device1_response = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-aa-001',
+            'mode': 'hub',
+            'hub_id': hub1_id
+        })
+        assert device1_response.status_code == 201
+        device1_id = device1_response.get_json()['device_id']
+
+        # Register device in hub BB
+        device2_response = client.post('/api/v1/devices/register', json={
+            'hardware_id': 'test-hw-hub-bb-001',
+            'mode': 'hub',
+            'hub_id': hub2_id
+        })
+        assert device2_response.status_code == 201
+        device2_id = device2_response.get_json()['device_id']
+
+        # Verify different prefixes
+        assert device1_id.startswith('SKZ-H-AA-'), \
+            f"Device 1 ID '{device1_id}' should start with 'SKZ-H-AA-'"
+        assert device2_id.startswith('SKZ-H-BB-'), \
+            f"Device 2 ID '{device2_id}' should start with 'SKZ-H-BB-'"
+
+        # Verify they don't match each other's prefix
+        assert not device1_id.startswith('SKZ-H-BB-')
+        assert not device2_id.startswith('SKZ-H-AA-')
