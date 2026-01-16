@@ -61,7 +61,7 @@ def register_device():
                 "error": "error message"
             }
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data:
         return jsonify({'error': 'Request body is required'}), 400
@@ -181,7 +181,7 @@ def pair_device():
                 "error": "error message"
             }
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data:
         return jsonify({'error': 'Request body is required'}), 400

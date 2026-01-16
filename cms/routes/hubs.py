@@ -55,7 +55,7 @@ def register_hub():
                 "error": "Hub with code 'WM' already exists"
             }
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data:
         return jsonify({'error': 'Request body is required'}), 400

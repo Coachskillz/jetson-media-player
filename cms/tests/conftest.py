@@ -17,8 +17,9 @@ from typing import Generator
 
 import pytest
 
-# Add cms to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path for cms package imports
+# The cms directory is a package, so we need the parent (repo root) in path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from cms.app import create_app
 from cms.models import (
