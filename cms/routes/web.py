@@ -123,14 +123,31 @@ def content_page():
     Returns:
         Rendered content.html template with content list
     """
-    content = Content.query.order_by(Content.created_at.desc()).all()
+    content_items = Content.query.order_by(Content.created_at.desc()).all()
     networks = Network.query.order_by(Network.name).all()
+
+    # Enrich content with template-expected fields
+    content = []
+    for item in content_items:
+        content.append({
+            'id': item.id,
+            'filename': item.filename,
+            'title': item.original_name,  # Template expects 'title'
+            'duration': item.duration or 0,
+            'file_size': item.file_size,
+            'mime_type': item.mime_type,
+            'folder_id': None,  # No folder support yet
+            'folder_name': None,
+            'folder_color': None,
+            'folder_icon': None,
+        })
 
     return render_template(
         'content.html',
         active_page='content',
         content=content,
-        networks=networks
+        networks=networks,
+        folders=[]  # Empty folders list for now
     )
 
 
