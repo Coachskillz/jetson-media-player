@@ -1,0 +1,72 @@
+{
+  "task": "Build Skillz Media CMS Web Interface",
+  "files_to_modify": {
+    "cms": [
+      "cms/app.py",
+      "cms/config.py",
+      "cms/models/__init__.py",
+      "cms/models/network.py",
+      "cms/models/hub.py",
+      "cms/models/device.py",
+      "cms/models/content.py",
+      "cms/models/playlist.py",
+      "cms/models/device_assignment.py",
+      "cms/routes/__init__.py",
+      "cms/routes/devices.py",
+      "cms/routes/hubs.py",
+      "cms/routes/content.py",
+      "cms/routes/playlists.py",
+      "cms/routes/web.py",
+      "cms/services/__init__.py",
+      "cms/services/device_id.py",
+      "cms/templates/base.html",
+      "cms/templates/hubs.html",
+      "cms/static/css/style.css",
+      "cms/static/js/app.js",
+      "cms/requirements.txt",
+      "cms/tests/__init__.py",
+      "cms/tests/conftest.py",
+      "cms/tests/test_devices.py",
+      "cms/tests/test_hubs.py",
+      "cms/tests/test_content.py"
+    ]
+  },
+  "files_to_reference": [
+    "local_hub/app.py",
+    "central_hub/app.py",
+    "central_hub/models/network.py",
+    "central_hub/routes/screens.py",
+    "cms/cms_server.py",
+    "cms/templates/dashboard.html"
+  ],
+  "patterns": {
+    "app_factory": "Use create_app() factory function with SQLAlchemy init_app(), blueprint registration",
+    "model_pattern": "SQLAlchemy models with GUID primary key, created_at timestamp, to_dict() method",
+    "route_pattern": "Blueprint with url_prefix, docstrings, JSON responses, proper HTTP status codes",
+    "template_pattern": "Jinja2 with glassmorphism CSS, gradient backgrounds, Inter font",
+    "device_id_format": {
+      "direct_mode": "SKZ-D-XXXX (zero-padded 4 digits)",
+      "hub_mode": "SKZ-H-{HUB_CODE}-XXXX (2-4 letter code + zero-padded 4 digits)"
+    }
+  },
+  "existing_implementations": {
+    "description": "cms/cms_server.py has working monolithic Flask app with templates. Needs restructuring to factory pattern with separate models/routes/services files.",
+    "relevant_files": [
+      "cms/cms_server.py",
+      "cms/templates/dashboard.html",
+      "cms/templates/devices.html",
+      "cms/templates/content.html",
+      "cms/templates/playlists.html"
+    ],
+    "reusable_components": [
+      "Glassmorphism CSS styling in templates",
+      "Basic CRUD API patterns",
+      "Video upload handling with ffprobe duration detection"
+    ]
+  },
+  "key_differences_from_existing": {
+    "schema_changes": "Locations->Networks, Folders->Hubs concept, add device_assignments table",
+    "new_features": "Dual-mode device IDs, hub content manifests, trigger system for playlists",
+    "structure_changes": "Monolithic file->Factory pattern with models/, routes/, services/"
+  }
+}

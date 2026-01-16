@@ -1,0 +1,39 @@
+{
+  "project_type": "monorepo",
+  "services": {
+    "cms": {
+      "path": "cms",
+      "tech_stack": ["python", "flask", "sqlite", "sqlalchemy", "jinja2"],
+      "port": 5002,
+      "dev_command": "python app.py",
+      "test_command": "pytest tests/",
+      "description": "Skillz Media CMS Web Interface"
+    },
+    "local_hub": {
+      "path": "local_hub",
+      "tech_stack": ["python", "flask", "sqlite", "sqlalchemy"],
+      "port": 5000,
+      "dev_command": "python app.py",
+      "test_command": "pytest tests/",
+      "description": "Local Hub for content distribution"
+    },
+    "central_hub": {
+      "path": "central_hub",
+      "tech_stack": ["python", "flask", "postgresql", "sqlalchemy", "celery"],
+      "port": 5001,
+      "dev_command": "python -m central_hub.app",
+      "test_command": "pytest tests/",
+      "description": "Central Hub Registry and NCMEC integration"
+    }
+  },
+  "infrastructure": {
+    "docker": false,
+    "database": "sqlite"
+  },
+  "conventions": {
+    "linter": "ruff",
+    "formatter": "black",
+    "testing": "pytest",
+    "python_version": "3.x"
+  }
+}
