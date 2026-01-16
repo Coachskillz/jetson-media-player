@@ -31,6 +31,10 @@ from cms.models import (
     Playlist,
     PlaylistItem,
     DeviceAssignment,
+    User,
+    UserSession,
+    UserInvitation,
+    AuditLog,
 )
 
 
@@ -534,3 +538,531 @@ def create_test_playlist(db_session, name, network_id=None, description=None,
     db_session.add(playlist)
     db_session.commit()
     return playlist
+
+
+# =============================================================================
+# User Authentication Fixtures
+# =============================================================================
+
+
+@pytest.fixture(scope='function')
+def sample_super_admin(db_session):
+    """
+    Create a sample super admin user for testing.
+
+    Args:
+        db_session: Database session fixture
+
+    Returns:
+        User instance with super_admin role
+    """
+    user = User(
+        email='superadmin@test.com',
+        name='Test Super Admin',
+        role='super_admin',
+        status='active',
+        network_id=None  # Super admins have access to all networks
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_admin(db_session, sample_network):
+    """
+    Create a sample admin user for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+
+    Returns:
+        User instance with admin role
+    """
+    user = User(
+        email='admin@test.com',
+        name='Test Admin',
+        role='admin',
+        status='active',
+        network_id=sample_network.id
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_content_manager(db_session, sample_network):
+    """
+    Create a sample content manager user for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+
+    Returns:
+        User instance with content_manager role
+    """
+    user = User(
+        email='content_manager@test.com',
+        name='Test Content Manager',
+        role='content_manager',
+        status='active',
+        network_id=sample_network.id
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_viewer(db_session, sample_network):
+    """
+    Create a sample viewer user for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+
+    Returns:
+        User instance with viewer role
+    """
+    user = User(
+        email='viewer@test.com',
+        name='Test Viewer',
+        role='viewer',
+        status='active',
+        network_id=sample_network.id
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_pending_user(db_session, sample_network, sample_admin):
+    """
+    Create a sample pending user (awaiting approval) for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+        sample_admin: Admin user who invited this user
+
+    Returns:
+        User instance with pending status
+    """
+    user = User(
+        email='pending@test.com',
+        name='Test Pending User',
+        role='content_manager',
+        status='pending',
+        network_id=sample_network.id,
+        invited_by=sample_admin.id
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_suspended_user(db_session, sample_network, sample_admin):
+    """
+    Create a sample suspended user for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+        sample_admin: Admin user who suspended this user
+
+    Returns:
+        User instance with suspended status
+    """
+    user = User(
+        email='suspended@test.com',
+        name='Test Suspended User',
+        role='content_manager',
+        status='suspended',
+        network_id=sample_network.id,
+        suspended_by=sample_admin.id,
+        suspended_at=datetime.now(timezone.utc),
+        suspended_reason='Test suspension'
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_user_session(db_session, sample_admin):
+    """
+    Create a sample user session for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_admin: User fixture for foreign key
+
+    Returns:
+        UserSession instance
+    """
+    session = UserSession.create_session(
+        user_id=sample_admin.id,
+        ip_address='127.0.0.1',
+        user_agent='Test User Agent',
+        device_info='Test Device',
+        remember_me=False
+    )
+    db_session.add(session)
+    db_session.commit()
+    return session
+
+
+@pytest.fixture(scope='function')
+def sample_user_session_remember_me(db_session, sample_admin):
+    """
+    Create a sample user session with "remember me" enabled for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_admin: User fixture for foreign key
+
+    Returns:
+        UserSession instance with extended expiration
+    """
+    session = UserSession.create_session(
+        user_id=sample_admin.id,
+        ip_address='192.168.1.1',
+        user_agent='Test User Agent - Remember Me',
+        device_info='Test Device - Remember Me',
+        remember_me=True
+    )
+    db_session.add(session)
+    db_session.commit()
+    return session
+
+
+@pytest.fixture(scope='function')
+def sample_user_invitation(db_session, sample_network, sample_admin):
+    """
+    Create a sample user invitation for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+        sample_admin: Admin user who created the invitation
+
+    Returns:
+        UserInvitation instance
+    """
+    from datetime import timedelta
+    invitation = UserInvitation(
+        email='invited@test.com',
+        role='content_manager',
+        network_id=sample_network.id,
+        invited_by=sample_admin.id,
+        status='pending',
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7)
+    )
+    db_session.add(invitation)
+    db_session.commit()
+    return invitation
+
+
+@pytest.fixture(scope='function')
+def sample_expired_invitation(db_session, sample_network, sample_admin):
+    """
+    Create a sample expired user invitation for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+        sample_admin: Admin user who created the invitation
+
+    Returns:
+        UserInvitation instance that has expired
+    """
+    from datetime import timedelta
+    invitation = UserInvitation(
+        email='expired@test.com',
+        role='content_manager',
+        network_id=sample_network.id,
+        invited_by=sample_admin.id,
+        status='pending',
+        expires_at=datetime.now(timezone.utc) - timedelta(days=1)  # Expired yesterday
+    )
+    db_session.add(invitation)
+    db_session.commit()
+    return invitation
+
+
+@pytest.fixture(scope='function')
+def sample_audit_log(db_session, sample_admin):
+    """
+    Create a sample audit log entry for testing.
+
+    Args:
+        db_session: Database session fixture
+        sample_admin: User who performed the action
+
+    Returns:
+        AuditLog instance
+    """
+    import json
+    audit_log = AuditLog(
+        user_id=sample_admin.id,
+        user_email=sample_admin.email,
+        user_name=sample_admin.name,
+        user_role=sample_admin.role,
+        action='user.login',
+        action_category='auth',
+        resource_type=None,
+        resource_id=None,
+        resource_name=None,
+        details=json.dumps({'method': 'password'}),
+        ip_address='127.0.0.1',
+        user_agent='Test User Agent',
+        session_id=None
+    )
+    db_session.add(audit_log)
+    db_session.commit()
+    return audit_log
+
+
+@pytest.fixture(scope='function')
+def sample_audit_log_user_action(db_session, sample_admin, sample_content_manager):
+    """
+    Create a sample audit log entry for a user management action.
+
+    Args:
+        db_session: Database session fixture
+        sample_admin: User who performed the action
+        sample_content_manager: User who was the target of the action
+
+    Returns:
+        AuditLog instance for a user management action
+    """
+    import json
+    audit_log = AuditLog(
+        user_id=sample_admin.id,
+        user_email=sample_admin.email,
+        user_name=sample_admin.name,
+        user_role=sample_admin.role,
+        action='user.update',
+        action_category='users',
+        resource_type='user',
+        resource_id=sample_content_manager.id,
+        resource_name=sample_content_manager.email,
+        details=json.dumps({
+            'before': {'name': 'Old Name'},
+            'after': {'name': sample_content_manager.name}
+        }),
+        ip_address='127.0.0.1',
+        user_agent='Test User Agent',
+        session_id=None
+    )
+    db_session.add(audit_log)
+    db_session.commit()
+    return audit_log
+
+
+@pytest.fixture(scope='function')
+def sample_user_with_must_change_password(db_session, sample_network):
+    """
+    Create a sample user who must change their password on login.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+
+    Returns:
+        User instance with must_change_password=True
+    """
+    user = User(
+        email='must_change@test.com',
+        name='Test Must Change Password',
+        role='content_manager',
+        status='active',
+        network_id=sample_network.id,
+        must_change_password=True
+    )
+    user.set_password('TempPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture(scope='function')
+def sample_locked_user(db_session, sample_network):
+    """
+    Create a sample user who is locked due to failed login attempts.
+
+    Args:
+        db_session: Database session fixture
+        sample_network: Network fixture for foreign key
+
+    Returns:
+        User instance with locked_until set
+    """
+    from datetime import timedelta
+    user = User(
+        email='locked@test.com',
+        name='Test Locked User',
+        role='content_manager',
+        status='active',
+        network_id=sample_network.id,
+        failed_login_attempts=5,
+        locked_until=datetime.now(timezone.utc) + timedelta(minutes=15)
+    )
+    user.set_password('TestPassword123!')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+# =============================================================================
+# User Authentication Helper Functions
+# =============================================================================
+
+
+def create_test_user(db_session, email, name, role, status='active',
+                     network_id=None, password='TestPassword123!',
+                     must_change_password=False):
+    """
+    Helper function to create a user with custom attributes.
+
+    Args:
+        db_session: Database session
+        email: User email address
+        name: User's display name
+        role: User role ('super_admin', 'admin', 'content_manager', 'viewer')
+        status: Account status (default: 'active')
+        network_id: Network ID (optional)
+        password: Password to set (default: 'TestPassword123!')
+        must_change_password: Whether user must change password on login
+
+    Returns:
+        User instance
+    """
+    user = User(
+        email=email,
+        name=name,
+        role=role,
+        status=status,
+        network_id=network_id,
+        must_change_password=must_change_password
+    )
+    user.set_password(password)
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+def create_test_session(db_session, user_id, ip_address='127.0.0.1',
+                        user_agent='Test Agent', remember_me=False):
+    """
+    Helper function to create a user session with custom attributes.
+
+    Args:
+        db_session: Database session
+        user_id: ID of the user to create session for
+        ip_address: Client IP address
+        user_agent: Client user agent string
+        remember_me: Whether to extend session duration
+
+    Returns:
+        UserSession instance
+    """
+    session = UserSession.create_session(
+        user_id=user_id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        remember_me=remember_me
+    )
+    db_session.add(session)
+    db_session.commit()
+    return session
+
+
+def create_test_invitation(db_session, email, role, invited_by,
+                           network_id=None, status='pending', days_valid=7):
+    """
+    Helper function to create a user invitation with custom attributes.
+
+    Args:
+        db_session: Database session
+        email: Email address for the invitation
+        role: Role to assign to the invited user
+        invited_by: ID of the user who created the invitation
+        network_id: Network ID (optional)
+        status: Invitation status (default: 'pending')
+        days_valid: Number of days until expiration (default: 7)
+
+    Returns:
+        UserInvitation instance
+    """
+    from datetime import timedelta
+    invitation = UserInvitation(
+        email=email,
+        role=role,
+        network_id=network_id,
+        invited_by=invited_by,
+        status=status,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=days_valid)
+    )
+    db_session.add(invitation)
+    db_session.commit()
+    return invitation
+
+
+def create_test_audit_log(db_session, user_id, user_email, action,
+                          action_category, user_name=None, user_role=None,
+                          resource_type=None, resource_id=None, resource_name=None,
+                          details=None, ip_address='127.0.0.1', user_agent='Test Agent',
+                          session_id=None):
+    """
+    Helper function to create an audit log entry with custom attributes.
+
+    Args:
+        db_session: Database session
+        user_id: ID of the user who performed the action
+        user_email: Email of the user
+        action: Action performed (e.g., 'user.login', 'user.create')
+        action_category: Category of action ('auth', 'users', etc.)
+        user_name: Name of the user (optional)
+        user_role: Role of the user (optional)
+        resource_type: Type of affected resource (optional)
+        resource_id: ID of affected resource (optional)
+        resource_name: Name of affected resource (optional)
+        details: JSON string with additional details (optional)
+        ip_address: Client IP address
+        user_agent: Client user agent string
+        session_id: Session ID (optional)
+
+    Returns:
+        AuditLog instance
+    """
+    audit_log = AuditLog(
+        user_id=user_id,
+        user_email=user_email,
+        user_name=user_name,
+        user_role=user_role,
+        action=action,
+        action_category=action_category,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        resource_name=resource_name,
+        details=details,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        session_id=session_id
+    )
+    db_session.add(audit_log)
+    db_session.commit()
+    return audit_log
