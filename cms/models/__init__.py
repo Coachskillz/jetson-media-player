@@ -8,6 +8,10 @@ SQLAlchemy models for the Content Management System including:
 - Content (media files)
 - Playlists (scheduled sequences)
 - Device Assignments (device-to-playlist mappings)
+- Users (authentication and authorization)
+- User Sessions (session management)
+- User Invitations (user onboarding)
+- Audit Logs (activity tracking)
 """
 
 from flask_sqlalchemy import SQLAlchemy
@@ -36,6 +40,10 @@ from cms.models.device import Device
 from cms.models.content import Content
 from cms.models.playlist import Playlist, PlaylistItem
 from cms.models.device_assignment import DeviceAssignment
+from cms.models.user import User
+from cms.models.user_session import UserSession
+from cms.models.user_invitation import UserInvitation
+from cms.models.audit_log import AuditLog
 
 __all__ = [
     'db',
@@ -47,4 +55,8 @@ __all__ = [
     'Playlist',
     'PlaylistItem',
     'DeviceAssignment',
+    'User',
+    'UserSession',
+    'UserInvitation',
+    'AuditLog',
 ]
