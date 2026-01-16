@@ -13,6 +13,7 @@ All endpoints are prefixed with /api/v1/devices when registered with the app.
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Device, Hub, Network, DeviceAssignment, Playlist
+from cms.utils.auth import login_required
 from cms.models.device_assignment import TRIGGER_TYPES
 from cms.services.device_id import DeviceIDGenerator
 
@@ -153,6 +154,7 @@ def register_device():
 
 
 @devices_bp.route('/pair', methods=['POST'])
+@login_required
 def pair_device():
     """
     Pair a device to a network.
@@ -303,6 +305,7 @@ def get_device_config(device_id):
 
 
 @devices_bp.route('', methods=['GET'])
+@login_required
 def list_devices():
     """
     List all registered devices.
@@ -360,6 +363,7 @@ def list_devices():
 
 
 @devices_bp.route('/<device_id>', methods=['GET'])
+@login_required
 def get_device(device_id):
     """
     Get a single device by ID.
@@ -416,6 +420,7 @@ def get_device(device_id):
 
 
 @devices_bp.route('/<device_id>/settings', methods=['PATCH'])
+@login_required
 def update_device_settings(device_id):
     """
     Update device settings (camera configuration).
@@ -491,6 +496,7 @@ def update_device_settings(device_id):
 
 
 @devices_bp.route('/<device_id>/playlists', methods=['POST'])
+@login_required
 def add_device_playlist(device_id):
     """
     Add a playlist assignment to a device with trigger type.
@@ -595,6 +601,7 @@ def add_device_playlist(device_id):
 
 
 @devices_bp.route('/<device_id>/playlists/<assignment_id>', methods=['DELETE'])
+@login_required
 def remove_device_playlist(device_id, assignment_id):
     """
     Remove a playlist assignment from a device.
@@ -639,6 +646,7 @@ def remove_device_playlist(device_id, assignment_id):
 
 
 @devices_bp.route('/trigger-types', methods=['GET'])
+@login_required
 def get_trigger_types():
     """
     Get list of available trigger types for playlist assignments.

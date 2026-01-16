@@ -19,6 +19,7 @@ from flask import Blueprint, request, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
 
 from cms.models import db, Content, Network
+from cms.utils.auth import login_required
 
 
 # Create content blueprint
@@ -83,6 +84,7 @@ def get_mime_type(filename):
 
 @content_bp.route('/upload', methods=['POST'])
 @content_bp.route('', methods=['POST'])
+@login_required
 def upload_content():
     """
     Upload a new content file.
@@ -219,6 +221,7 @@ def upload_content():
 
 
 @content_bp.route('', methods=['GET'])
+@login_required
 def list_content():
     """
     List all content.
@@ -265,6 +268,7 @@ def list_content():
 
 
 @content_bp.route('/<content_id>', methods=['GET'])
+@login_required
 def get_content(content_id):
     """
     Get metadata for a specific content item.
@@ -354,6 +358,7 @@ def download_content(content_id):
 
 
 @content_bp.route('/<content_id>', methods=['DELETE'])
+@login_required
 def delete_content(content_id):
     """
     Delete a content item and its associated file.

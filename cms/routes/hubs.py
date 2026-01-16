@@ -14,6 +14,7 @@ import re
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Hub, Network, Content
+from cms.utils.auth import login_required
 
 
 # Create hubs blueprint
@@ -130,6 +131,7 @@ def register_hub():
 
 
 @hubs_bp.route('', methods=['GET'])
+@login_required
 def list_hubs():
     """
     List all registered hubs.
@@ -171,6 +173,7 @@ def list_hubs():
 
 
 @hubs_bp.route('/<hub_id>', methods=['GET'])
+@login_required
 def get_hub(hub_id):
     """
     Get a specific hub by ID.

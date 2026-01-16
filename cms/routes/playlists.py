@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network
+from cms.utils.auth import login_required
 from cms.models.playlist import TriggerType
 
 
@@ -50,6 +51,7 @@ def _parse_datetime(datetime_str):
 
 
 @playlists_bp.route('', methods=['POST'])
+@login_required
 def create_playlist():
     """
     Create a new playlist.
@@ -127,6 +129,7 @@ def create_playlist():
 
 
 @playlists_bp.route('', methods=['GET'])
+@login_required
 def list_playlists():
     """
     List all playlists.
@@ -180,6 +183,7 @@ def list_playlists():
 
 
 @playlists_bp.route('/<playlist_id>', methods=['GET'])
+@login_required
 def get_playlist(playlist_id):
     """
     Get details for a specific playlist including all items.
@@ -223,6 +227,7 @@ def get_playlist(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>', methods=['PUT'])
+@login_required
 def update_playlist(playlist_id):
     """
     Update a playlist.
@@ -322,6 +327,7 @@ def update_playlist(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>', methods=['DELETE'])
+@login_required
 def delete_playlist(playlist_id):
     """
     Delete a playlist and all its items.
@@ -374,6 +380,7 @@ def delete_playlist(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>/items', methods=['POST'])
+@login_required
 def add_playlist_item(playlist_id):
     """
     Add an item to a playlist.
@@ -483,6 +490,7 @@ def add_playlist_item(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>/items/<item_id>', methods=['DELETE'])
+@login_required
 def remove_playlist_item(playlist_id, item_id):
     """
     Remove an item from a playlist.
@@ -562,6 +570,7 @@ def remove_playlist_item(playlist_id, item_id):
 
 
 @playlists_bp.route('/<playlist_id>/items/reorder', methods=['PUT'])
+@login_required
 def reorder_playlist_items(playlist_id):
     """
     Reorder items in a playlist.
@@ -646,6 +655,7 @@ def reorder_playlist_items(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>/assign', methods=['POST'])
+@login_required
 def assign_playlist_to_device(playlist_id):
     """
     Assign a playlist to a device.
@@ -753,6 +763,7 @@ def assign_playlist_to_device(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>/assign/<assignment_id>', methods=['DELETE'])
+@login_required
 def remove_device_assignment(playlist_id, assignment_id):
     """
     Remove a device assignment from a playlist.
@@ -821,6 +832,7 @@ def remove_device_assignment(playlist_id, assignment_id):
 
 
 @playlists_bp.route('/<playlist_id>/assignments', methods=['GET'])
+@login_required
 def list_playlist_assignments(playlist_id):
     """
     List all device assignments for a playlist.
