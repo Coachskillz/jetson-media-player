@@ -32,10 +32,12 @@ db = SQLAlchemy(model_class=Base)
 # Import models after db is defined to avoid circular imports
 from cms.models.network import Network
 from cms.models.hub import Hub
+from cms.models.device import Device
 
 __all__ = [
     'db',
     'Base',
     'Network',
     'Hub',
+    'Device',
 ]
