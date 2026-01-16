@@ -35,6 +35,7 @@ from cms.models.hub import Hub
 from cms.models.device import Device
 from cms.models.content import Content
 from cms.models.playlist import Playlist, PlaylistItem
+from cms.models.device_assignment import DeviceAssignment
 
 __all__ = [
     'db',
@@ -45,4 +46,5 @@ __all__ = [
     'Content',
     'Playlist',
     'PlaylistItem',
+    'DeviceAssignment',
 ]
