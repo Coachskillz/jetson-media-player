@@ -37,6 +37,7 @@ def dashboard():
 
     return render_template(
         'dashboard.html',
+        active_page='dashboard',
         device_count=device_count,
         hub_count=hub_count,
         content_count=content_count,
@@ -66,6 +67,7 @@ def devices_page():
 
     return render_template(
         'devices.html',
+        active_page='devices',
         devices=devices,
         hubs=hubs,
         networks=networks,
@@ -101,6 +103,7 @@ def hubs_page():
 
     return render_template(
         'hubs.html',
+        active_page='hubs',
         hubs=hub_list,
         networks=networks
     )
@@ -125,6 +128,7 @@ def content_page():
 
     return render_template(
         'content.html',
+        active_page='content',
         content=content,
         networks=networks
     )
@@ -152,6 +156,7 @@ def playlists_page():
 
     return render_template(
         'playlists.html',
+        active_page='playlists',
         playlists=playlists,
         content=content,
         networks=networks
