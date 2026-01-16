@@ -33,6 +33,7 @@ db = SQLAlchemy(model_class=Base)
 from cms.models.network import Network
 from cms.models.hub import Hub
 from cms.models.device import Device
+from cms.models.content import Content
 
 __all__ = [
     'db',
@@ -40,4 +41,5 @@ __all__ = [
     'Network',
     'Hub',
     'Device',
+    'Content',
 ]
