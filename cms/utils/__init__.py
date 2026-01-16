@@ -18,6 +18,13 @@ from cms.utils.permissions import (
     can_manage_role,
     can_manage_user,
 )
+from cms.utils.audit import (
+    log_action,
+    log_auth_action,
+    log_user_management_action,
+    log_resource_action,
+    ACTION_CATEGORIES,
+)
 
 __all__ = [
     # Auth
@@ -32,4 +39,10 @@ __all__ = [
     'ROLE_HIERARCHY',
     'can_manage_role',
     'can_manage_user',
+    # Audit
+    'log_action',
+    'log_auth_action',
+    'log_user_management_action',
+    'log_resource_action',
+    'ACTION_CATEGORIES',
 ]
