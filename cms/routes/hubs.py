@@ -15,6 +15,7 @@ from flask import Blueprint, request, jsonify
 
 from cms.models import db, Hub, Network, Content
 from cms.utils.auth import login_required
+from cms.utils.audit import log_action
 
 
 # Create hubs blueprint
@@ -126,6 +127,22 @@ def register_hub():
         return jsonify({
             'error': f'Failed to create hub: {str(e)}'
         }), 500
+
+    # Log hub registration (hub-initiated action)
+    log_action(
+        action='hub.register',
+        action_category='hubs',
+        resource_type='hub',
+        resource_id=hub.id,
+        resource_name=hub.code,
+        user_email='hub',
+        details={
+            'code': code,
+            'name': name,
+            'network_id': network_id,
+            'network_name': network.name,
+        }
+    )
 
     return jsonify(hub.to_dict()), 201
 

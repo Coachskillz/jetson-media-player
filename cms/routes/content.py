@@ -20,6 +20,7 @@ from werkzeug.utils import secure_filename
 
 from cms.models import db, Content, Network
 from cms.utils.auth import login_required
+from cms.utils.audit import log_action
 
 
 # Create content blueprint
@@ -217,6 +218,22 @@ def upload_content():
             'error': f'Failed to save content record: {str(e)}'
         }), 500
 
+    # Log content upload
+    log_action(
+        action='content.upload',
+        action_category='content',
+        resource_type='content',
+        resource_id=content.id,
+        resource_name=original_filename,
+        details={
+            'filename': unique_filename,
+            'original_name': original_filename,
+            'mime_type': mime_type,
+            'file_size': file_size,
+            'network_id': network_id,
+        }
+    )
+
     return jsonify(content.to_dict()), 201
 
 
@@ -395,9 +412,13 @@ def delete_content(content_id):
     if not content:
         return jsonify({'error': 'Content not found'}), 404
 
-    # Store info for response
+    # Store info for audit log and response before deleting
     content_id_response = content.id
     filename = content.filename
+    original_name = content.original_name
+    mime_type = content.mime_type
+    file_size = content.file_size
+    network_id = content.network_id
 
     # Delete from database
     try:
@@ -420,6 +441,22 @@ def delete_content(content_id):
             # File deletion failed, but database record is already deleted
             # Log this in production, but don't fail the request
             pass
+
+    # Log content deletion
+    log_action(
+        action='content.delete',
+        action_category='content',
+        resource_type='content',
+        resource_id=content_id_response,
+        resource_name=original_name,
+        details={
+            'filename': filename,
+            'original_name': original_name,
+            'mime_type': mime_type,
+            'file_size': file_size,
+            'network_id': network_id,
+        }
+    )
 
     return jsonify({
         'message': 'Content deleted successfully',
