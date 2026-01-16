@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hub Manager - Skillz Media Screens CMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .nav a.active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Create Hub Box */
+        .create-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .create-box h3 {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .create-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group {
+            margin: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #475569;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #hubCode {
+            font-size: 16px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        #createStatus {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Hubs Grid */
+        .hubs-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .hubs-section h3 {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .hubs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .hub-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .hub-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .hub-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .hub-code-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            flex-shrink: 0;
+        }
+
+        .hub-info {
+            flex: 1;
+        }
+
+        .hub-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .hub-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .hub-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .network-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Device Count Card */
+        .device-count-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .device-count-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .device-count-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .device-count-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .device-count-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .view-devices-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .view-devices-btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        /* Hub Actions */
+        .hub-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h3 {
+            font-size: 22px;
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #64748b;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #1e293b;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🎬 Skillz Media Screens CMS</h1>
+            <div class="subtitle">AI-Powered Digital Signage Management</div>
+            <div class="nav">
+                <a href="/">Dashboard</a>
+                <a href="/content">Content Library</a>
+                <a href="/devices">Devices</a>
+                <a href="/hubs" class="active">Hubs</a>
+                <a href="/playlists">Playlists</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">🏢 Hub Manager</h2>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">{{ hubs|length }}</div>
+                <div class="stat-label">Total Hubs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ hubs|selectattr('hub.status', 'equalto', 'active')|list|length }}</div>
+                <div class="stat-label">Active Hubs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ hubs|sum(attribute='device_count') }}</div>
+                <div class="stat-label">Total Devices Connected</div>
+            </div>
+        </div>
+
+        <!-- Create Hub Box -->
+        <div class="create-box">
+            <h3>➕ Register New Hub</h3>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+                Create a new hub to organize devices at a physical location. Hub codes must be 2-4 uppercase letters.
+            </p>
+            <form id="createHubForm" class="create-form">
+                <div class="form-group">
+                    <label>Hub Code (2-4 letters)</label>
+                    <input type="text" id="hubCode" placeholder="WM" maxlength="4" pattern="[A-Z]{2,4}" required>
+                </div>
+                <div class="form-group">
+                    <label>Hub Name</label>
+                    <input type="text" id="hubName" placeholder="e.g., West Marine Hub" required>
+                </div>
+                <div class="form-group">
+                    <label>Network</label>
+                    <select id="networkSelect" required>
+                        <option value="">Select a network...</option>
+                        {% for network in networks %}
+                        <option value="{{ network.id }}">{{ network.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn">✓ Create Hub</button>
+            </form>
+            <div id="createStatus"></div>
+        </div>
+
+        <!-- Hubs Grid -->
+        <div class="hubs-section">
+            <h3 id="hubsHeader">All Hubs ({{ hubs|length }})</h3>
+
+            {% if hubs %}
+            <div class="hubs-grid">
+                {% for item in hubs %}
+                <div class="hub-card" data-hub-id="{{ item.hub.id }}">
+                    <div class="hub-header">
+                        <div class="hub-code-badge">{{ item.hub.code }}</div>
+                        <div class="hub-info">
+                            <div class="hub-name">{{ item.hub.name }}</div>
+                            <div class="hub-meta">
+                                {% if item.hub.network %}
+                                <div class="hub-meta-item">
+                                    <span class="network-badge">🌐 {{ item.hub.network.name }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="hub-meta-item">
+                                    <span class="badge badge-{{ item.hub.status }}">
+                                        {% if item.hub.status == 'active' %}● ACTIVE{% elif item.hub.status == 'pending' %}⏳ PENDING{% else %}○ INACTIVE{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="device-count-card">
+                        <div class="device-count-info">
+                            <div class="device-count-icon">📱</div>
+                            <div>
+                                <div class="device-count-number">{{ item.device_count }}</div>
+                                <div class="device-count-label">Connected Device{{ 's' if item.device_count != 1 else '' }}</div>
+                            </div>
+                        </div>
+                        <a href="/devices?hub={{ item.hub.id }}" class="view-devices-btn">View Devices →</a>
+                    </div>
+
+                    <div class="hub-actions">
+                        <button class="btn-secondary" onclick="viewManifest('{{ item.hub.id }}', '{{ item.hub.code }}')">
+                            📋 Content Manifest
+                        </button>
+                        <button class="btn-secondary" onclick="toggleStatus('{{ item.hub.id }}', '{{ item.hub.status }}')">
+                            {% if item.hub.status == 'active' %}⏸ Deactivate{% else %}▶ Activate{% endif %}
+                        </button>
+                        <button class="btn-secondary btn-danger" onclick="deleteHub('{{ item.hub.id }}', '{{ item.hub.name }}')">
+                            🗑
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                <p style="font-size: 18px;">No hubs registered yet</p>
+                <p>Create a hub above to start organizing your devices</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Content Manifest Modal -->
+    <div class="modal" id="manifestModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="manifestModalTitle">Content Manifest</h3>
+                <button class="close-btn" onclick="closeManifestModal()">&times;</button>
+            </div>
+
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+                This manifest lists all content available for devices connected to this hub.
+            </p>
+
+            <div id="manifestContent" style="max-height: 400px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Force uppercase for hub code input
+        document.getElementById('hubCode').addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+        });
+
+        // Create hub form
+        document.getElementById('createHubForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const code = document.getElementById('hubCode').value;
+            const name = document.getElementById('hubName').value;
+            const networkId = document.getElementById('networkSelect').value;
+            const statusDiv = document.getElementById('createStatus');
+
+            // Validate code format
+            if (!/^[A-Z]{2,4}$/.test(code)) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#fee2e2';
+                statusDiv.style.color = '#991b1b';
+                statusDiv.textContent = '❌ Hub code must be 2-4 uppercase letters';
+                return;
+            }
+
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#e0e7ff';
+            statusDiv.style.color = '#3730a3';
+            statusDiv.textContent = '⏳ Creating hub...';
+
+            try {
+                const response = await fetch('/api/v1/hubs/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        code: code,
+                        name: name,
+                        network_id: networkId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.style.background = '#d1fae5';
+                    statusDiv.style.color = '#065f46';
+                    statusDiv.textContent = `✅ Hub "${name}" created successfully!`;
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    statusDiv.style.background = '#fee2e2';
+                    statusDiv.style.color = '#991b1b';
+                    statusDiv.textContent = `❌ Error: ${data.error || 'Failed to create hub'}`;
+                }
+            } catch (error) {
+                statusDiv.style.background = '#fee2e2';
+                statusDiv.style.color = '#991b1b';
+                statusDiv.textContent = `❌ Failed: ${error.message}`;
+            }
+        });
+
+        // View content manifest
+        async function viewManifest(hubId, hubCode) {
+            document.getElementById('manifestModalTitle').textContent = `Content Manifest - ${hubCode}`;
+            document.getElementById('manifestModal').classList.add('active');
+
+            const contentDiv = document.getElementById('manifestContent');
+            contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">Loading...</div>';
+
+            try {
+                const response = await fetch(`/api/v1/hubs/${hubId}/content-manifest`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.content && data.content.length > 0) {
+                        let html = '<div style="font-size: 13px; margin-bottom: 15px; color: #64748b;">Manifest Version: ' + data.manifest_version + ' • ' + data.count + ' items</div>';
+                        html += '<table style="width: 100%; border-collapse: collapse;">';
+                        html += '<thead><tr style="background: #f8fafc;"><th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Filename</th><th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Type</th><th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Size</th></tr></thead>';
+                        html += '<tbody>';
+
+                        data.content.forEach(item => {
+                            const size = formatFileSize(item.file_size);
+                            html += `<tr style="border-bottom: 1px solid #e2e8f0;">`;
+                            html += `<td style="padding: 10px;"><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${item.filename}</code></td>`;
+                            html += `<td style="padding: 10px;">${item.mime_type}</td>`;
+                            html += `<td style="padding: 10px;">${size}</td>`;
+                            html += `</tr>`;
+                        });
+
+                        html += '</tbody></table>';
+                        contentDiv.innerHTML = html;
+                    } else {
+                        contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">No content assigned to this hub\'s network</div>';
+                    }
+                } else {
+                    contentDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                contentDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Failed to load manifest</div>`;
+            }
+        }
+
+        function closeManifestModal() {
+            document.getElementById('manifestModal').classList.remove('active');
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Toggle hub status
+        async function toggleStatus(hubId, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+            try {
+                const response = await fetch(`/api/v1/hubs/${hubId}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('❌ Failed to update hub status');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Delete hub
+        async function deleteHub(hubId, hubName) {
+            if (!confirm(`Delete hub "${hubName}"? This will not delete connected devices, but they will become disconnected from this hub.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/hubs/${hubId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert('❌ Failed to delete hub: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('manifestModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeManifestModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeManifestModal();
+            }
+        });
+    </script>
+</body>
+</html>
