@@ -34,6 +34,7 @@ from cms.models.network import Network
 from cms.models.hub import Hub
 from cms.models.device import Device
 from cms.models.content import Content
+from cms.models.playlist import Playlist, PlaylistItem
 
 __all__ = [
     'db',
@@ -42,4 +43,6 @@ __all__ = [
     'Hub',
     'Device',
     'Content',
+    'Playlist',
+    'PlaylistItem',
 ]
