@@ -67,6 +67,9 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Register error handlers
     _register_error_handlers(app)
 
+    # Register template context processor for current_user
+    _register_context_processors(app)
+
     # Register health check endpoint
     @app.route('/health')
     @app.route('/api/health')
@@ -327,6 +330,32 @@ def _register_error_handlers(app: Flask) -> None:
             'error': 'Internal Server Error',
             'message': 'An unexpected error occurred'
         }), 500
+
+
+def _register_context_processors(app: Flask) -> None:
+    """
+    Register template context processors.
+
+    Context processors inject variables into all templates automatically.
+    This is used to make the current_user available in all templates.
+
+    Args:
+        app: Flask application instance.
+    """
+    @app.context_processor
+    def inject_current_user():
+        """
+        Inject current_user into all templates.
+
+        Retrieves the current user from Flask's g object if available.
+        This is set by the @login_required decorator in auth utils.
+
+        Returns:
+            Dict with current_user key (may be None if not authenticated)
+        """
+        from flask import g
+        current_user = getattr(g, 'current_user', None)
+        return {'current_user': current_user}
 
 
 if __name__ == '__main__':
