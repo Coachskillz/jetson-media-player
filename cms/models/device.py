@@ -47,6 +47,15 @@ class Device(db.Model):
     last_seen = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # Camera 1 settings (demographics and loyalty recognition)
+    camera1_enabled = db.Column(db.Boolean, default=False)
+    camera1_demographics = db.Column(db.Boolean, default=False)
+    camera1_loyalty = db.Column(db.Boolean, default=False)
+
+    # Camera 2 settings (NCMEC detection)
+    camera2_enabled = db.Column(db.Boolean, default=False)
+    camera2_ncmec = db.Column(db.Boolean, default=False)
+
     # Relationships
     hub = db.relationship('Hub', backref=db.backref('devices', lazy='dynamic'))
     network = db.relationship('Network', backref=db.backref('devices', lazy='dynamic'))
@@ -68,7 +77,12 @@ class Device(db.Model):
             'name': self.name,
             'status': self.status,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'camera1_enabled': self.camera1_enabled,
+            'camera1_demographics': self.camera1_demographics,
+            'camera1_loyalty': self.camera1_loyalty,
+            'camera2_enabled': self.camera2_enabled,
+            'camera2_ncmec': self.camera2_ncmec
         }
 
     def __repr__(self):

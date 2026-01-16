@@ -3,8 +3,21 @@ DeviceAssignment Model for CMS Service.
 
 Represents the mapping between devices and playlists, allowing:
 - Assignment of playlists to specific devices
+- Trigger-based playlist activation (demographics, face detection, etc.)
 - Priority-based playlist ordering
 - Time-bounded assignments with start/end dates
+
+Supported trigger types:
+- default: Always plays (fallback content)
+- face_detected: Plays when any face is detected
+- age_child: Plays when child is detected
+- age_teen: Plays when teen is detected
+- age_adult: Plays when adult is detected
+- age_senior: Plays when senior is detected
+- gender_male: Plays when male is detected
+- gender_female: Plays when female is detected
+- loyalty_recognized: Plays when loyalty member is recognized
+- ncmec_alert: Plays during NCMEC alert (amber alert content)
 """
 
 from datetime import datetime, timezone
@@ -13,18 +26,34 @@ import uuid
 from cms.models import db
 
 
+# Valid trigger types for playlist assignments
+TRIGGER_TYPES = [
+    'default',          # Always plays (fallback content)
+    'face_detected',    # Plays when any face is detected
+    'age_child',        # Plays when child is detected (0-12)
+    'age_teen',         # Plays when teen is detected (13-19)
+    'age_adult',        # Plays when adult is detected (20-64)
+    'age_senior',       # Plays when senior is detected (65+)
+    'gender_male',      # Plays when male is detected
+    'gender_female',    # Plays when female is detected
+    'loyalty_recognized',  # Plays when loyalty member is recognized
+    'ncmec_alert',      # Plays during NCMEC alert (amber alert content)
+]
+
+
 class DeviceAssignment(db.Model):
     """
     SQLAlchemy model representing a device-to-playlist assignment.
 
-    A DeviceAssignment links a device to a playlist with additional
-    scheduling and priority information. Multiple playlists can be
-    assigned to a single device with different priorities and time windows.
+    A DeviceAssignment links a device to a playlist with trigger-based
+    activation, scheduling, and priority information. Multiple playlists
+    can be assigned to a single device with different triggers and priorities.
 
     Attributes:
         id: Unique UUID identifier
         device_id: Foreign key reference to the assigned device
         playlist_id: Foreign key reference to the assigned playlist
+        trigger_type: Type of trigger that activates this playlist
         priority: Priority level for playlist ordering (higher = more important)
         start_date: Optional start date for the assignment
         end_date: Optional end date for the assignment
@@ -46,6 +75,7 @@ class DeviceAssignment(db.Model):
         nullable=False,
         index=True
     )
+    trigger_type = db.Column(db.String(50), nullable=False, default='default', index=True)
     priority = db.Column(db.Integer, nullable=False, default=0)
     start_date = db.Column(db.DateTime, nullable=True)
     end_date = db.Column(db.DateTime, nullable=True)
@@ -66,6 +96,7 @@ class DeviceAssignment(db.Model):
             'id': self.id,
             'device_id': self.device_id,
             'playlist_id': self.playlist_id,
+            'trigger_type': self.trigger_type,
             'priority': self.priority,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,

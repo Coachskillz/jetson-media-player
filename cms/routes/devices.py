@@ -12,7 +12,8 @@ All endpoints are prefixed with /api/v1/devices when registered with the app.
 
 from flask import Blueprint, request, jsonify
 
-from cms.models import db, Device, Hub, Network, DeviceAssignment
+from cms.models import db, Device, Hub, Network, DeviceAssignment, Playlist
+from cms.models.device_assignment import TRIGGER_TYPES
 from cms.services.device_id import DeviceIDGenerator
 
 
@@ -356,3 +357,305 @@ def list_devices():
         'devices': [device.to_dict() for device in devices],
         'count': len(devices)
     }), 200
+
+
+@devices_bp.route('/<device_id>', methods=['GET'])
+def get_device(device_id):
+    """
+    Get a single device by ID.
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Returns:
+        200: Device details with assignments
+        404: Device not found
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Get device data with relationships
+    device_data = device.to_dict()
+
+    # Add hub info
+    if device.hub:
+        device_data['hub'] = {
+            'id': device.hub.id,
+            'code': device.hub.code,
+            'name': device.hub.name
+        }
+
+    # Add network info
+    if device.network:
+        device_data['network'] = {
+            'id': device.network.id,
+            'name': device.network.name
+        }
+
+    # Add playlist assignments with trigger info
+    assignments = DeviceAssignment.query.filter_by(device_id=device.id).all()
+    device_data['playlists'] = []
+    for assignment in assignments:
+        if assignment.playlist:
+            device_data['playlists'].append({
+                'assignment_id': assignment.id,
+                'playlist_id': assignment.playlist.id,
+                'playlist_name': assignment.playlist.name,
+                'trigger_type': assignment.trigger_type,
+                'priority': assignment.priority,
+                'start_date': assignment.start_date.isoformat() if assignment.start_date else None,
+                'end_date': assignment.end_date.isoformat() if assignment.end_date else None
+            })
+
+    return jsonify(device_data), 200
+
+
+@devices_bp.route('/<device_id>/settings', methods=['PATCH'])
+def update_device_settings(device_id):
+    """
+    Update device settings (camera configuration).
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Request Body:
+        {
+            "name": "optional new name",
+            "camera1_enabled": true,
+            "camera1_demographics": true,
+            "camera1_loyalty": false,
+            "camera2_enabled": true,
+            "camera2_ncmec": true
+        }
+
+    Returns:
+        200: Updated device
+        404: Device not found
+        400: Invalid data
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Update allowed fields
+    allowed_fields = [
+        'name',
+        'camera1_enabled',
+        'camera1_demographics',
+        'camera1_loyalty',
+        'camera2_enabled',
+        'camera2_ncmec'
+    ]
+
+    for field in allowed_fields:
+        if field in data:
+            value = data[field]
+            # Validate boolean fields
+            if field.startswith('camera') and not isinstance(value, bool):
+                return jsonify({
+                    'error': f'{field} must be a boolean'
+                }), 400
+            # Validate name
+            if field == 'name' and value is not None:
+                if not isinstance(value, str) or len(value) > 200:
+                    return jsonify({
+                        'error': 'name must be a string with max 200 characters'
+                    }), 400
+            setattr(device, field, value)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to update device: {str(e)}'
+        }), 500
+
+    return jsonify({
+        'message': 'Device settings updated successfully',
+        'device': device.to_dict()
+    }), 200
+
+
+@devices_bp.route('/<device_id>/playlists', methods=['POST'])
+def add_device_playlist(device_id):
+    """
+    Add a playlist assignment to a device with trigger type.
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Request Body:
+        {
+            "playlist_id": "uuid-of-playlist" (required),
+            "trigger_type": "default" (required, one of TRIGGER_TYPES),
+            "priority": 0 (optional, default 0),
+            "start_date": "2024-01-15T10:00:00Z" (optional),
+            "end_date": "2024-01-20T18:00:00Z" (optional)
+        }
+
+    Returns:
+        201: Assignment created
+        400: Invalid data
+        404: Device or playlist not found
+        409: Assignment already exists for this trigger
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Validate playlist_id
+    playlist_id = data.get('playlist_id')
+    if not playlist_id:
+        return jsonify({'error': 'playlist_id is required'}), 400
+
+    playlist = db.session.get(Playlist, playlist_id)
+    if not playlist:
+        return jsonify({'error': f'Playlist with id {playlist_id} not found'}), 404
+
+    # Validate trigger_type
+    trigger_type = data.get('trigger_type', 'default')
+    if trigger_type not in TRIGGER_TYPES:
+        return jsonify({
+            'error': f'Invalid trigger_type. Must be one of: {", ".join(TRIGGER_TYPES)}'
+        }), 400
+
+    # Check if assignment already exists for this device and trigger
+    existing = DeviceAssignment.query.filter_by(
+        device_id=device.id,
+        trigger_type=trigger_type
+    ).first()
+
+    if existing:
+        return jsonify({
+            'error': f'Assignment for trigger "{trigger_type}" already exists. Delete it first to assign a new playlist.'
+        }), 409
+
+    # Parse optional dates
+    start_date = None
+    end_date = None
+    if data.get('start_date'):
+        try:
+            from datetime import datetime
+            start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format. Use ISO 8601.'}), 400
+
+    if data.get('end_date'):
+        try:
+            from datetime import datetime
+            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format. Use ISO 8601.'}), 400
+
+    # Create assignment
+    assignment = DeviceAssignment(
+        device_id=device.id,
+        playlist_id=playlist_id,
+        trigger_type=trigger_type,
+        priority=data.get('priority', 0),
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    try:
+        db.session.add(assignment)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to create assignment: {str(e)}'
+        }), 500
+
+    return jsonify({
+        'message': 'Playlist assigned successfully',
+        'assignment': assignment.to_dict()
+    }), 201
+
+
+@devices_bp.route('/<device_id>/playlists/<assignment_id>', methods=['DELETE'])
+def remove_device_playlist(device_id, assignment_id):
+    """
+    Remove a playlist assignment from a device.
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+        assignment_id: Assignment ID (UUID)
+
+    Returns:
+        200: Assignment deleted
+        404: Device or assignment not found
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Find assignment
+    assignment = DeviceAssignment.query.filter_by(
+        id=assignment_id,
+        device_id=device.id
+    ).first()
+
+    if not assignment:
+        return jsonify({'error': 'Assignment not found'}), 404
+
+    try:
+        db.session.delete(assignment)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to delete assignment: {str(e)}'
+        }), 500
+
+    return jsonify({
+        'message': 'Playlist assignment removed successfully'
+    }), 200
+
+
+@devices_bp.route('/trigger-types', methods=['GET'])
+def get_trigger_types():
+    """
+    Get list of available trigger types for playlist assignments.
+
+    Returns:
+        200: List of trigger types with descriptions
+    """
+    trigger_info = [
+        {'value': 'default', 'label': 'Default', 'description': 'Always plays (fallback content)'},
+        {'value': 'face_detected', 'label': 'Face Detected', 'description': 'Plays when any face is detected'},
+        {'value': 'age_child', 'label': 'Age: Child', 'description': 'Plays when child is detected (0-12)'},
+        {'value': 'age_teen', 'label': 'Age: Teen', 'description': 'Plays when teen is detected (13-19)'},
+        {'value': 'age_adult', 'label': 'Age: Adult', 'description': 'Plays when adult is detected (20-64)'},
+        {'value': 'age_senior', 'label': 'Age: Senior', 'description': 'Plays when senior is detected (65+)'},
+        {'value': 'gender_male', 'label': 'Gender: Male', 'description': 'Plays when male is detected'},
+        {'value': 'gender_female', 'label': 'Gender: Female', 'description': 'Plays when female is detected'},
+        {'value': 'loyalty_recognized', 'label': 'Loyalty Member', 'description': 'Plays when loyalty member is recognized'},
+        {'value': 'ncmec_alert', 'label': 'NCMEC Alert', 'description': 'Plays during NCMEC alert (amber alert content)'},
+    ]
+    return jsonify({'trigger_types': trigger_info}), 200

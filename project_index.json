@@ -24,6 +24,14 @@
       "dev_command": "python -m central_hub.app",
       "test_command": "pytest tests/",
       "description": "Central Hub Registry and NCMEC integration"
+    },
+    "content_catalog": {
+      "path": "content_catalog",
+      "tech_stack": ["python", "flask", "sqlite", "sqlalchemy", "flask-jwt-extended", "bcrypt", "flask-mail"],
+      "port": 5003,
+      "dev_command": "python app.py",
+      "test_command": "pytest tests/",
+      "description": "Content Catalog with user hierarchy, approval workflows, admin and partner portals"
     }
   },
   "infrastructure": {

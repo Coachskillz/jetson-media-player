@@ -9,9 +9,10 @@ Blueprint for web page rendering:
 - GET /playlists: Playlist management page
 """
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, abort
 
-from cms.models import db, Device, Hub, Content, Playlist, Network
+from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment
+from cms.models.device_assignment import TRIGGER_TYPES
 
 
 # Create web blueprint (no url_prefix since these are root-level pages)
@@ -177,4 +178,69 @@ def playlists_page():
         playlists=playlists,
         content=content,
         networks=networks
+    )
+
+
+@web_bp.route('/devices/<device_id>')
+def device_detail_page(device_id):
+    """
+    Device detail page with camera controls and playlist management.
+
+    Shows detailed device information including:
+    - Device status and metadata
+    - Camera 1 settings (demographics, loyalty recognition)
+    - Camera 2 settings (NCMEC detection)
+    - Assigned playlists with triggers
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Returns:
+        Rendered device_detail.html template with device data
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        abort(404)
+
+    # Get playlist assignments
+    assignments = DeviceAssignment.query.filter_by(device_id=device.id).all()
+    device_playlists = []
+    for assignment in assignments:
+        if assignment.playlist:
+            device_playlists.append({
+                'assignment_id': assignment.id,
+                'playlist_id': assignment.playlist.id,
+                'playlist_name': assignment.playlist.name,
+                'trigger_type': assignment.trigger_type,
+                'priority': assignment.priority
+            })
+
+    # Get all available playlists for assignment dropdown
+    all_playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
+
+    # Trigger type info for the UI
+    trigger_info = [
+        {'value': 'default', 'label': 'Default', 'description': 'Always plays (fallback content)', 'icon': '📺'},
+        {'value': 'face_detected', 'label': 'Face Detected', 'description': 'Plays when any face is detected', 'icon': '👤'},
+        {'value': 'age_child', 'label': 'Age: Child', 'description': 'Plays for children (0-12)', 'icon': '👶'},
+        {'value': 'age_teen', 'label': 'Age: Teen', 'description': 'Plays for teens (13-19)', 'icon': '🧑'},
+        {'value': 'age_adult', 'label': 'Age: Adult', 'description': 'Plays for adults (20-64)', 'icon': '👨'},
+        {'value': 'age_senior', 'label': 'Age: Senior', 'description': 'Plays for seniors (65+)', 'icon': '👴'},
+        {'value': 'gender_male', 'label': 'Gender: Male', 'description': 'Plays for male viewers', 'icon': '♂️'},
+        {'value': 'gender_female', 'label': 'Gender: Female', 'description': 'Plays for female viewers', 'icon': '♀️'},
+        {'value': 'loyalty_recognized', 'label': 'Loyalty Member', 'description': 'Plays for loyalty members', 'icon': '⭐'},
+        {'value': 'ncmec_alert', 'label': 'NCMEC Alert', 'description': 'Plays during NCMEC alert', 'icon': '🚨'},
+    ]
+
+    return render_template(
+        'device_detail.html',
+        active_page='devices',
+        device=device,
+        device_playlists=device_playlists,
+        all_playlists=all_playlists,
+        trigger_types=trigger_info
     )
