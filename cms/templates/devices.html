@@ -1,1045 +1,926 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Device Manager - Skillz Media Screens CMS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        h1 { 
-            font-size: 32px; 
-            margin-bottom: 8px;
-            font-weight: 800;
-        }
-        
-        .subtitle {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-        
-        .nav {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .nav a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
-            font-weight: 500;
-            font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .nav a:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
-        }
-        
-        .nav a.active {
-            background: white;
-            color: #667eea;
-            font-weight: 600;
-        }
-        
-        /* Locations Section */
-        .locations-section {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 25px;
-            margin: 20px 0;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-        
-        .locations-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .locations-section h3 {
-            font-size: 18px;
-            color: #1e293b;
-            font-weight: 700;
-        }
-        
-        .create-location-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .create-location-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        .locations-grid {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .location-btn {
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 2px solid transparent;
-            background: #f1f5f9;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            position: relative;
-        }
-        
-        .location-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .location-btn.active {
-            border-color: currentColor;
-            background: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .location-btn .count {
-            background: rgba(0, 0, 0, 0.1);
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .delete-location {
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 2px 6px;
-            font-size: 12px;
-            cursor: pointer;
-            margin-left: 8px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        
-        .location-btn:hover .delete-location {
-            opacity: 1;
-        }
-        
-        /* Pairing Box */
-        .pairing-box {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-        
-        .pairing-box h3 {
-            font-size: 18px;
-            color: #1e293b;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        .pairing-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            gap: 15px;
-            align-items: end;
-        }
-        
-        .form-group {
-            margin: 0;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #475569;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        #pairingCode {
-            font-size: 18px;
-            font-family: monospace;
-            letter-spacing: 2px;
-            text-align: center;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-        }
-        
-        #pairingStatus {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            display: none;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        /* Devices Grid */
-        .devices-section {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-        
-        .devices-section h3 {
-            font-size: 18px;
-            color: #1e293b;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        .devices-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-        }
-        
-        .device-card {
-            background: white;
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-        
-        .device-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        }
-        
-        .device-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        
-        .device-status {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            position: relative;
-            flex-shrink: 0;
-        }
-        
-        .device-status.online {
-            background: #10b981;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
-        }
-        
-        .device-status.online::before {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #10b981;
-            animation: pulse 2s infinite;
-        }
-        
-        .device-status.offline {
-            background: #ef4444;
-            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
-        }
-        
-        .device-status.pending {
-            background: #f59e0b;
-            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
-            animation: blink 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0; transform: scale(1.8); }
-        }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        
-        .device-info {
-            flex: 1;
-        }
-        
-        .device-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 8px;
-        }
-        
-        .device-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 13px;
-            color: #64748b;
-        }
-        
-        .device-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .location-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 5px;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .badge-online {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .badge-offline {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .badge-pending {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .device-playlists {
-            margin: 15px 0;
-        }
-        
-        .section-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .playlist-item {
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border-left: 3px solid #667eea;
-        }
-        
-        .playlist-name {
-            font-weight: 600;
-            color: #1e293b;
-            font-size: 14px;
-        }
-        
-        .playlist-trigger {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-        }
-        
-        .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.3;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        
-        .modal-header h3 {
-            font-size: 22px;
-            color: #1e293b;
-            font-weight: 700;
-        }
-        
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: #64748b;
-            transition: color 0.2s;
-        }
-        
-        .close-btn:hover {
-            color: #1e293b;
-        }
-        
-        /* Icon & Color Pickers */
-        .icon-picker {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 8px;
-            margin: 15px 0;
-        }
-        
-        .icon-option {
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            cursor: pointer;
-            text-align: center;
-            font-size: 24px;
-            transition: all 0.2s;
-        }
-        
-        .icon-option:hover {
-            border-color: #667eea;
-            transform: scale(1.1);
-        }
-        
-        .icon-option.selected {
-            border-color: #667eea;
-            background: #eef2ff;
-        }
-        
-        .color-picker {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .color-option {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.2s;
-        }
-        
-        .color-option:hover {
-            transform: scale(1.1);
-        }
-        
-        .color-option.selected {
-            border-color: #1e293b;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
-        .btn-assign {
-            background: #10b981;
-            width: 100%;
-            margin-top: 15px;
-        }
-        
-        .btn-assign:hover {
-            background: #059669;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="container">
-            <h1>🎬 Skillz Media Screens CMS</h1>
-            <div class="subtitle">AI-Powered Digital Signage Management</div>
-            <div class="nav">
-                <a href="/">Dashboard</a>
-                <a href="/content">Content Library</a>
-                <a href="/devices" class="active">Devices</a>
-                <a href="/playlists">Playlists</a>
-            </div>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Device Manager - Skillz Media Screens CMS{% endblock %}
+
+{% block extra_styles %}
+/* Locations Section */
+.locations-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.locations-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.locations-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.create-location-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.create-location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.locations-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.location-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.location-btn.active {
+    border-color: currentColor;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.location-btn .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.delete-location {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.location-btn:hover .delete-location {
+    opacity: 1;
+}
+
+/* Pairing Box */
+.pairing-box {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.pairing-box h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.pairing-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 15px;
+    align-items: end;
+}
+
+.form-group {
+    margin: 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#pairingCode {
+    font-size: 18px;
+    font-family: monospace;
+    letter-spacing: 2px;
+    text-align: center;
+}
+
+#pairingStatus {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 10px;
+    display: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Devices Grid */
+.devices-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.devices-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.device-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.device-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.device-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.device-status {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.device-status.online {
+    background: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+.device-status.online::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulse 2s infinite;
+}
+
+.device-status.offline {
+    background: #ef4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
+}
+
+.device-status.pending {
+    background: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+    animation: blink 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0; transform: scale(1.8); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.device-info {
+    flex: 1;
+}
+
+.device-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.device-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.device-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.location-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+.badge-online {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-offline {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.device-playlists {
+    margin: 15px 0;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.playlist-item {
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid #667eea;
+}
+
+.playlist-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.playlist-trigger {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header h3 {
+    font-size: 22px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #1e293b;
+}
+
+/* Icon & Color Pickers */
+.icon-picker {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.icon-option {
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 24px;
+    transition: all 0.2s;
+}
+
+.icon-option:hover {
+    border-color: #667eea;
+    transform: scale(1.1);
+}
+
+.icon-option.selected {
+    border-color: #667eea;
+    background: #eef2ff;
+}
+
+.color-picker {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.color-option {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected {
+    border-color: #1e293b;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-assign {
+    background: #10b981;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.btn-assign:hover {
+    background: #059669;
+}
+{% endblock %}
+
+{% block content %}
+<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📱 Device Manager</h2>
+
+<!-- Locations -->
+<div class="locations-section">
+    <div class="locations-header">
+        <h3>📍 Locations</h3>
+        <button class="create-location-btn" onclick="openCreateLocation()">
+            ➕ Create Location
+        </button>
     </div>
-    
-    <div class="container">
-        <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📱 Device Manager</h2>
-        
-        <!-- Locations -->
-        <div class="locations-section">
-            <div class="locations-header">
-                <h3>📍 Locations</h3>
-                <button class="create-location-btn" onclick="openCreateLocation()">
-                    ➕ Create Location
-                </button>
-            </div>
-            <div class="locations-grid">
-                <button class="location-btn active" style="color: #64748b;" onclick="filterLocation(null)">
-                    🌍 All Locations
-                    <span class="count" id="count-all">{{ devices|length }}</span>
-                </button>
+    <div class="locations-grid">
+        <button class="location-btn active" style="color: #64748b;" onclick="filterLocation(null)">
+            🌍 All Locations
+            <span class="count" id="count-all">{{ devices|length }}</span>
+        </button>
+        {% for location in locations %}
+        <button class="location-btn" style="color: {{ location.color }};" onclick="filterLocation({{ location.id }})">
+            {{ location.icon }} {{ location.name }}
+            <span class="count" id="count-{{ location.id }}">0</span>
+            <button class="delete-location" onclick="event.stopPropagation(); deleteLocation({{ location.id }}, '{{ location.name }}')">×</button>
+        </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Pairing Box -->
+<div class="pairing-box">
+    <h3>🔗 Pair New Device</h3>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+        Enter the 6-digit code displayed on the device screen to approve pairing
+    </p>
+    <form id="pairingForm" class="pairing-form">
+        <div class="form-group">
+            <label>6-Digit Pairing Code</label>
+            <input type="text" id="pairingCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required>
+        </div>
+        <div class="form-group">
+            <label>Assign to Location</label>
+            <select id="locationSelect">
+                <option value="">No Location</option>
                 {% for location in locations %}
-                <button class="location-btn" style="color: {{ location.color }};" onclick="filterLocation({{ location.id }})">
-                    {{ location.icon }} {{ location.name }}
-                    <span class="count" id="count-{{ location.id }}">0</span>
-                    <button class="delete-location" onclick="event.stopPropagation(); deleteLocation({{ location.id }}, '{{ location.name }}')">×</button>
-                </button>
+                <option value="{{ location.id }}">{{ location.icon }} {{ location.name }}</option>
                 {% endfor %}
-            </div>
+            </select>
         </div>
-        
-        <!-- Pairing Box -->
-        <div class="pairing-box">
-            <h3>🔗 Pair New Device</h3>
-            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-                Enter the 6-digit code displayed on the device screen to approve pairing
-            </p>
-            <form id="pairingForm" class="pairing-form">
-                <div class="form-group">
-                    <label>6-Digit Pairing Code</label>
-                    <input type="text" id="pairingCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required>
-                </div>
-                <div class="form-group">
-                    <label>Assign to Location</label>
-                    <select id="locationSelect">
-                        <option value="">No Location</option>
-                        {% for location in locations %}
-                        <option value="{{ location.id }}">{{ location.icon }} {{ location.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="btn">✓ Approve</button>
-            </form>
-            <div id="pairingStatus"></div>
-        </div>
-        
-        <!-- Devices Grid -->
-        <div class="devices-section">
-            <h3 id="devicesHeader">All Devices ({{ devices|length }})</h3>
-            
-            {% if devices %}
-            <div class="devices-grid">
-                {% for device in devices %}
-                <div class="device-card" data-location="{{ device.location_id or '' }}">
-                    <div class="device-header">
-                        <div class="device-status" id="status-{{ device.id }}"></div>
-                        <div class="device-info">
-                            <div class="device-name">{{ device.name }}</div>
-                            <div class="device-meta">
-                                {% if device.location_name %}
-                                <div class="device-meta-item">
-                                    <div class="location-badge" style="background: {{ device.location_color }}20; color: {{ device.location_color }};">
-                                        {{ device.location_icon }} {{ device.location_name }}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% if device.mac_address %}
-                                <div class="device-meta-item">
-                                    <strong>MAC:</strong> {{ device.mac_address }}
-                                </div>
-                                {% endif %}
-                                {% if device.last_seen %}
-                                <div class="device-meta-item">
-                                    <strong>Last Seen:</strong> <span id="time-{{ device.id }}">{{ device.last_seen }}</span>
-                                </div>
-                                {% endif %}
+        <button type="submit" class="btn btn-primary">✓ Approve</button>
+    </form>
+    <div id="pairingStatus"></div>
+</div>
+
+<!-- Devices Grid -->
+<div class="devices-section">
+    <h3 id="devicesHeader">All Devices ({{ devices|length }})</h3>
+
+    {% if devices %}
+    <div class="devices-grid">
+        {% for device in devices %}
+        <div class="device-card" data-location="{{ device.location_id or '' }}">
+            <div class="device-header">
+                <div class="device-status" id="status-{{ device.id }}"></div>
+                <div class="device-info">
+                    <div class="device-name">{{ device.name }}</div>
+                    <div class="device-meta">
+                        {% if device.location_name %}
+                        <div class="device-meta-item">
+                            <div class="location-badge" style="background: {{ device.location_color }}20; color: {{ device.location_color }};">
+                                {{ device.location_icon }} {{ device.location_name }}
                             </div>
-                            <span class="badge" id="badge-{{ device.id }}"></span>
-                        </div>
-                    </div>
-                    
-                    {% if device.paired == 1 %}
-                    <div class="device-playlists">
-                        <div class="section-title">📋 Assigned Playlists</div>
-                        {% if device.assigned_playlists %}
-                        {% for playlist in device.assigned_playlists %}
-                        <div class="playlist-item">
-                            <div class="playlist-name">{{ playlist.name }}</div>
-                            <div class="playlist-trigger">
-                                Trigger: {{ playlist.trigger_type }}
-                                {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; color: #94a3b8; font-size: 13px;">
-                            No playlists assigned
                         </div>
                         {% endif %}
-                        
-                        <button class="btn btn-assign" onclick="openAssignPlaylist('{{ device.id }}', '{{ device.name }}')">
-                            ➕ Assign Playlist
-                        </button>
+                        {% if device.mac_address %}
+                        <div class="device-meta-item">
+                            <strong>MAC:</strong> {{ device.mac_address }}
+                        </div>
+                        {% endif %}
+                        {% if device.last_seen %}
+                        <div class="device-meta-item">
+                            <strong>Last Seen:</strong> <span id="time-{{ device.id }}">{{ device.last_seen }}</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <button class="btn" style="width: 100%;" onclick="quickPair('{{ device.pairing_code }}')">
-                        ✓ Quick Pair
-                    </button>
-                    {% endif %}
+                    <span class="badge" id="badge-{{ device.id }}"></span>
+                </div>
+            </div>
+
+            {% if device.paired == 1 %}
+            <div class="device-playlists">
+                <div class="section-title">📋 Assigned Playlists</div>
+                {% if device.assigned_playlists %}
+                {% for playlist in device.assigned_playlists %}
+                <div class="playlist-item">
+                    <div class="playlist-name">{{ playlist.name }}</div>
+                    <div class="playlist-trigger">
+                        Trigger: {{ playlist.trigger_type }}
+                        {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %}
+                    </div>
                 </div>
                 {% endfor %}
+                {% else %}
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; color: #94a3b8; font-size: 13px;">
+                    No playlists assigned
+                </div>
+                {% endif %}
+
+                <button class="btn btn-assign" onclick="openAssignPlaylist('{{ device.id }}', '{{ device.name }}')">
+                    ➕ Assign Playlist
+                </button>
             </div>
             {% else %}
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                </svg>
-                <p style="font-size: 18px;">No devices yet</p>
-                <p>Devices will appear here when they request pairing</p>
-            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="quickPair('{{ device.pairing_code }}')">
+                ✓ Quick Pair
+            </button>
             {% endif %}
         </div>
+        {% endfor %}
     </div>
-    
-    <!-- Create Location Modal -->
-    <div class="modal" id="createLocationModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Create New Location</h3>
-                <button class="close-btn" onclick="closeCreateLocation()">&times;</button>
-            </div>
-            
-            <form id="createLocationForm">
-                <div class="form-group">
-                    <label>Location Name</label>
-                    <input type="text" id="locationName" placeholder="e.g., Store A, Headquarters" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Address (Optional)</label>
-                    <input type="text" id="locationAddress" placeholder="123 Main St, City, State">
-                </div>
-                
-                <div class="form-group">
-                    <label>Choose Icon</label>
-                    <div class="icon-picker">
-                        <div class="icon-option selected" data-icon="📍">📍</div>
-                        <div class="icon-option" data-icon="🏢">🏢</div>
-                        <div class="icon-option" data-icon="🏪">🏪</div>
-                        <div class="icon-option" data-icon="🏬">🏬</div>
-                        <div class="icon-option" data-icon="🏭">🏭</div>
-                        <div class="icon-option" data-icon="🏛️">🏛️</div>
-                        <div class="icon-option" data-icon="🏟️">🏟️</div>
-                        <div class="icon-option" data-icon="🏨">🏨</div>
-                        <div class="icon-option" data-icon="🏦">🏦</div>
-                        <div class="icon-option" data-icon="🏥">🏥</div>
-                        <div class="icon-option" data-icon="⛪">⛪</div>
-                        <div class="icon-option" data-icon="🌆">🌆</div>
-                        <div class="icon-option" data-icon="🗺️">🗺️</div>
-                        <div class="icon-option" data-icon="🌍">🌍</div>
-                        <div class="icon-option" data-icon="🏠">🏠</div>
-                        <div class="icon-option" data-icon="🏡">🏡</div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Choose Color</label>
-                    <div class="color-picker">
-                        <div class="color-option selected" style="background: #667eea;" data-color="#667eea"></div>
-                        <div class="color-option" style="background: #10b981;" data-color="#10b981"></div>
-                        <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6"></div>
-                        <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"></div>
-                        <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
-                        <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"></div>
-                        <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
-                        <div class="color-option" style="background: #14b8a6;" data-color="#14b8a6"></div>
-                        <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
-                        <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
-                        <div class="color-option" style="background: #84cc16;" data-color="#84cc16"></div>
-                        <div class="color-option" style="background: #64748b;" data-color="#64748b"></div>
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn" style="width: 100%;">Create Location</button>
-            </form>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📱</div>
+        <h3>No devices yet</h3>
+        <p>Devices will appear here when they request pairing</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Location Modal -->
+<div class="modal" id="createLocationModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Location</h3>
+            <button class="close-btn" onclick="closeCreateLocation()">&times;</button>
         </div>
-    </div>
-    
-    <!-- Assign Playlist Modal -->
-    <div class="modal" id="assignModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="assignModalTitle">Assign Playlist</h3>
-                <button class="close-btn" onclick="closeAssignModal()">&times;</button>
-            </div>
-            
-            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-                Select a playlist to assign to this device. The device will download and cache the content for offline playback.
-            </p>
-            
+
+        <form id="createLocationForm">
             <div class="form-group">
-                <label>Select Playlist</label>
-                <select id="playlistSelect" style="width: 100%;">
-                    <option value="">Choose a playlist...</option>
-                    {% for playlist in playlists %}
-                    <option value="{{ playlist.id }}">
-                        {{ playlist.name }} ({{ playlist.trigger_type }}
-                        {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %})
-                    </option>
-                    {% endfor %}
-                </select>
+                <label>Location Name</label>
+                <input type="text" id="locationName" placeholder="e.g., Store A, Headquarters" required>
             </div>
-            
-            <button class="btn" style="width: 100%;" onclick="assignPlaylist()">Assign to Device</button>
-        </div>
+
+            <div class="form-group">
+                <label>Address (Optional)</label>
+                <input type="text" id="locationAddress" placeholder="123 Main St, City, State">
+            </div>
+
+            <div class="form-group">
+                <label>Choose Icon</label>
+                <div class="icon-picker">
+                    <div class="icon-option selected" data-icon="📍">📍</div>
+                    <div class="icon-option" data-icon="🏢">🏢</div>
+                    <div class="icon-option" data-icon="🏪">🏪</div>
+                    <div class="icon-option" data-icon="🏬">🏬</div>
+                    <div class="icon-option" data-icon="🏭">🏭</div>
+                    <div class="icon-option" data-icon="🏛️">🏛️</div>
+                    <div class="icon-option" data-icon="🏟️">🏟️</div>
+                    <div class="icon-option" data-icon="🏨">🏨</div>
+                    <div class="icon-option" data-icon="🏦">🏦</div>
+                    <div class="icon-option" data-icon="🏥">🏥</div>
+                    <div class="icon-option" data-icon="⛪">⛪</div>
+                    <div class="icon-option" data-icon="🌆">🌆</div>
+                    <div class="icon-option" data-icon="🗺️">🗺️</div>
+                    <div class="icon-option" data-icon="🌍">🌍</div>
+                    <div class="icon-option" data-icon="🏠">🏠</div>
+                    <div class="icon-option" data-icon="🏡">🏡</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Choose Color</label>
+                <div class="color-picker">
+                    <div class="color-option selected" style="background: #667eea;" data-color="#667eea"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981"></div>
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
+                    <div class="color-option" style="background: #14b8a6;" data-color="#14b8a6"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16"></div>
+                    <div class="color-option" style="background: #64748b;" data-color="#64748b"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Location</button>
+        </form>
     </div>
-    
-    <script>
-        let currentDeviceId = null;
-        let selectedLocationIcon = '📍';
-        let selectedLocationColor = '#667eea';
-        
-        // Update device statuses
-        function isOnline(lastSeenStr) {
-            if (!lastSeenStr) return false;
-            const lastSeen = new Date(lastSeenStr);
-            const now = new Date();
-            const diff = (now - lastSeen) / 1000 / 60;
-            return diff < 5;
-        }
-        
-        function updateDeviceStatuses() {
-            document.querySelectorAll('.device-card').forEach(card => {
-                const statusEl = card.querySelector('[id^="status-"]');
-                const badgeEl = card.querySelector('[id^="badge-"]');
-                const timeEl = card.querySelector('[id^="time-"]');
-                
-                if (!statusEl || !badgeEl) return;
-                
-                const isPaired = !card.querySelector('.btn:not(.btn-assign)');
-                const lastSeen = timeEl ? timeEl.textContent : null;
-                
-                if (!isPaired) {
-                    statusEl.className = 'device-status pending';
-                    badgeEl.className = 'badge badge-pending';
-                    badgeEl.textContent = '⏳ PENDING';
-                } else if (isOnline(lastSeen)) {
-                    statusEl.className = 'device-status online';
-                    badgeEl.className = 'badge badge-online';
-                    badgeEl.textContent = '● ONLINE';
-                } else {
-                    statusEl.className = 'device-status offline';
-                    badgeEl.className = 'badge badge-offline';
-                    badgeEl.textContent = '○ OFFLINE';
-                }
+</div>
+
+<!-- Assign Playlist Modal -->
+<div class="modal" id="assignModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="assignModalTitle">Assign Playlist</h3>
+            <button class="close-btn" onclick="closeAssignModal()">&times;</button>
+        </div>
+
+        <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+            Select a playlist to assign to this device. The device will download and cache the content for offline playback.
+        </p>
+
+        <div class="form-group">
+            <label>Select Playlist</label>
+            <select id="playlistSelect" style="width: 100%;">
+                <option value="">Choose a playlist...</option>
+                {% for playlist in playlists %}
+                <option value="{{ playlist.id }}">
+                    {{ playlist.name }} ({{ playlist.trigger_type }}
+                    {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="assignPlaylist()">Assign to Device</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentDeviceId = null;
+    let selectedLocationIcon = '📍';
+    let selectedLocationColor = '#667eea';
+
+    // Update device statuses
+    function isOnline(lastSeenStr) {
+        if (!lastSeenStr) return false;
+        const lastSeen = new Date(lastSeenStr);
+        const now = new Date();
+        const diff = (now - lastSeen) / 1000 / 60;
+        return diff < 5;
+    }
+
+    function updateDeviceStatuses() {
+        document.querySelectorAll('.device-card').forEach(card => {
+            const statusEl = card.querySelector('[id^="status-"]');
+            const badgeEl = card.querySelector('[id^="badge-"]');
+            const timeEl = card.querySelector('[id^="time-"]');
+
+            if (!statusEl || !badgeEl) return;
+
+            const isPaired = !card.querySelector('.btn-primary:not(.btn-assign)');
+            const lastSeen = timeEl ? timeEl.textContent : null;
+
+            if (!isPaired) {
+                statusEl.className = 'device-status pending';
+                badgeEl.className = 'badge badge-pending';
+                badgeEl.textContent = '⏳ PENDING';
+            } else if (isOnline(lastSeen)) {
+                statusEl.className = 'device-status online';
+                badgeEl.className = 'badge badge-online';
+                badgeEl.textContent = '● ONLINE';
+            } else {
+                statusEl.className = 'device-status offline';
+                badgeEl.className = 'badge badge-offline';
+                badgeEl.textContent = '○ OFFLINE';
+            }
+        });
+    }
+
+    updateDeviceStatuses();
+
+    // Update location counts
+    function updateLocationCounts() {
+        const cards = document.querySelectorAll('.device-card');
+        const counts = {};
+
+        cards.forEach(card => {
+            const locationId = card.dataset.location;
+            if (locationId) {
+                counts[locationId] = (counts[locationId] || 0) + 1;
+            }
+        });
+
+        Object.keys(counts).forEach(locationId => {
+            const el = document.getElementById(`count-${locationId}`);
+            if (el) el.textContent = counts[locationId];
+        });
+
+        document.getElementById('count-all').textContent = cards.length;
+    }
+
+    updateLocationCounts();
+
+    // Filter by location
+    function filterLocation(locationId) {
+        const cards = document.querySelectorAll('.device-card');
+        const buttons = document.querySelectorAll('.location-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.location-btn').classList.add('active');
+
+        let visibleCount = 0;
+        cards.forEach(card => {
+            if (locationId === null || card.dataset.location == locationId) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        const locationName = locationId === null ? 'All Locations' : event.target.textContent.split('\n')[0].trim();
+        document.getElementById('devicesHeader').textContent = `${locationName} (${visibleCount})`;
+    }
+
+    // Pairing
+    document.getElementById('pairingForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const code = document.getElementById('pairingCode').value;
+        const locationId = document.getElementById('locationSelect').value || null;
+        const statusDiv = document.getElementById('pairingStatus');
+
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#e0e7ff';
+        statusDiv.style.color = '#3730a3';
+        statusDiv.textContent = '⏳ Approving device...';
+
+        try {
+            const response = await fetch('/api/admin/pairing/approve', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ pairing_code: code, location_id: locationId })
             });
-        }
-        
-        updateDeviceStatuses();
-        
-        // Update location counts
-        function updateLocationCounts() {
-            const cards = document.querySelectorAll('.device-card');
-            const counts = {};
-            
-            cards.forEach(card => {
-                const locationId = card.dataset.location;
-                if (locationId) {
-                    counts[locationId] = (counts[locationId] || 0) + 1;
-                }
-            });
-            
-            Object.keys(counts).forEach(locationId => {
-                const el = document.getElementById(`count-${locationId}`);
-                if (el) el.textContent = counts[locationId];
-            });
-            
-            document.getElementById('count-all').textContent = cards.length;
-        }
-        
-        updateLocationCounts();
-        
-        // Filter by location
-        function filterLocation(locationId) {
-            const cards = document.querySelectorAll('.device-card');
-            const buttons = document.querySelectorAll('.location-btn');
-            
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.closest('.location-btn').classList.add('active');
-            
-            let visibleCount = 0;
-            cards.forEach(card => {
-                if (locationId === null || card.dataset.location == locationId) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            const locationName = locationId === null ? 'All Locations' : event.target.textContent.split('\n')[0].trim();
-            document.getElementById('devicesHeader').textContent = `${locationName} (${visibleCount})`;
-        }
-        
-        // Pairing
-        document.getElementById('pairingForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const code = document.getElementById('pairingCode').value;
-            const locationId = document.getElementById('locationSelect').value || null;
-            const statusDiv = document.getElementById('pairingStatus');
-            
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#e0e7ff';
-            statusDiv.style.color = '#3730a3';
-            statusDiv.textContent = '⏳ Approving device...';
-            
-            try {
-                const response = await fetch('/api/admin/pairing/approve', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ pairing_code: code, location_id: locationId })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    statusDiv.style.background = '#d1fae5';
-                    statusDiv.style.color = '#065f46';
-                    statusDiv.textContent = `✅ Device paired successfully! ${data.name}`;
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    statusDiv.style.background = '#fee2e2';
-                    statusDiv.style.color = '#991b1b';
-                    statusDiv.textContent = `❌ Error: ${data.error || 'Invalid pairing code'}`;
-                }
-            } catch (error) {
+
+            const data = await response.json();
+
+            if (response.ok) {
+                statusDiv.style.background = '#d1fae5';
+                statusDiv.style.color = '#065f46';
+                statusDiv.textContent = `✅ Device paired successfully! ${data.name}`;
+                setTimeout(() => location.reload(), 2000);
+            } else {
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = `❌ Failed: ${error.message}`;
+                statusDiv.textContent = `❌ Error: ${data.error || 'Invalid pairing code'}`;
             }
+        } catch (error) {
+            statusDiv.style.background = '#fee2e2';
+            statusDiv.style.color = '#991b1b';
+            statusDiv.textContent = `❌ Failed: ${error.message}`;
+        }
+    });
+
+    function quickPair(code) {
+        document.getElementById('pairingCode').value = code;
+        document.getElementById('locationSelect').focus();
+    }
+
+    // Create Location Modal
+    function openCreateLocation() {
+        document.getElementById('createLocationModal').classList.add('active');
+    }
+
+    function closeCreateLocation() {
+        document.getElementById('createLocationModal').classList.remove('active');
+    }
+
+    // Icon & Color selection for locations
+    document.querySelectorAll('#createLocationModal .icon-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('#createLocationModal .icon-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedLocationIcon = this.dataset.icon;
         });
-        
-        function quickPair(code) {
-            document.getElementById('pairingCode').value = code;
-            document.getElementById('locationSelect').focus();
-        }
-        
-        // Create Location Modal
-        function openCreateLocation() {
-            document.getElementById('createLocationModal').classList.add('active');
-        }
-        
-        function closeCreateLocation() {
-            document.getElementById('createLocationModal').classList.remove('active');
-        }
-        
-        // Icon & Color selection for locations
-        document.querySelectorAll('#createLocationModal .icon-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('#createLocationModal .icon-option').forEach(o => o.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedLocationIcon = this.dataset.icon;
+    });
+
+    document.querySelectorAll('#createLocationModal .color-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('#createLocationModal .color-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedLocationColor = this.dataset.color;
+        });
+    });
+
+    // Create location form
+    document.getElementById('createLocationForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('locationName').value;
+        const address = document.getElementById('locationAddress').value;
+
+        try {
+            const response = await fetch('/api/locations', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    address: address,
+                    icon: selectedLocationIcon,
+                    color: selectedLocationColor
+                })
             });
-        });
-        
-        document.querySelectorAll('#createLocationModal .color-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('#createLocationModal .color-option').forEach(o => o.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedLocationColor = this.dataset.color;
+
+            if (response.ok) {
+                alert('✅ Location created successfully!');
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert('❌ Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('❌ Failed to create location');
+        }
+    });
+
+    // Delete location
+    async function deleteLocation(locationId, locationName) {
+        if (!confirm(`Delete location "${locationName}"? Devices will not be deleted.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/locations/${locationId}`, {
+                method: 'DELETE'
             });
-        });
-        
-        // Create location form
-        document.getElementById('createLocationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('locationName').value;
-            const address = document.getElementById('locationAddress').value;
-            
-            try {
-                const response = await fetch('/api/locations', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        name: name,
-                        address: address,
-                        icon: selectedLocationIcon,
-                        color: selectedLocationColor
-                    })
-                });
-                
-                if (response.ok) {
-                    alert('✅ Location created successfully!');
-                    location.reload();
-                } else {
-                    const data = await response.json();
-                    alert('❌ Error: ' + data.error);
-                }
-            } catch (error) {
-                alert('❌ Failed to create location');
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('❌ Failed to delete location');
             }
-        });
-        
-        // Delete location
-        async function deleteLocation(locationId, locationName) {
-            if (!confirm(`Delete location "${locationName}"? Devices will not be deleted.`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/locations/${locationId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    alert('❌ Failed to delete location');
-                }
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
         }
-        
-        // Assign Playlist Modal
-        function openAssignPlaylist(deviceId, deviceName) {
-            currentDeviceId = deviceId;
-            document.getElementById('assignModalTitle').textContent = `Assign Playlist to ${deviceName}`;
-            document.getElementById('assignModal').classList.add('active');
+    }
+
+    // Assign Playlist Modal
+    function openAssignPlaylist(deviceId, deviceName) {
+        currentDeviceId = deviceId;
+        document.getElementById('assignModalTitle').textContent = `Assign Playlist to ${deviceName}`;
+        document.getElementById('assignModal').classList.add('active');
+    }
+
+    function closeAssignModal() {
+        document.getElementById('assignModal').classList.remove('active');
+    }
+
+    async function assignPlaylist() {
+        const playlistId = document.getElementById('playlistSelect').value;
+
+        if (!playlistId) {
+            alert('Please select a playlist');
+            return;
         }
-        
-        function closeAssignModal() {
-            document.getElementById('assignModal').classList.remove('active');
-        }
-        
-        async function assignPlaylist() {
-            const playlistId = document.getElementById('playlistSelect').value;
-            
-            if (!playlistId) {
-                alert('Please select a playlist');
-                return;
+
+        try {
+            const response = await fetch(`/api/devices/${currentDeviceId}/assign-playlist`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ playlist_id: playlistId })
+            });
+
+            if (response.ok) {
+                alert('✅ Playlist assigned successfully! Device will sync content on next check-in.');
+                location.reload();
+            } else {
+                alert('❌ Failed to assign playlist');
             }
-            
-            try {
-                const response = await fetch(`/api/devices/${currentDeviceId}/assign-playlist`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ playlist_id: playlistId })
-                });
-                
-                if (response.ok) {
-                    alert('✅ Playlist assigned successfully! Device will sync content on next check-in.');
-                    location.reload();
-                } else {
-                    alert('❌ Failed to assign playlist');
-                }
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
         }
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}
