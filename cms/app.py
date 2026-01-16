@@ -7,6 +7,7 @@ configures the Flask application. It initializes:
 - Blueprint registration (when available)
 - Error handlers
 - Logging configuration
+- Default user seeding (Super Admin and Admin)
 
 Usage:
     # Development
@@ -18,6 +19,7 @@ Usage:
 
 import logging
 import os
+import secrets
 from datetime import datetime
 from typing import Optional
 
@@ -51,9 +53,10 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Initialize extensions
     db.init_app(app)
 
-    # Create database tables
+    # Create database tables and seed default users
     with app.app_context():
         db.create_all()
+        _seed_default_users(app)
 
     # Configure logging
     _configure_logging(app)
@@ -80,6 +83,79 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         })
 
     return app
+
+
+def _seed_default_users(app: Flask) -> None:
+    """
+    Seed default user accounts on first run.
+
+    Creates two default accounts if they don't exist:
+    - Matt Skillman (mattskillz@skillzmedia.com) - Super Admin
+    - Susan Croom (Susan.croom@skillzmedia.com) - Admin
+
+    Both accounts are created with:
+    - must_change_password=True (force password change on first login)
+    - status='active' (ready to use immediately)
+    - Randomly generated temporary passwords (logged at INFO level)
+
+    Args:
+        app: Flask application instance.
+    """
+    try:
+        from cms.models import User
+    except ImportError:
+        app.logger.debug('User model not available yet, skipping user seeding')
+        return
+
+    # Default accounts to create
+    default_users = [
+        {
+            'email': 'mattskillz@skillzmedia.com',
+            'name': 'Matt Skillman',
+            'role': 'super_admin',
+            'phone': None,
+        },
+        {
+            'email': 'Susan.croom@skillzmedia.com',
+            'name': 'Susan Croom',
+            'role': 'admin',
+            'phone': None,
+        },
+    ]
+
+    for user_data in default_users:
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=user_data['email']).first()
+        if existing_user:
+            app.logger.debug(f"User {user_data['email']} already exists, skipping")
+            continue
+
+        # Generate a secure temporary password
+        temp_password = secrets.token_urlsafe(16)
+
+        # Create the user
+        user = User(
+            email=user_data['email'],
+            name=user_data['name'],
+            role=user_data['role'],
+            phone=user_data['phone'],
+            status='active',
+            must_change_password=True,
+        )
+        user.set_password(temp_password)
+
+        db.session.add(user)
+        app.logger.info(
+            f"Created default {user_data['role']} user: {user_data['email']} "
+            f"(temporary password: {temp_password})"
+        )
+
+    # Commit all new users
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Failed to seed default users: {e}")
 
 
 def _configure_logging(app: Flask) -> None:
@@ -171,6 +247,46 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.info('Registered web blueprint at /')
     except ImportError:
         app.logger.debug('Web blueprint not available yet')
+
+    # Authentication Blueprint - login, logout, password management
+    try:
+        from cms.routes import auth_bp
+        app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+        app.logger.info('Registered auth blueprint at /api/v1/auth')
+    except ImportError:
+        app.logger.debug('Auth blueprint not available yet')
+
+    # Users Blueprint - user management (CRUD, approve, suspend, deactivate)
+    try:
+        from cms.routes import users_bp
+        app.register_blueprint(users_bp, url_prefix='/api/v1/users')
+        app.logger.info('Registered users blueprint at /api/v1/users')
+    except ImportError:
+        app.logger.debug('Users blueprint not available yet')
+
+    # Invitations Blueprint - user invitation system
+    try:
+        from cms.routes import invitations_bp
+        app.register_blueprint(invitations_bp, url_prefix='/api/v1/invitations')
+        app.logger.info('Registered invitations blueprint at /api/v1/invitations')
+    except ImportError:
+        app.logger.debug('Invitations blueprint not available yet')
+
+    # Sessions Blueprint - session management (list, revoke)
+    try:
+        from cms.routes import sessions_bp
+        app.register_blueprint(sessions_bp, url_prefix='/api/v1/sessions')
+        app.logger.info('Registered sessions blueprint at /api/v1/sessions')
+    except ImportError:
+        app.logger.debug('Sessions blueprint not available yet')
+
+    # Audit Blueprint - audit log viewing and export
+    try:
+        from cms.routes import audit_bp
+        app.register_blueprint(audit_bp, url_prefix='/api/v1/audit-logs')
+        app.logger.info('Registered audit blueprint at /api/v1/audit-logs')
+    except ImportError:
+        app.logger.debug('Audit blueprint not available yet')
 
 
 def _register_error_handlers(app: Flask) -> None:
