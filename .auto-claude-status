@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "003-build-the-ncmec-database-management-loyalty-databa",
+  "spec": "009-task-build-skillz-media-cms-web-interface",
   "state": "building",
   "subtasks": {
-    "completed": 28,
-    "total": 30,
+    "completed": 19,
+    "total": 32,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Integration & Verification",
+    "current": "Web UI Routes & Templates",
     "id": null,
-    "total": 3
+    "total": 6
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 29,
-    "started_at": "2026-01-15T14:12:55.799041"
+    "number": 20,
+    "started_at": "2026-01-15T21:08:15.403312"
   },
-  "last_update": "2026-01-15T15:43:07.563653"
+  "last_update": "2026-01-15T21:54:08.568316"
 }
