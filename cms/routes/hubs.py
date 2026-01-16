@@ -14,6 +14,8 @@ import re
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Hub, Network, Content
+from cms.utils.auth import login_required
+from cms.utils.audit import log_action
 
 
 # Create hubs blueprint
@@ -126,10 +128,27 @@ def register_hub():
             'error': f'Failed to create hub: {str(e)}'
         }), 500
 
+    # Log hub registration (hub-initiated action)
+    log_action(
+        action='hub.register',
+        action_category='hubs',
+        resource_type='hub',
+        resource_id=hub.id,
+        resource_name=hub.code,
+        user_email='hub',
+        details={
+            'code': code,
+            'name': name,
+            'network_id': network_id,
+            'network_name': network.name,
+        }
+    )
+
     return jsonify(hub.to_dict()), 201
 
 
 @hubs_bp.route('', methods=['GET'])
+@login_required
 def list_hubs():
     """
     List all registered hubs.
@@ -171,6 +190,7 @@ def list_hubs():
 
 
 @hubs_bp.route('/<hub_id>', methods=['GET'])
+@login_required
 def get_hub(hub_id):
     """
     Get a specific hub by ID.

@@ -1,0 +1,1059 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - Skillz Media Screens CMS{% endblock %}
+
+{% block extra_styles %}
+/* Filters Section */
+.filters-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filters-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.export-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 15px;
+    align-items: end;
+}
+
+.filter-group {
+    margin: 0;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filter-btn {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    background: #e2e8f0;
+}
+
+/* Category Pills */
+.category-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.category-pill {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.category-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.category-pill.active {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.category-pill .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.category-pill.all { border-color: #64748b; color: #64748b; }
+.category-pill.auth { border-color: #667eea; color: #667eea; }
+.category-pill.users { border-color: #3b82f6; color: #3b82f6; }
+.category-pill.devices { border-color: #10b981; color: #10b981; }
+.category-pill.content { border-color: #f59e0b; color: #f59e0b; }
+.category-pill.playlists { border-color: #ec4899; color: #ec4899; }
+.category-pill.layouts { border-color: #8b5cf6; color: #8b5cf6; }
+.category-pill.hubs { border-color: #14b8a6; color: #14b8a6; }
+.category-pill.system { border-color: #ef4444; color: #ef4444; }
+
+/* Logs Section */
+.logs-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logs-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+/* Audit Log Table */
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.audit-table th {
+    text-align: left;
+    padding: 16px;
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.audit-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1e293b;
+    font-size: 14px;
+    vertical-align: top;
+}
+
+.audit-table tr:hover td {
+    background: #f8fafc;
+}
+
+.audit-table tr {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+/* Category Badge */
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.category-badge.auth {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.category-badge.users {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.category-badge.devices {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.category-badge.content {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.category-badge.playlists {
+    background: #fce7f3;
+    color: #9d174d;
+}
+
+.category-badge.layouts {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.category-badge.hubs {
+    background: #ccfbf1;
+    color: #115e59;
+}
+
+.category-badge.system {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Action Text */
+.action-text {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.resource-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* User Info */
+.user-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-email {
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.user-name {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.user-role {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* IP/Time Info */
+.meta-info {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pagination-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: #64748b;
+    padding: 0 20px;
+}
+
+.page-input {
+    width: 60px;
+    padding: 8px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.page-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Detail Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 700px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header h3 {
+    font-size: 22px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #1e293b;
+}
+
+.detail-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.detail-section h4 {
+    font-size: 14px;
+    color: #475569;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: #64748b;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #1e293b;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-all;
+}
+
+.details-json {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 15px;
+    border-radius: 10px;
+    font-family: monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Loading State */
+.loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Date Range */
+.date-range-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.date-range-row .filter-group {
+    flex: 1;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .filters-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .category-pills {
+        justify-content: center;
+    }
+
+    .audit-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+    .filters-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📋 Audit Logs</h2>
+
+<!-- Filters Section -->
+<div class="filters-section">
+    <div class="filters-header">
+        <h3>🔍 Filter Logs</h3>
+        <button class="export-btn" onclick="exportLogs()">
+            📥 Export CSV
+        </button>
+    </div>
+
+    <div class="filters-grid">
+        <div class="filter-group">
+            <label>Category</label>
+            <select id="categoryFilter" onchange="applyFilters()">
+                <option value="">All Categories</option>
+                <option value="auth">Authentication</option>
+                <option value="users">Users</option>
+                <option value="devices">Devices</option>
+                <option value="content">Content</option>
+                <option value="playlists">Playlists</option>
+                <option value="layouts">Layouts</option>
+                <option value="hubs">Hubs</option>
+                <option value="system">System</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>User Email</label>
+            <input type="text" id="userFilter" placeholder="Search by email..." onkeyup="debounceSearch()">
+        </div>
+        <div class="filter-group">
+            <label>Action</label>
+            <input type="text" id="actionFilter" placeholder="Search by action..." onkeyup="debounceSearch()">
+        </div>
+        <div class="filter-group">
+            <label>IP Address</label>
+            <input type="text" id="ipFilter" placeholder="Search by IP..." onkeyup="debounceSearch()">
+        </div>
+        <button class="filter-btn" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <div class="date-range-row">
+        <div class="filter-group">
+            <label>Start Date</label>
+            <input type="datetime-local" id="startDateFilter" onchange="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>End Date</label>
+            <input type="datetime-local" id="endDateFilter" onchange="applyFilters()">
+        </div>
+    </div>
+
+    <div class="category-pills">
+        <button class="category-pill all active" onclick="filterByCategory(null)">
+            🌐 All <span class="count" id="count-all">0</span>
+        </button>
+        <button class="category-pill auth" onclick="filterByCategory('auth')">
+            🔐 Auth <span class="count" id="count-auth">0</span>
+        </button>
+        <button class="category-pill users" onclick="filterByCategory('users')">
+            👥 Users <span class="count" id="count-users">0</span>
+        </button>
+        <button class="category-pill devices" onclick="filterByCategory('devices')">
+            📱 Devices <span class="count" id="count-devices">0</span>
+        </button>
+        <button class="category-pill content" onclick="filterByCategory('content')">
+            📁 Content <span class="count" id="count-content">0</span>
+        </button>
+        <button class="category-pill playlists" onclick="filterByCategory('playlists')">
+            🎵 Playlists <span class="count" id="count-playlists">0</span>
+        </button>
+        <button class="category-pill hubs" onclick="filterByCategory('hubs')">
+            🏢 Hubs <span class="count" id="count-hubs">0</span>
+        </button>
+        <button class="category-pill system" onclick="filterByCategory('system')">
+            ⚙️ System <span class="count" id="count-system">0</span>
+        </button>
+    </div>
+</div>
+
+<!-- Logs Section -->
+<div class="logs-section">
+    <div class="logs-header">
+        <h3 id="logsHeader">Audit Logs (<span id="logsCount">0</span>)</h3>
+    </div>
+
+    <div id="loadingState" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading audit logs...</p>
+    </div>
+
+    <div id="logsContent" style="display: none;">
+        <table class="audit-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Category</th>
+                    <th>Action</th>
+                    <th>Resource</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody id="logsTableBody">
+                <!-- Logs will be loaded dynamically -->
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            <button class="pagination-btn" id="prevBtn" onclick="goToPage(currentPage - 1)">
+                ← Previous
+            </button>
+            <span class="pagination-info">
+                Page <input type="number" class="page-input" id="pageInput" min="1" onchange="goToPage(parseInt(this.value))">
+                of <span id="totalPages">1</span>
+            </span>
+            <button class="pagination-btn" id="nextBtn" onclick="goToPage(currentPage + 1)">
+                Next →
+            </button>
+        </div>
+    </div>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-state-icon">📋</div>
+        <h3>No audit logs found</h3>
+        <p>Try adjusting your filters or check back later</p>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal" id="detailModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Audit Log Details</h3>
+            <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+        </div>
+
+        <div class="detail-section">
+            <h4>Action Information</h4>
+            <div class="detail-row">
+                <span class="detail-label">ID</span>
+                <span class="detail-value" id="detail-id"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Timestamp</span>
+                <span class="detail-value" id="detail-timestamp"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Category</span>
+                <span class="detail-value" id="detail-category"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Action</span>
+                <span class="detail-value" id="detail-action"></span>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h4>User Information</h4>
+            <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value" id="detail-user-email"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value" id="detail-user-name"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Role</span>
+                <span class="detail-value" id="detail-user-role"></span>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Resource Information</h4>
+            <div class="detail-row">
+                <span class="detail-label">Type</span>
+                <span class="detail-value" id="detail-resource-type"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">ID</span>
+                <span class="detail-value" id="detail-resource-id"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value" id="detail-resource-name"></span>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Request Information</h4>
+            <div class="detail-row">
+                <span class="detail-label">IP Address</span>
+                <span class="detail-value" id="detail-ip"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">User Agent</span>
+                <span class="detail-value" id="detail-user-agent"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Session ID</span>
+                <span class="detail-value" id="detail-session-id"></span>
+            </div>
+        </div>
+
+        <div class="detail-section" id="detailsSection">
+            <h4>Additional Details</h4>
+            <pre class="details-json" id="detail-json"></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let allLogs = [];
+    let currentPage = 1;
+    let totalPages = 1;
+    let perPage = 50;
+    let searchTimeout = null;
+
+    // Load logs on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLogs();
+        loadSummary();
+    });
+
+    async function loadLogs() {
+        showLoading(true);
+
+        try {
+            const params = new URLSearchParams();
+            params.append('page', currentPage);
+            params.append('per_page', perPage);
+
+            const category = document.getElementById('categoryFilter').value;
+            const userEmail = document.getElementById('userFilter').value;
+            const action = document.getElementById('actionFilter').value;
+            const ip = document.getElementById('ipFilter').value;
+            const startDate = document.getElementById('startDateFilter').value;
+            const endDate = document.getElementById('endDateFilter').value;
+
+            if (category) params.append('action_category', category);
+            if (userEmail) params.append('user_email', userEmail);
+            if (action) params.append('action', action);
+            if (ip) params.append('ip_address', ip);
+            if (startDate) params.append('start_date', new Date(startDate).toISOString());
+            if (endDate) params.append('end_date', new Date(endDate).toISOString());
+
+            const response = await fetch(`/api/v1/audit-logs?${params.toString()}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                allLogs = data.audit_logs;
+                totalPages = data.pagination.pages || 1;
+                currentPage = data.pagination.page;
+
+                renderLogs(allLogs);
+                updatePagination(data.pagination);
+            } else {
+                showError(data.error || 'Failed to load audit logs');
+            }
+        } catch (error) {
+            showError('Failed to load audit logs: ' + error.message);
+        }
+
+        showLoading(false);
+    }
+
+    async function loadSummary() {
+        try {
+            const response = await fetch('/api/v1/audit-logs/summary?days=30');
+            const data = await response.json();
+
+            if (response.ok) {
+                document.getElementById('count-all').textContent = data.total_actions;
+
+                const categories = data.by_category || {};
+                Object.keys(categories).forEach(cat => {
+                    const el = document.getElementById(`count-${cat}`);
+                    if (el) el.textContent = categories[cat];
+                });
+            }
+        } catch (error) {
+            // Silently fail for summary
+        }
+    }
+
+    function renderLogs(logs) {
+        const tbody = document.getElementById('logsTableBody');
+        const emptyState = document.getElementById('emptyState');
+        const content = document.getElementById('logsContent');
+        const logsCount = document.getElementById('logsCount');
+
+        logsCount.textContent = logs.length;
+
+        if (logs.length === 0) {
+            content.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        content.style.display = 'block';
+
+        tbody.innerHTML = logs.map(log => `
+            <tr onclick="showLogDetail('${log.id}')">
+                <td>
+                    <div class="meta-info">
+                        ${formatDate(log.created_at)}
+                    </div>
+                </td>
+                <td>
+                    <div class="user-info-cell">
+                        <span class="user-email">${escapeHtml(log.user_email)}</span>
+                        ${log.user_name ? `<span class="user-name">${escapeHtml(log.user_name)}</span>` : ''}
+                        ${log.user_role ? `<span class="user-role">${formatRole(log.user_role)}</span>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <span class="category-badge ${log.action_category}">
+                        ${getCategoryIcon(log.action_category)} ${log.action_category}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-text">${escapeHtml(log.action)}</div>
+                </td>
+                <td>
+                    ${log.resource_type ? `
+                    <div class="resource-text">
+                        <strong>${escapeHtml(log.resource_type)}</strong>
+                        ${log.resource_name ? `<br>${escapeHtml(log.resource_name)}` : ''}
+                    </div>
+                    ` : '<span class="meta-info">-</span>'}
+                </td>
+                <td>
+                    <div class="meta-info">${log.ip_address || '-'}</div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updatePagination(pagination) {
+        document.getElementById('pageInput').value = pagination.page;
+        document.getElementById('totalPages').textContent = pagination.pages || 1;
+        document.getElementById('prevBtn').disabled = !pagination.has_prev;
+        document.getElementById('nextBtn').disabled = !pagination.has_next;
+    }
+
+    function goToPage(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        loadLogs();
+    }
+
+    function filterByCategory(category) {
+        document.querySelectorAll('.category-pill').forEach(pill => pill.classList.remove('active'));
+
+        if (category) {
+            document.querySelector(`.category-pill.${category}`).classList.add('active');
+            document.getElementById('categoryFilter').value = category;
+        } else {
+            document.querySelector('.category-pill.all').classList.add('active');
+            document.getElementById('categoryFilter').value = '';
+        }
+
+        currentPage = 1;
+        loadLogs();
+    }
+
+    function applyFilters() {
+        currentPage = 1;
+        loadLogs();
+    }
+
+    function debounceSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            loadLogs();
+        }, 300);
+    }
+
+    function clearFilters() {
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('userFilter').value = '';
+        document.getElementById('actionFilter').value = '';
+        document.getElementById('ipFilter').value = '';
+        document.getElementById('startDateFilter').value = '';
+        document.getElementById('endDateFilter').value = '';
+        document.querySelectorAll('.category-pill').forEach(pill => pill.classList.remove('active'));
+        document.querySelector('.category-pill.all').classList.add('active');
+        currentPage = 1;
+        loadLogs();
+    }
+
+    async function showLogDetail(logId) {
+        try {
+            const response = await fetch(`/api/v1/audit-logs/${logId}`);
+            const log = await response.json();
+
+            if (response.ok) {
+                document.getElementById('detail-id').textContent = log.id;
+                document.getElementById('detail-timestamp').textContent = formatDate(log.created_at);
+                document.getElementById('detail-category').textContent = log.action_category;
+                document.getElementById('detail-action').textContent = log.action;
+
+                document.getElementById('detail-user-email').textContent = log.user_email || '-';
+                document.getElementById('detail-user-name').textContent = log.user_name || '-';
+                document.getElementById('detail-user-role').textContent = formatRole(log.user_role) || '-';
+
+                document.getElementById('detail-resource-type').textContent = log.resource_type || '-';
+                document.getElementById('detail-resource-id').textContent = log.resource_id || '-';
+                document.getElementById('detail-resource-name').textContent = log.resource_name || '-';
+
+                document.getElementById('detail-ip').textContent = log.ip_address || '-';
+                document.getElementById('detail-user-agent').textContent = log.user_agent || '-';
+                document.getElementById('detail-session-id').textContent = log.session_id || '-';
+
+                const detailsSection = document.getElementById('detailsSection');
+                const detailJson = document.getElementById('detail-json');
+
+                if (log.details) {
+                    try {
+                        const parsed = JSON.parse(log.details);
+                        detailJson.textContent = JSON.stringify(parsed, null, 2);
+                        detailsSection.style.display = 'block';
+                    } catch {
+                        detailJson.textContent = log.details;
+                        detailsSection.style.display = 'block';
+                    }
+                } else {
+                    detailsSection.style.display = 'none';
+                }
+
+                document.getElementById('detailModal').classList.add('active');
+            } else {
+                showError(log.error || 'Failed to load log details');
+            }
+        } catch (error) {
+            showError('Failed to load log details: ' + error.message);
+        }
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').classList.remove('active');
+    }
+
+    function exportLogs() {
+        const params = new URLSearchParams();
+
+        const category = document.getElementById('categoryFilter').value;
+        const userEmail = document.getElementById('userFilter').value;
+        const startDate = document.getElementById('startDateFilter').value;
+        const endDate = document.getElementById('endDateFilter').value;
+
+        if (category) params.append('action_category', category);
+        if (userEmail) params.append('user_email', userEmail);
+        if (startDate) params.append('start_date', new Date(startDate).toISOString());
+        if (endDate) params.append('end_date', new Date(endDate).toISOString());
+
+        window.location.href = `/api/v1/audit-logs/export?${params.toString()}`;
+    }
+
+    function showLoading(show) {
+        document.getElementById('loadingState').style.display = show ? 'block' : 'none';
+        if (show) {
+            document.getElementById('logsContent').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+    }
+
+    // Utility functions
+    function formatRole(role) {
+        if (!role) return '-';
+        const roles = {
+            'super_admin': 'Super Admin',
+            'admin': 'Admin',
+            'content_manager': 'Content Manager',
+            'viewer': 'Viewer'
+        };
+        return roles[role] || role;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    function getCategoryIcon(category) {
+        const icons = {
+            'auth': '🔐',
+            'users': '👥',
+            'devices': '📱',
+            'content': '📁',
+            'playlists': '🎵',
+            'layouts': '📐',
+            'hubs': '🏢',
+            'system': '⚙️'
+        };
+        return icons[category] || '📋';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showError(message) {
+        alert('❌ ' + message);
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDetailModal();
+        }
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('detailModal')) {
+            closeDetailModal();
+        }
+    });
+</script>
+{% endblock %}

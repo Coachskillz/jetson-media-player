@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network
+from cms.utils.auth import login_required
+from cms.utils.audit import log_action
 from cms.models.playlist import TriggerType
 
 
@@ -50,6 +52,7 @@ def _parse_datetime(datetime_str):
 
 
 @playlists_bp.route('', methods=['POST'])
+@login_required
 def create_playlist():
     """
     Create a new playlist.
@@ -123,10 +126,26 @@ def create_playlist():
             'error': f'Failed to create playlist: {str(e)}'
         }), 500
 
+    # Log playlist creation
+    log_action(
+        action='playlist.create',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'name': name,
+            'network_id': network_id,
+            'trigger_type': trigger_type,
+            'is_active': playlist.is_active,
+        }
+    )
+
     return jsonify(playlist.to_dict()), 201
 
 
 @playlists_bp.route('', methods=['GET'])
+@login_required
 def list_playlists():
     """
     List all playlists.
@@ -180,6 +199,7 @@ def list_playlists():
 
 
 @playlists_bp.route('/<playlist_id>', methods=['GET'])
+@login_required
 def get_playlist(playlist_id):
     """
     Get details for a specific playlist including all items.
@@ -223,6 +243,7 @@ def get_playlist(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>', methods=['PUT'])
+@login_required
 def update_playlist(playlist_id):
     """
     Update a playlist.
@@ -268,6 +289,9 @@ def update_playlist(playlist_id):
     if not data:
         return jsonify({'error': 'Request body is required'}), 400
 
+    # Track changes for audit log
+    changes = {}
+
     # Update name if provided
     if 'name' in data:
         name = data['name']
@@ -275,10 +299,14 @@ def update_playlist(playlist_id):
             return jsonify({
                 'error': 'name must be a string with max 200 characters'
             }), 400
+        if playlist.name != name:
+            changes['name'] = {'before': playlist.name, 'after': name}
         playlist.name = name
 
     # Update description if provided
     if 'description' in data:
+        if playlist.description != data['description']:
+            changes['description'] = {'before': playlist.description, 'after': data['description']}
         playlist.description = data['description']
 
     # Update network_id if provided
@@ -290,6 +318,8 @@ def update_playlist(playlist_id):
                 return jsonify({
                     'error': f'Network with id {network_id} not found'
                 }), 400
+        if playlist.network_id != network_id:
+            changes['network_id'] = {'before': playlist.network_id, 'after': network_id}
         playlist.network_id = network_id
 
     # Update trigger_type if provided
@@ -300,15 +330,22 @@ def update_playlist(playlist_id):
             return jsonify({
                 'error': f"Invalid trigger_type: {trigger_type}. Valid values: {', '.join(valid_trigger_types)}"
             }), 400
+        if playlist.trigger_type != trigger_type:
+            changes['trigger_type'] = {'before': playlist.trigger_type, 'after': trigger_type}
         playlist.trigger_type = trigger_type
 
     # Update trigger_config if provided
     if 'trigger_config' in data:
+        if playlist.trigger_config != data['trigger_config']:
+            changes['trigger_config'] = {'before': playlist.trigger_config, 'after': data['trigger_config']}
         playlist.trigger_config = data['trigger_config']
 
     # Update is_active if provided
     if 'is_active' in data:
-        playlist.is_active = bool(data['is_active'])
+        new_is_active = bool(data['is_active'])
+        if playlist.is_active != new_is_active:
+            changes['is_active'] = {'before': playlist.is_active, 'after': new_is_active}
+        playlist.is_active = new_is_active
 
     try:
         db.session.commit()
@@ -318,10 +355,22 @@ def update_playlist(playlist_id):
             'error': f'Failed to update playlist: {str(e)}'
         }), 500
 
+    # Log playlist update
+    if changes:
+        log_action(
+            action='playlist.update',
+            action_category='playlists',
+            resource_type='playlist',
+            resource_id=playlist.id,
+            resource_name=playlist.name,
+            details={'changes': changes}
+        )
+
     return jsonify(playlist.to_dict()), 200
 
 
 @playlists_bp.route('/<playlist_id>', methods=['DELETE'])
+@login_required
 def delete_playlist(playlist_id):
     """
     Delete a playlist and all its items.
@@ -355,8 +404,11 @@ def delete_playlist(playlist_id):
     if not playlist:
         return jsonify({'error': 'Playlist not found'}), 404
 
-    # Store id for response
+    # Store info for audit log and response before deleting
     playlist_id_response = playlist.id
+    playlist_name = playlist.name
+    network_id = playlist.network_id
+    item_count = len(playlist.items) if playlist.items else 0
 
     try:
         db.session.delete(playlist)
@@ -367,6 +419,20 @@ def delete_playlist(playlist_id):
             'error': f'Failed to delete playlist: {str(e)}'
         }), 500
 
+    # Log playlist deletion
+    log_action(
+        action='playlist.delete',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist_id_response,
+        resource_name=playlist_name,
+        details={
+            'name': playlist_name,
+            'network_id': network_id,
+            'item_count': item_count,
+        }
+    )
+
     return jsonify({
         'message': 'Playlist deleted successfully',
         'id': playlist_id_response
@@ -374,6 +440,7 @@ def delete_playlist(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>/items', methods=['POST'])
+@login_required
 def add_playlist_item(playlist_id):
     """
     Add an item to a playlist.
@@ -479,10 +546,26 @@ def add_playlist_item(playlist_id):
             'error': f'Failed to add item to playlist: {str(e)}'
         }), 500
 
+    # Log playlist item addition
+    log_action(
+        action='playlist.add_item',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'item_id': playlist_item.id,
+            'content_id': content_id,
+            'content_name': content.original_name,
+            'position': position,
+        }
+    )
+
     return jsonify(playlist_item.to_dict()), 201
 
 
 @playlists_bp.route('/<playlist_id>/items/<item_id>', methods=['DELETE'])
+@login_required
 def remove_playlist_item(playlist_id, item_id):
     """
     Remove an item from a playlist.
@@ -532,9 +615,11 @@ def remove_playlist_item(playlist_id, item_id):
     if not playlist_item:
         return jsonify({'error': 'Playlist item not found'}), 404
 
-    # Store info for response
+    # Store info for audit log and response before deleting
     item_id_response = playlist_item.id
     removed_position = playlist_item.position
+    content_id = playlist_item.content_id
+    content_name = playlist_item.content.original_name if playlist_item.content else None
 
     try:
         db.session.delete(playlist_item)
@@ -555,6 +640,21 @@ def remove_playlist_item(playlist_id, item_id):
             'error': f'Failed to remove item from playlist: {str(e)}'
         }), 500
 
+    # Log playlist item removal
+    log_action(
+        action='playlist.remove_item',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'item_id': item_id_response,
+            'content_id': content_id,
+            'content_name': content_name,
+            'removed_position': removed_position,
+        }
+    )
+
     return jsonify({
         'message': 'Item removed from playlist',
         'id': item_id_response
@@ -562,6 +662,7 @@ def remove_playlist_item(playlist_id, item_id):
 
 
 @playlists_bp.route('/<playlist_id>/items/reorder', methods=['PUT'])
+@login_required
 def reorder_playlist_items(playlist_id):
     """
     Reorder items in a playlist.
@@ -639,6 +740,19 @@ def reorder_playlist_items(playlist_id):
         playlist_id=playlist_id
     ).order_by(PlaylistItem.position).all()
 
+    # Log the reorder action
+    log_action(
+        action='playlist.reorder_items',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'new_order': item_ids,
+            'item_count': len(item_ids),
+        }
+    )
+
     return jsonify({
         'message': 'Playlist items reordered',
         'items': [item.to_dict() for item in updated_items]
@@ -646,6 +760,7 @@ def reorder_playlist_items(playlist_id):
 
 
 @playlists_bp.route('/<playlist_id>/assign', methods=['POST'])
+@login_required
 def assign_playlist_to_device(playlist_id):
     """
     Assign a playlist to a device.
@@ -749,10 +864,26 @@ def assign_playlist_to_device(playlist_id):
             'error': f'Failed to create assignment: {str(e)}'
         }), 500
 
+    # Log playlist assignment to device
+    log_action(
+        action='playlist.assign_device',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'assignment_id': assignment.id,
+            'device_id': device_id,
+            'device_name': device.name or device.device_id,
+            'priority': priority,
+        }
+    )
+
     return jsonify(assignment.to_dict_with_relations()), 201
 
 
 @playlists_bp.route('/<playlist_id>/assign/<assignment_id>', methods=['DELETE'])
+@login_required
 def remove_device_assignment(playlist_id, assignment_id):
     """
     Remove a device assignment from a playlist.
@@ -802,8 +933,11 @@ def remove_device_assignment(playlist_id, assignment_id):
     if not assignment:
         return jsonify({'error': 'Assignment not found'}), 404
 
-    # Store id for response
+    # Store info for audit log and response before deleting
     assignment_id_response = assignment.id
+    device_id = assignment.device_id
+    device_name = assignment.device.name if assignment.device else None
+    device_device_id = assignment.device.device_id if assignment.device else None
 
     try:
         db.session.delete(assignment)
@@ -814,6 +948,20 @@ def remove_device_assignment(playlist_id, assignment_id):
             'error': f'Failed to remove assignment: {str(e)}'
         }), 500
 
+    # Log assignment removal
+    log_action(
+        action='playlist.unassign_device',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'assignment_id': assignment_id_response,
+            'device_id': device_id,
+            'device_name': device_name or device_device_id,
+        }
+    )
+
     return jsonify({
         'message': 'Assignment removed',
         'id': assignment_id_response
@@ -821,6 +969,7 @@ def remove_device_assignment(playlist_id, assignment_id):
 
 
 @playlists_bp.route('/<playlist_id>/assignments', methods=['GET'])
+@login_required
 def list_playlist_assignments(playlist_id):
     """
     List all device assignments for a playlist.

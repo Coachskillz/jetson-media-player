@@ -1,0 +1,1249 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Skillz Media Screens CMS{% endblock %}
+
+{% block extra_styles %}
+/* Filters Section */
+.filters-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filters-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.invite-user-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.invite-user-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr auto;
+    gap: 15px;
+    align-items: end;
+}
+
+.filter-group {
+    margin: 0;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filter-btn {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    background: #e2e8f0;
+}
+
+/* Status Pills */
+.status-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.status-pill {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-pill.active {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.status-pill .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-pill.all { border-color: #64748b; color: #64748b; }
+.status-pill.pending { border-color: #f59e0b; color: #f59e0b; }
+.status-pill.active-status { border-color: #10b981; color: #10b981; }
+.status-pill.suspended { border-color: #ef4444; color: #ef4444; }
+.status-pill.deactivated { border-color: #6b7280; color: #6b7280; }
+.status-pill.rejected { border-color: #dc2626; color: #dc2626; }
+
+/* Users Section */
+.users-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.users-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.users-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+}
+
+.user-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.user-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.user-card.status-pending { border-left: 4px solid #f59e0b; }
+.user-card.status-active { border-left: 4px solid #10b981; }
+.user-card.status-suspended { border-left: 4px solid #ef4444; }
+.user-card.status-deactivated { border-left: 4px solid #6b7280; }
+.user-card.status-rejected { border-left: 4px solid #dc2626; }
+
+.user-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+.user-avatar.super_admin { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.user-avatar.admin { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.user-avatar.content_manager { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.user-avatar.viewer { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-name a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.user-name a:hover {
+    color: #667eea;
+}
+
+.user-email {
+    font-size: 14px;
+    color: #64748b;
+    word-break: break-all;
+}
+
+.user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.user-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-meta-item strong {
+    color: #475569;
+}
+
+/* Role Badge */
+.role-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-badge.super_admin {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.role-badge.admin {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.role-badge.content_manager {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.role-badge.viewer {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.suspended {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge.deactivated {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.status-badge.rejected {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+/* User Actions */
+.user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.action-btn-small {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.action-btn-small:hover {
+    transform: translateY(-1px);
+}
+
+.action-btn-small.approve {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.action-btn-small.approve:hover {
+    background: #a7f3d0;
+}
+
+.action-btn-small.reject {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.action-btn-small.reject:hover {
+    background: #fecaca;
+}
+
+.action-btn-small.suspend {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.action-btn-small.suspend:hover {
+    background: #fde68a;
+}
+
+.action-btn-small.reactivate {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.action-btn-small.reactivate:hover {
+    background: #a7f3d0;
+}
+
+.action-btn-small.deactivate {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.action-btn-small.deactivate:hover {
+    background: #e5e7eb;
+}
+
+.action-btn-small.reset-password {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.action-btn-small.reset-password:hover {
+    background: #c7d2fe;
+}
+
+.action-btn-small.view-sessions {
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.action-btn-small.view-sessions:hover {
+    background: #dcfce7;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header h3 {
+    font-size: 22px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #1e293b;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 6px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.modal-actions .btn {
+    flex: 1;
+}
+
+.btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .users-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .status-pills {
+        justify-content: center;
+    }
+
+    .user-actions {
+        justify-content: center;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">👥 User Management</h2>
+
+<!-- Filters Section -->
+<div class="filters-section">
+    <div class="filters-header">
+        <h3>🔍 Filter Users</h3>
+        <button class="invite-user-btn" onclick="openInviteModal()">
+            ➕ Invite User
+        </button>
+    </div>
+
+    <div class="filters-grid">
+        <div class="filter-group">
+            <label>Status</label>
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+                <option value="deactivated">Deactivated</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Role</label>
+            <select id="roleFilter" onchange="applyFilters()">
+                <option value="">All Roles</option>
+                <option value="super_admin">Super Admin</option>
+                <option value="admin">Admin</option>
+                <option value="content_manager">Content Manager</option>
+                <option value="viewer">Viewer</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Search</label>
+            <input type="text" id="searchFilter" placeholder="Search by name or email..." onkeyup="debounceSearch()">
+        </div>
+        <button class="filter-btn" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <div class="status-pills">
+        <button class="status-pill all active" onclick="filterByStatus(null)">
+            🌐 All <span class="count" id="count-all">0</span>
+        </button>
+        <button class="status-pill pending" onclick="filterByStatus('pending')">
+            ⏳ Pending <span class="count" id="count-pending">0</span>
+        </button>
+        <button class="status-pill active-status" onclick="filterByStatus('active')">
+            ✅ Active <span class="count" id="count-active">0</span>
+        </button>
+        <button class="status-pill suspended" onclick="filterByStatus('suspended')">
+            ⚠️ Suspended <span class="count" id="count-suspended">0</span>
+        </button>
+        <button class="status-pill deactivated" onclick="filterByStatus('deactivated')">
+            🚫 Deactivated <span class="count" id="count-deactivated">0</span>
+        </button>
+        <button class="status-pill rejected" onclick="filterByStatus('rejected')">
+            ❌ Rejected <span class="count" id="count-rejected">0</span>
+        </button>
+    </div>
+</div>
+
+<!-- Users Grid -->
+<div class="users-section">
+    <h3 id="usersHeader">All Users (<span id="usersCount">0</span>)</h3>
+
+    <div class="users-grid" id="usersGrid">
+        <!-- Users will be loaded dynamically -->
+    </div>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-state-icon">👥</div>
+        <h3>No users found</h3>
+        <p>Try adjusting your filters or invite new users</p>
+    </div>
+</div>
+
+<!-- Invite User Modal -->
+<div class="modal" id="inviteModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Invite New User</h3>
+            <button class="close-btn" onclick="closeInviteModal()">&times;</button>
+        </div>
+
+        <form id="inviteForm" onsubmit="submitInvite(event)">
+            <div class="form-group">
+                <label>Email Address *</label>
+                <input type="email" id="inviteEmail" placeholder="user@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="inviteName" placeholder="John Doe" required>
+            </div>
+
+            <div class="form-group">
+                <label>Role *</label>
+                <select id="inviteRole" required>
+                    <option value="">Select a role...</option>
+                    <option value="content_manager">Content Manager</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+                <p class="form-hint">Higher roles can only be assigned by Super Admins</p>
+            </div>
+
+            <div class="form-group">
+                <label>Initial Password *</label>
+                <input type="password" id="invitePassword" placeholder="Min 12 characters" required>
+                <p class="form-hint">Must include: uppercase, lowercase, number, and special character</p>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeInviteModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Send Invitation</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Action Modal (for suspend, deactivate, reject, reset password) -->
+<div class="modal" id="actionModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="actionModalTitle">Confirm Action</h3>
+            <button class="close-btn" onclick="closeActionModal()">&times;</button>
+        </div>
+
+        <p id="actionModalDescription" style="color: #64748b; margin-bottom: 20px;"></p>
+
+        <form id="actionForm" onsubmit="submitAction(event)">
+            <input type="hidden" id="actionUserId">
+            <input type="hidden" id="actionType">
+
+            <div class="form-group" id="reasonGroup">
+                <label>Reason</label>
+                <textarea id="actionReason" placeholder="Enter reason..."></textarea>
+            </div>
+
+            <div class="form-group" id="passwordGroup" style="display: none;">
+                <label>New Password *</label>
+                <input type="password" id="newPassword" placeholder="Min 12 characters">
+                <p class="form-hint">Must include: uppercase, lowercase, number, and special character</p>
+            </div>
+
+            <div class="form-group" id="confirmGroup" style="display: none;">
+                <label>
+                    <input type="checkbox" id="confirmAction"> I understand this action is permanent
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeActionModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="actionSubmitBtn">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sessions Modal -->
+<div class="modal" id="sessionsModal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 id="sessionsModalTitle">Active Sessions</h3>
+            <button class="close-btn" onclick="closeSessionsModal()">&times;</button>
+        </div>
+
+        <div id="sessionsList"></div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button type="button" class="btn-cancel" onclick="closeSessionsModal()">Close</button>
+            <button type="button" class="btn btn-danger" id="revokeAllBtn" onclick="revokeAllSessions()">Revoke All Sessions</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let allUsers = [];
+    let currentActionUser = null;
+    let searchTimeout = null;
+
+    // Load users on page load
+    document.addEventListener('DOMContentLoaded', loadUsers);
+
+    async function loadUsers() {
+        try {
+            const params = new URLSearchParams();
+            const status = document.getElementById('statusFilter').value;
+            const role = document.getElementById('roleFilter').value;
+            const search = document.getElementById('searchFilter').value;
+
+            if (status) params.append('status', status);
+            if (role) params.append('role', role);
+            if (search) params.append('search', search);
+
+            const response = await fetch(`/api/v1/users?${params.toString()}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                allUsers = data.users;
+                renderUsers(allUsers);
+                updateCounts();
+            } else {
+                showError(data.error || 'Failed to load users');
+            }
+        } catch (error) {
+            showError('Failed to load users: ' + error.message);
+        }
+    }
+
+    function renderUsers(users) {
+        const grid = document.getElementById('usersGrid');
+        const emptyState = document.getElementById('emptyState');
+        const usersCount = document.getElementById('usersCount');
+
+        usersCount.textContent = users.length;
+
+        if (users.length === 0) {
+            grid.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        grid.innerHTML = users.map(user => `
+            <div class="user-card status-${user.status}" data-status="${user.status}" data-role="${user.role}">
+                <div class="user-header">
+                    <div class="user-avatar ${user.role}">
+                        ${user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">
+                            <a href="/admin/users/${user.id}">${escapeHtml(user.name)}</a>
+                            <span class="role-badge ${user.role}">${formatRole(user.role)}</span>
+                        </div>
+                        <div class="user-email">${escapeHtml(user.email)}</div>
+                    </div>
+                </div>
+
+                <div class="user-meta">
+                    <div class="user-meta-item">
+                        <strong>Status:</strong>
+                        <span class="status-badge ${user.status}">${formatStatus(user.status)}</span>
+                    </div>
+                    ${user.last_login ? `
+                    <div class="user-meta-item">
+                        <strong>Last Login:</strong> ${formatDate(user.last_login)}
+                    </div>
+                    ` : ''}
+                    <div class="user-meta-item">
+                        <strong>Created:</strong> ${formatDate(user.created_at)}
+                    </div>
+                </div>
+
+                <div class="user-actions">
+                    ${getActionButtons(user)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getActionButtons(user) {
+        const buttons = [];
+
+        // View details
+        buttons.push(`<a href="/admin/users/${user.id}" class="action-btn-small view-sessions">👁️ View</a>`);
+
+        // Status-based actions
+        if (user.status === 'pending') {
+            buttons.push(`<button class="action-btn-small approve" onclick="approveUser('${user.id}')">✓ Approve</button>`);
+            buttons.push(`<button class="action-btn-small reject" onclick="openActionModal('${user.id}', 'reject', '${escapeHtml(user.name)}')">✕ Reject</button>`);
+        }
+
+        if (user.status === 'active') {
+            buttons.push(`<button class="action-btn-small suspend" onclick="openActionModal('${user.id}', 'suspend', '${escapeHtml(user.name)}')">⏸️ Suspend</button>`);
+            buttons.push(`<button class="action-btn-small reset-password" onclick="openActionModal('${user.id}', 'reset-password', '${escapeHtml(user.name)}')">🔑 Reset Password</button>`);
+        }
+
+        if (user.status === 'suspended') {
+            buttons.push(`<button class="action-btn-small reactivate" onclick="reactivateUser('${user.id}')">▶️ Reactivate</button>`);
+        }
+
+        if (user.status !== 'deactivated') {
+            buttons.push(`<button class="action-btn-small deactivate" onclick="openActionModal('${user.id}', 'deactivate', '${escapeHtml(user.name)}')">🚫 Deactivate</button>`);
+        }
+
+        // View sessions for active users
+        if (user.status === 'active') {
+            buttons.push(`<button class="action-btn-small view-sessions" onclick="viewSessions('${user.id}', '${escapeHtml(user.name)}')">📋 Sessions</button>`);
+        }
+
+        return buttons.join('');
+    }
+
+    function updateCounts() {
+        const counts = {
+            all: allUsers.length,
+            pending: allUsers.filter(u => u.status === 'pending').length,
+            active: allUsers.filter(u => u.status === 'active').length,
+            suspended: allUsers.filter(u => u.status === 'suspended').length,
+            deactivated: allUsers.filter(u => u.status === 'deactivated').length,
+            rejected: allUsers.filter(u => u.status === 'rejected').length
+        };
+
+        Object.keys(counts).forEach(key => {
+            const el = document.getElementById(`count-${key}`);
+            if (el) el.textContent = counts[key];
+        });
+    }
+
+    function filterByStatus(status) {
+        document.querySelectorAll('.status-pill').forEach(pill => pill.classList.remove('active'));
+
+        if (status) {
+            document.querySelector(`.status-pill.${status === 'active' ? 'active-status' : status}`).classList.add('active');
+            document.getElementById('statusFilter').value = status;
+        } else {
+            document.querySelector('.status-pill.all').classList.add('active');
+            document.getElementById('statusFilter').value = '';
+        }
+
+        loadUsers();
+    }
+
+    function applyFilters() {
+        loadUsers();
+    }
+
+    function debounceSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(loadUsers, 300);
+    }
+
+    function clearFilters() {
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('roleFilter').value = '';
+        document.getElementById('searchFilter').value = '';
+        document.querySelectorAll('.status-pill').forEach(pill => pill.classList.remove('active'));
+        document.querySelector('.status-pill.all').classList.add('active');
+        loadUsers();
+    }
+
+    // Invite User
+    function openInviteModal() {
+        document.getElementById('inviteForm').reset();
+        document.getElementById('inviteModal').classList.add('active');
+    }
+
+    function closeInviteModal() {
+        document.getElementById('inviteModal').classList.remove('active');
+    }
+
+    async function submitInvite(event) {
+        event.preventDefault();
+
+        const email = document.getElementById('inviteEmail').value;
+        const name = document.getElementById('inviteName').value;
+        const role = document.getElementById('inviteRole').value;
+        const password = document.getElementById('invitePassword').value;
+
+        try {
+            const response = await fetch('/api/v1/invitations', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email, name, role, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSuccess('Invitation sent successfully!');
+                closeInviteModal();
+                loadUsers();
+            } else {
+                showError(data.error || 'Failed to send invitation');
+            }
+        } catch (error) {
+            showError('Failed to send invitation: ' + error.message);
+        }
+    }
+
+    // Action Modal
+    function openActionModal(userId, actionType, userName) {
+        currentActionUser = { id: userId, name: userName };
+
+        document.getElementById('actionUserId').value = userId;
+        document.getElementById('actionType').value = actionType;
+        document.getElementById('actionReason').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmAction').checked = false;
+
+        const title = document.getElementById('actionModalTitle');
+        const description = document.getElementById('actionModalDescription');
+        const reasonGroup = document.getElementById('reasonGroup');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const confirmGroup = document.getElementById('confirmGroup');
+        const submitBtn = document.getElementById('actionSubmitBtn');
+
+        reasonGroup.style.display = 'block';
+        passwordGroup.style.display = 'none';
+        confirmGroup.style.display = 'none';
+
+        switch (actionType) {
+            case 'suspend':
+                title.textContent = 'Suspend User';
+                description.textContent = `Are you sure you want to suspend ${userName}? They will be logged out immediately.`;
+                submitBtn.textContent = 'Suspend User';
+                submitBtn.className = 'btn btn-primary';
+                break;
+            case 'deactivate':
+                title.textContent = 'Deactivate User';
+                description.textContent = `Are you sure you want to permanently deactivate ${userName}? This action cannot be undone.`;
+                confirmGroup.style.display = 'block';
+                submitBtn.textContent = 'Deactivate User';
+                submitBtn.className = 'btn btn-danger';
+                break;
+            case 'reject':
+                title.textContent = 'Reject User';
+                description.textContent = `Are you sure you want to reject ${userName}'s account request?`;
+                submitBtn.textContent = 'Reject User';
+                submitBtn.className = 'btn btn-danger';
+                break;
+            case 'reset-password':
+                title.textContent = 'Reset Password';
+                description.textContent = `Set a new password for ${userName}. They will be required to change it on next login.`;
+                reasonGroup.style.display = 'none';
+                passwordGroup.style.display = 'block';
+                submitBtn.textContent = 'Reset Password';
+                submitBtn.className = 'btn btn-primary';
+                break;
+        }
+
+        document.getElementById('actionModal').classList.add('active');
+    }
+
+    function closeActionModal() {
+        document.getElementById('actionModal').classList.remove('active');
+        currentActionUser = null;
+    }
+
+    async function submitAction(event) {
+        event.preventDefault();
+
+        const userId = document.getElementById('actionUserId').value;
+        const actionType = document.getElementById('actionType').value;
+        const reason = document.getElementById('actionReason').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmed = document.getElementById('confirmAction').checked;
+
+        if (actionType === 'deactivate' && !confirmed) {
+            showError('Please confirm that you understand this action is permanent');
+            return;
+        }
+
+        let endpoint, body;
+
+        switch (actionType) {
+            case 'suspend':
+                endpoint = `/api/v1/users/${userId}/suspend`;
+                body = { reason };
+                break;
+            case 'deactivate':
+                endpoint = `/api/v1/users/${userId}/deactivate`;
+                body = { reason, confirm: true };
+                break;
+            case 'reject':
+                endpoint = `/api/v1/users/${userId}/reject`;
+                body = { reason };
+                break;
+            case 'reset-password':
+                endpoint = `/api/v1/users/${userId}/reset-password`;
+                body = { new_password: newPassword };
+                break;
+        }
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSuccess(data.message || 'Action completed successfully');
+                closeActionModal();
+                loadUsers();
+            } else {
+                showError(data.error || 'Action failed');
+            }
+        } catch (error) {
+            showError('Action failed: ' + error.message);
+        }
+    }
+
+    // Quick actions
+    async function approveUser(userId) {
+        if (!confirm('Are you sure you want to approve this user?')) return;
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/approve`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSuccess('User approved successfully');
+                loadUsers();
+            } else {
+                showError(data.error || 'Failed to approve user');
+            }
+        } catch (error) {
+            showError('Failed to approve user: ' + error.message);
+        }
+    }
+
+    async function reactivateUser(userId) {
+        if (!confirm('Are you sure you want to reactivate this user?')) return;
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/reactivate`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSuccess('User reactivated successfully');
+                loadUsers();
+            } else {
+                showError(data.error || 'Failed to reactivate user');
+            }
+        } catch (error) {
+            showError('Failed to reactivate user: ' + error.message);
+        }
+    }
+
+    // Sessions
+    async function viewSessions(userId, userName) {
+        document.getElementById('sessionsModalTitle').textContent = `Sessions for ${userName}`;
+        document.getElementById('revokeAllBtn').dataset.userId = userId;
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/sessions`);
+            const data = await response.json();
+
+            if (response.ok) {
+                const sessionsList = document.getElementById('sessionsList');
+
+                if (data.sessions.length === 0) {
+                    sessionsList.innerHTML = '<p style="color: #64748b; text-align: center; padding: 20px;">No active sessions</p>';
+                } else {
+                    sessionsList.innerHTML = data.sessions.map(session => `
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 600; color: #1e293b;">
+                                        ${session.device_info || 'Unknown Device'}
+                                    </div>
+                                    <div style="font-size: 12px; color: #64748b;">
+                                        IP: ${session.ip_address || 'Unknown'} |
+                                        Created: ${formatDate(session.created_at)} |
+                                        Expires: ${formatDate(session.expires_at)}
+                                    </div>
+                                </div>
+                                <button class="action-btn-small reject" onclick="revokeSession('${userId}', '${session.id}')">Revoke</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                document.getElementById('sessionsModal').classList.add('active');
+            } else {
+                showError(data.error || 'Failed to load sessions');
+            }
+        } catch (error) {
+            showError('Failed to load sessions: ' + error.message);
+        }
+    }
+
+    function closeSessionsModal() {
+        document.getElementById('sessionsModal').classList.remove('active');
+    }
+
+    async function revokeSession(userId, sessionId) {
+        if (!confirm('Are you sure you want to revoke this session?')) return;
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/sessions/${sessionId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSuccess('Session revoked');
+                viewSessions(userId, document.getElementById('sessionsModalTitle').textContent.replace('Sessions for ', ''));
+            } else {
+                showError(data.error || 'Failed to revoke session');
+            }
+        } catch (error) {
+            showError('Failed to revoke session: ' + error.message);
+        }
+    }
+
+    async function revokeAllSessions() {
+        const userId = document.getElementById('revokeAllBtn').dataset.userId;
+
+        if (!confirm('Are you sure you want to revoke all sessions for this user?')) return;
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/sessions`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSuccess(`${data.sessions_revoked} sessions revoked`);
+                closeSessionsModal();
+                loadUsers();
+            } else {
+                showError(data.error || 'Failed to revoke sessions');
+            }
+        } catch (error) {
+            showError('Failed to revoke sessions: ' + error.message);
+        }
+    }
+
+    // Utility functions
+    function formatRole(role) {
+        const roles = {
+            'super_admin': 'Super Admin',
+            'admin': 'Admin',
+            'content_manager': 'Content Manager',
+            'viewer': 'Viewer'
+        };
+        return roles[role] || role;
+    }
+
+    function formatStatus(status) {
+        const statuses = {
+            'pending': '⏳ Pending',
+            'active': '✅ Active',
+            'suspended': '⚠️ Suspended',
+            'deactivated': '🚫 Deactivated',
+            'rejected': '❌ Rejected'
+        };
+        return statuses[status] || status;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return 'Never';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showSuccess(message) {
+        alert('✅ ' + message);
+    }
+
+    function showError(message) {
+        alert('❌ ' + message);
+    }
+</script>
+{% endblock %}

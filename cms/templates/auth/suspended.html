@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Suspended - Skillz Media Screens CMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+        }
+
+        .particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            33% { transform: translateY(-30px) translateX(20px); }
+            66% { transform: translateY(-15px) translateX(-20px); }
+        }
+
+        /* Error Container */
+        .error-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        /* Error Card */
+        .error-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: fadeInUp 0.6s ease forwards;
+            text-align: center;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Error Icon */
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px auto;
+            font-size: 40px;
+            border: 3px solid #fecaca;
+        }
+
+        /* Error Header */
+        .error-header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #dc2626;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .error-header p {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        /* Error Details */
+        .error-details {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            text-align: left;
+        }
+
+        .error-details-title {
+            font-weight: 600;
+            color: #991b1b;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-details-text {
+            color: #b91c1c;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .error-details-list {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .error-details-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #fecaca;
+            font-size: 13px;
+            color: #991b1b;
+        }
+
+        .error-details-list li:last-child {
+            border-bottom: none;
+        }
+
+        .error-details-list li strong {
+            color: #7f1d1d;
+        }
+
+        /* User Info */
+        .user-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .user-info-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .user-info-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        /* Action Button */
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        /* Contact Info */
+        .contact-info {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .contact-info p {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .contact-info a {
+            color: #667eea;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .card-footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .card-footer p {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .error-card {
+                padding: 30px 24px;
+            }
+
+            .error-header h1 {
+                font-size: 20px;
+            }
+
+            .error-icon {
+                width: 64px;
+                height: 64px;
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="particles"></div>
+
+    <div class="error-container">
+        <div class="error-card">
+            <!-- Error Icon -->
+            <div class="error-icon">🚫</div>
+
+            <!-- Error Header -->
+            <div class="error-header">
+                <h1>Account Suspended</h1>
+                <p>Your account has been temporarily suspended and you cannot access the system at this time.</p>
+            </div>
+
+            <!-- User Info -->
+            {% if user %}
+            <div class="user-info">
+                <div class="user-info-label">Account</div>
+                <div class="user-info-value">{{ user.email }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Error Details -->
+            <div class="error-details">
+                <div class="error-details-title">
+                    <span>⚠️</span>
+                    Suspension Information
+                </div>
+                <div class="error-details-text">
+                    Your access has been suspended by an administrator. This may be due to:
+                </div>
+                <ul class="error-details-list">
+                    <li>Security concerns with your account</li>
+                    <li>Violation of usage policies</li>
+                    <li>Administrative review pending</li>
+                    <li>Scheduled maintenance of your access</li>
+                </ul>
+            </div>
+
+            <!-- Action Button -->
+            <a href="{{ url_for('auth.login') }}" class="btn-action">
+                Return to Login
+            </a>
+
+            <!-- Contact Info -->
+            <div class="contact-info">
+                <p>If you believe this is a mistake or need assistance:</p>
+                <p>Please contact your system administrator</p>
+            </div>
+
+            <!-- Footer -->
+            <div class="card-footer">
+                <p>Skillz Media Screens CMS v1.0</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create animated background particles
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 20;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = Math.random() * 10 + 5 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = Math.random() * 10 + 15 + 's';
+            particlesContainer.appendChild(particle);
+        }
+    </script>
+</body>
+</html>

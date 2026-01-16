@@ -13,6 +13,8 @@ All endpoints are prefixed with /api/v1/devices when registered with the app.
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Device, Hub, Network, DeviceAssignment, Playlist
+from cms.utils.auth import login_required
+from cms.utils.audit import log_action
 from cms.models.device_assignment import TRIGGER_TYPES
 from cms.services.device_id import DeviceIDGenerator
 
@@ -149,10 +151,26 @@ def register_device():
             'error': f'Failed to create device: {str(e)}'
         }), 500
 
+    # Log device registration (device-initiated action)
+    log_action(
+        action='device.register',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        user_email='device',
+        details={
+            'hardware_id': hardware_id,
+            'mode': mode,
+            'hub_id': hub_id,
+        }
+    )
+
     return jsonify(device.to_dict()), 201
 
 
 @devices_bp.route('/pair', methods=['POST'])
+@login_required
 def pair_device():
     """
     Pair a device to a network.
@@ -207,6 +225,9 @@ def pair_device():
     if not network:
         return jsonify({'error': f'Network with id {network_id} not found'}), 404
 
+    # Store previous network for logging
+    previous_network_id = device.network_id
+
     # Pair device to network
     device.network_id = network_id
     device.status = 'active'
@@ -218,6 +239,20 @@ def pair_device():
         return jsonify({
             'error': f'Failed to pair device: {str(e)}'
         }), 500
+
+    # Log the pairing action
+    log_action(
+        action='device.pair',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        details={
+            'network_id': network_id,
+            'network_name': network.name,
+            'previous_network_id': previous_network_id,
+        }
+    )
 
     return jsonify({
         'message': 'Device paired successfully',
@@ -303,6 +338,7 @@ def get_device_config(device_id):
 
 
 @devices_bp.route('', methods=['GET'])
+@login_required
 def list_devices():
     """
     List all registered devices.
@@ -360,6 +396,7 @@ def list_devices():
 
 
 @devices_bp.route('/<device_id>', methods=['GET'])
+@login_required
 def get_device(device_id):
     """
     Get a single device by ID.
@@ -416,6 +453,7 @@ def get_device(device_id):
 
 
 @devices_bp.route('/<device_id>/settings', methods=['PATCH'])
+@login_required
 def update_device_settings(device_id):
     """
     Update device settings (camera configuration).
@@ -460,6 +498,9 @@ def update_device_settings(device_id):
         'camera2_ncmec'
     ]
 
+    # Track changes for audit log
+    changes = {}
+
     for field in allowed_fields:
         if field in data:
             value = data[field]
@@ -474,6 +515,10 @@ def update_device_settings(device_id):
                     return jsonify({
                         'error': 'name must be a string with max 200 characters'
                     }), 400
+            # Record the change
+            old_value = getattr(device, field, None)
+            if old_value != value:
+                changes[field] = {'before': old_value, 'after': value}
             setattr(device, field, value)
 
     try:
@@ -484,6 +529,17 @@ def update_device_settings(device_id):
             'error': f'Failed to update device: {str(e)}'
         }), 500
 
+    # Log the settings update
+    if changes:
+        log_action(
+            action='device.update_settings',
+            action_category='devices',
+            resource_type='device',
+            resource_id=device.id,
+            resource_name=device.device_id,
+            details={'changes': changes}
+        )
+
     return jsonify({
         'message': 'Device settings updated successfully',
         'device': device.to_dict()
@@ -491,6 +547,7 @@ def update_device_settings(device_id):
 
 
 @devices_bp.route('/<device_id>/playlists', methods=['POST'])
+@login_required
 def add_device_playlist(device_id):
     """
     Add a playlist assignment to a device with trigger type.
@@ -588,6 +645,22 @@ def add_device_playlist(device_id):
             'error': f'Failed to create assignment: {str(e)}'
         }), 500
 
+    # Log the playlist assignment
+    log_action(
+        action='device.assign_playlist',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        details={
+            'assignment_id': assignment.id,
+            'playlist_id': playlist_id,
+            'playlist_name': playlist.name,
+            'trigger_type': trigger_type,
+            'priority': data.get('priority', 0),
+        }
+    )
+
     return jsonify({
         'message': 'Playlist assigned successfully',
         'assignment': assignment.to_dict()
@@ -595,6 +668,7 @@ def add_device_playlist(device_id):
 
 
 @devices_bp.route('/<device_id>/playlists/<assignment_id>', methods=['DELETE'])
+@login_required
 def remove_device_playlist(device_id, assignment_id):
     """
     Remove a playlist assignment from a device.
@@ -624,6 +698,11 @@ def remove_device_playlist(device_id, assignment_id):
     if not assignment:
         return jsonify({'error': 'Assignment not found'}), 404
 
+    # Store info for audit log before deleting
+    playlist_id = assignment.playlist_id
+    playlist_name = assignment.playlist.name if assignment.playlist else None
+    trigger_type = assignment.trigger_type
+
     try:
         db.session.delete(assignment)
         db.session.commit()
@@ -633,12 +712,28 @@ def remove_device_playlist(device_id, assignment_id):
             'error': f'Failed to delete assignment: {str(e)}'
         }), 500
 
+    # Log the removal
+    log_action(
+        action='device.unassign_playlist',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        details={
+            'assignment_id': assignment_id,
+            'playlist_id': playlist_id,
+            'playlist_name': playlist_name,
+            'trigger_type': trigger_type,
+        }
+    )
+
     return jsonify({
         'message': 'Playlist assignment removed successfully'
     }), 200
 
 
 @devices_bp.route('/trigger-types', methods=['GET'])
+@login_required
 def get_trigger_types():
     """
     Get list of available trigger types for playlist assignments.

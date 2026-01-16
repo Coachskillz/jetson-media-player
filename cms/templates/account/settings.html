@@ -1,0 +1,941 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings - Skillz Media Screens CMS{% endblock %}
+
+{% block extra_styles %}
+/* Settings Page Styles */
+.settings-header {
+    margin-bottom: 30px;
+}
+
+.settings-header h2 {
+    color: white;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.settings-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+/* User Profile Banner */
+.profile-banner {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+.profile-avatar.super_admin {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.profile-avatar.admin {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.profile-avatar.content_manager {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.profile-avatar.viewer {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.profile-email {
+    font-size: 15px;
+    color: #64748b;
+    margin-bottom: 10px;
+}
+
+.profile-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Role Badge */
+.role-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-badge.super_admin {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.role-badge.admin {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.role-badge.content_manager {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.role-badge.viewer {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* Settings Grid */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 25px;
+}
+
+/* Settings Card */
+.settings-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.settings-card h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.card-icon.security {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.card-icon.sessions {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.card-icon.activity {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input:disabled {
+    background: #f8fafc;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 6px;
+}
+
+/* Info List */
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8fafc;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.info-item:hover {
+    background: #f1f5f9;
+}
+
+.info-item-label {
+    font-weight: 600;
+    color: #475569;
+    font-size: 14px;
+}
+
+.info-item-value {
+    color: #1e293b;
+    font-size: 14px;
+    text-align: right;
+}
+
+.info-item-value.empty {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Buttons */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.btn-danger {
+    background: #fee2e2;
+    color: #991b1b;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    background: #fecaca;
+}
+
+/* Password Input Wrapper */
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+}
+
+.password-toggle:hover {
+    color: #667eea;
+}
+
+/* Password Requirements */
+.password-requirements {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.password-requirements-title {
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.password-requirements-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.password-requirement {
+    font-size: 12px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.password-requirement.met {
+    color: #059669;
+}
+
+.requirement-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* Sessions List */
+.sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.session-item {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.session-item:hover {
+    background: #f1f5f9;
+}
+
+.session-item.current {
+    border: 2px solid #667eea;
+}
+
+.session-info {
+    flex: 1;
+}
+
+.session-device {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.session-current-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.session-meta {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.session-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-sessions {
+    text-align: center;
+    color: #94a3b8;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Success/Error Messages */
+.message {
+    padding: 14px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .profile-badges {
+        justify-content: center;
+    }
+
+    .password-requirements-list {
+        grid-template-columns: 1fr;
+    }
+
+    .session-item {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .session-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Settings Header -->
+<div class="settings-header">
+    <h2>Account Settings</h2>
+    <p>Manage your profile, security, and session preferences</p>
+</div>
+
+<!-- Profile Banner -->
+<div class="profile-banner">
+    <div class="profile-avatar {{ user.role }}">
+        {{ user.name[0]|upper }}
+    </div>
+    <div class="profile-info">
+        <div class="profile-name">{{ user.name }}</div>
+        <div class="profile-email">{{ user.email }}</div>
+        <div class="profile-badges">
+            <span class="role-badge {{ user.role }}">{{ user.role|replace('_', ' ')|title }}</span>
+            <span class="status-badge {{ user.status }}">{{ user.status|title }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Grid -->
+<div class="settings-grid">
+    <!-- Profile Settings -->
+    <div class="settings-card">
+        <h3>
+            <div class="card-icon">Profile Settings</div>
+            Profile Settings
+        </h3>
+
+        <div id="profileMessage"></div>
+
+        <form id="profileForm" onsubmit="updateProfile(event)">
+            <div class="form-group">
+                <label for="profileName">Full Name</label>
+                <input type="text" id="profileName" value="{{ user.name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="profileEmail">Email Address</label>
+                <input type="email" id="profileEmail" value="{{ user.email }}" disabled>
+                <p class="form-hint">Email cannot be changed. Contact an administrator if needed.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="profilePhone">Phone Number</label>
+                <input type="tel" id="profilePhone" value="{{ user.phone or '' }}" placeholder="Optional">
+            </div>
+
+            <button type="submit" class="btn-primary" id="profileSubmitBtn">
+                Save Changes
+            </button>
+        </form>
+    </div>
+
+    <!-- Security Settings -->
+    <div class="settings-card">
+        <h3>
+            <div class="card-icon security">Security</div>
+            Change Password
+        </h3>
+
+        <div id="passwordMessage"></div>
+
+        <!-- Password Requirements -->
+        <div class="password-requirements">
+            <div class="password-requirements-title">
+                Password Requirements
+            </div>
+            <ul class="password-requirements-list">
+                <li class="password-requirement" id="req-length">
+                    <span class="requirement-icon">&#x25CB;</span>
+                    <span>At least 12 characters</span>
+                </li>
+                <li class="password-requirement" id="req-uppercase">
+                    <span class="requirement-icon">&#x25CB;</span>
+                    <span>One uppercase letter</span>
+                </li>
+                <li class="password-requirement" id="req-lowercase">
+                    <span class="requirement-icon">&#x25CB;</span>
+                    <span>One lowercase letter</span>
+                </li>
+                <li class="password-requirement" id="req-number">
+                    <span class="requirement-icon">&#x25CB;</span>
+                    <span>One number</span>
+                </li>
+                <li class="password-requirement" id="req-special">
+                    <span class="requirement-icon">&#x25CB;</span>
+                    <span>One special character</span>
+                </li>
+                <li class="password-requirement" id="req-match">
+                    <span class="requirement-icon">&#x25CB;</span>
+                    <span>Passwords match</span>
+                </li>
+            </ul>
+        </div>
+
+        <form id="passwordForm" onsubmit="changePassword(event)">
+            <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="currentPassword" required autocomplete="current-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('currentPassword', this)">
+                        &#x1F441;&#xFE0F;
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="newPassword" required autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('newPassword', this)">
+                        &#x1F441;&#xFE0F;
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="confirmPassword" required autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword', this)">
+                        &#x1F441;&#xFE0F;
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary" id="passwordSubmitBtn">
+                Change Password
+            </button>
+        </form>
+    </div>
+
+    <!-- Account Information -->
+    <div class="settings-card">
+        <h3>
+            <div class="card-icon activity">Activity</div>
+            Account Information
+        </h3>
+        <div class="info-list">
+            <div class="info-item">
+                <span class="info-item-label">Account Created</span>
+                <span class="info-item-value">{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-item-label">Last Login</span>
+                <span class="info-item-value {% if not user.last_login %}empty{% endif %}">{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-item-label">Last Login IP</span>
+                <span class="info-item-value {% if not user.last_login_ip %}empty{% endif %}">{{ user.last_login_ip or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-item-label">Password Last Changed</span>
+                <span class="info-item-value {% if not user.password_changed_at %}empty{% endif %}">{{ user.password_changed_at.strftime('%Y-%m-%d %H:%M') if user.password_changed_at else 'Never' }}</span>
+            </div>
+            {% if user.network %}
+            <div class="info-item">
+                <span class="info-item-label">Network</span>
+                <span class="info-item-value">{{ user.network.name }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Active Sessions -->
+    <div class="settings-card">
+        <h3>
+            <div class="card-icon sessions">Devices</div>
+            Active Sessions ({{ sessions|length }})
+        </h3>
+
+        <div id="sessionsMessage"></div>
+
+        {% if sessions %}
+        <div class="sessions-list">
+            {% for session in sessions %}
+            <div class="session-item {% if session.id == current_session_id %}current{% endif %}" data-session-id="{{ session.id }}">
+                <div class="session-info">
+                    <div class="session-device">
+                        {{ session.device_info or 'Unknown Device' }}
+                        {% if session.id == current_session_id %}
+                        <span class="session-current-badge">Current</span>
+                        {% endif %}
+                    </div>
+                    <div class="session-meta">
+                        IP: {{ session.ip_address or 'Unknown' }} |
+                        Last active: {{ session.last_active.strftime('%Y-%m-%d %H:%M') if session.last_active else 'N/A' }} |
+                        Expires: {{ session.expires_at.strftime('%Y-%m-%d %H:%M') if session.expires_at else 'N/A' }}
+                    </div>
+                </div>
+                <div class="session-actions">
+                    {% if session.id != current_session_id %}
+                    <button class="btn-danger" onclick="revokeSession('{{ session.id }}')">Revoke</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if sessions|length > 1 %}
+        <div style="margin-top: 20px; text-align: right;">
+            <button class="btn-danger" onclick="revokeOtherSessions()" style="padding: 10px 20px;">
+                Revoke All Other Sessions
+            </button>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-sessions">No active sessions found</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Toggle password visibility
+    function togglePassword(inputId, button) {
+        const passwordInput = document.getElementById(inputId);
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            button.innerHTML = '&#x1F648;';
+        } else {
+            passwordInput.type = 'password';
+            button.innerHTML = '&#x1F441;&#xFE0F;';
+        }
+    }
+
+    // Password validation
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+
+    function updateRequirement(elementId, met) {
+        const element = document.getElementById(elementId);
+        const icon = element.querySelector('.requirement-icon');
+
+        if (met) {
+            element.classList.add('met');
+            element.classList.remove('unmet');
+            icon.innerHTML = '&#x2713;';
+        } else {
+            element.classList.remove('met');
+            element.classList.add('unmet');
+            icon.innerHTML = '&#x25CB;';
+        }
+    }
+
+    function validatePassword() {
+        const password = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+        updateRequirement('req-length', password.length >= 12);
+        updateRequirement('req-uppercase', /[A-Z]/.test(password));
+        updateRequirement('req-lowercase', /[a-z]/.test(password));
+        updateRequirement('req-number', /[0-9]/.test(password));
+        updateRequirement('req-special', /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password));
+        updateRequirement('req-match', password.length > 0 && password === confirmPassword);
+    }
+
+    newPasswordInput.addEventListener('input', validatePassword);
+    confirmPasswordInput.addEventListener('input', validatePassword);
+
+    // Show message helper
+    function showMessage(elementId, message, type) {
+        const container = document.getElementById(elementId);
+        container.innerHTML = `<div class="message ${type}">${type === 'success' ? '&#x2705;' : '&#x274C;'} ${message}</div>`;
+        setTimeout(() => {
+            container.innerHTML = '';
+        }, 5000);
+    }
+
+    // Update profile
+    async function updateProfile(event) {
+        event.preventDefault();
+        const btn = document.getElementById('profileSubmitBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        const name = document.getElementById('profileName').value;
+        const phone = document.getElementById('profilePhone').value || null;
+
+        try {
+            const response = await fetch('/api/v1/auth/me', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, phone })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('profileMessage', 'Profile updated successfully', 'success');
+                // Update the profile banner
+                document.querySelector('.profile-name').textContent = name;
+            } else {
+                showMessage('profileMessage', data.error || 'Failed to update profile', 'error');
+            }
+        } catch (error) {
+            showMessage('profileMessage', 'Failed to update profile: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    // Change password
+    async function changePassword(event) {
+        event.preventDefault();
+        const btn = document.getElementById('passwordSubmitBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Changing...';
+
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validate passwords match
+        if (newPassword !== confirmPassword) {
+            showMessage('passwordMessage', 'New passwords do not match', 'error');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/v1/auth/password', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('passwordMessage', 'Password changed successfully', 'success');
+                // Clear the form
+                document.getElementById('passwordForm').reset();
+                // Reset validation display
+                validatePassword();
+            } else {
+                showMessage('passwordMessage', data.error || 'Failed to change password', 'error');
+            }
+        } catch (error) {
+            showMessage('passwordMessage', 'Failed to change password: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    // Revoke a session
+    async function revokeSession(sessionId) {
+        if (!confirm('Are you sure you want to revoke this session? The device will be logged out.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/sessions/${sessionId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('sessionsMessage', 'Session revoked successfully', 'success');
+                // Remove the session from the UI
+                const sessionItem = document.querySelector(`[data-session-id="${sessionId}"]`);
+                if (sessionItem) {
+                    sessionItem.remove();
+                }
+                // Update the session count in the header
+                updateSessionCount();
+            } else {
+                showMessage('sessionsMessage', data.error || 'Failed to revoke session', 'error');
+            }
+        } catch (error) {
+            showMessage('sessionsMessage', 'Failed to revoke session: ' + error.message, 'error');
+        }
+    }
+
+    // Revoke all other sessions
+    async function revokeOtherSessions() {
+        if (!confirm('Are you sure you want to revoke all other sessions? All other devices will be logged out.')) {
+            return;
+        }
+
+        try {
+            // Get all session items except current
+            const sessionItems = document.querySelectorAll('.session-item:not(.current)');
+            let revokedCount = 0;
+
+            for (const item of sessionItems) {
+                const sessionId = item.dataset.sessionId;
+                const response = await fetch(`/api/v1/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    item.remove();
+                    revokedCount++;
+                }
+            }
+
+            if (revokedCount > 0) {
+                showMessage('sessionsMessage', `${revokedCount} session(s) revoked successfully`, 'success');
+                updateSessionCount();
+            } else {
+                showMessage('sessionsMessage', 'No sessions to revoke', 'error');
+            }
+        } catch (error) {
+            showMessage('sessionsMessage', 'Failed to revoke sessions: ' + error.message, 'error');
+        }
+    }
+
+    // Update session count display
+    function updateSessionCount() {
+        const sessionItems = document.querySelectorAll('.session-item');
+        const header = document.querySelector('.settings-card h3:has(.sessions)');
+        if (header) {
+            header.innerHTML = `<div class="card-icon sessions">&#x1F4F1;</div> Active Sessions (${sessionItems.length})`;
+        }
+    }
+</script>
+{% endblock %}

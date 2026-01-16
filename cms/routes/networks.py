@@ -16,6 +16,7 @@ import re
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Network
+from cms.utils.auth import login_required
 
 
 # Create networks blueprint
@@ -44,6 +45,7 @@ def generate_slug(name):
 
 
 @networks_bp.route('', methods=['POST'])
+@login_required
 def create_network():
     """
     Create a new network.
@@ -131,6 +133,7 @@ def create_network():
 
 
 @networks_bp.route('', methods=['GET'])
+@login_required
 def list_networks():
     """
     List all networks.
@@ -154,6 +157,7 @@ def list_networks():
 
 
 @networks_bp.route('/<network_id>', methods=['GET'])
+@login_required
 def get_network(network_id):
     """
     Get a specific network by ID or slug.
@@ -181,6 +185,7 @@ def get_network(network_id):
 
 
 @networks_bp.route('/<network_id>', methods=['PUT'])
+@login_required
 def update_network(network_id):
     """
     Update an existing network.
@@ -270,6 +275,7 @@ def update_network(network_id):
 
 
 @networks_bp.route('/<network_id>', methods=['DELETE'])
+@login_required
 def delete_network(network_id):
     """
     Delete a network.
