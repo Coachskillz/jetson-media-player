@@ -23,7 +23,7 @@ from flask import Blueprint, request, jsonify
 from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
-from cms.models.playlist import TriggerType
+from cms.models.playlist import TriggerType, LoopMode, Priority
 
 
 # Create playlists blueprint
@@ -64,6 +64,10 @@ def create_playlist():
             "network_id": "uuid-of-network" (optional),
             "trigger_type": "manual" | "time" | "event" (optional, default: "manual"),
             "trigger_config": "{...}" (optional, JSON string for trigger configuration),
+            "loop_mode": "continuous" | "play_once" | "scheduled" (optional, default: "continuous"),
+            "priority": "normal" | "high" | "interrupt" (optional, default: "normal"),
+            "start_date": "2024-01-15T10:00:00Z" (optional, ISO datetime for scheduled playback),
+            "end_date": "2024-12-31T23:59:59Z" (optional, ISO datetime for scheduled playback),
             "is_active": true (optional, default: true)
         }
 
@@ -107,6 +111,32 @@ def create_playlist():
             'error': f"Invalid trigger_type: {trigger_type}. Valid values: {', '.join(valid_trigger_types)}"
         }), 400
 
+    # Validate loop_mode if provided
+    loop_mode = data.get('loop_mode', LoopMode.CONTINUOUS.value)
+    valid_loop_modes = [m.value for m in LoopMode]
+    if loop_mode not in valid_loop_modes:
+        return jsonify({
+            'error': f"Invalid loop_mode: {loop_mode}. Valid values: {', '.join(valid_loop_modes)}"
+        }), 400
+
+    # Validate priority if provided
+    priority = data.get('priority', Priority.NORMAL.value)
+    valid_priorities = [p.value for p in Priority]
+    if priority not in valid_priorities:
+        return jsonify({
+            'error': f"Invalid priority: {priority}. Valid values: {', '.join(valid_priorities)}"
+        }), 400
+
+    # Parse dates
+    start_date = _parse_datetime(data.get('start_date'))
+    end_date = _parse_datetime(data.get('end_date'))
+
+    # Validate date range
+    if start_date and end_date and start_date > end_date:
+        return jsonify({
+            'error': 'start_date must be before end_date'
+        }), 400
+
     # Create playlist
     playlist = Playlist(
         name=name,
@@ -114,6 +144,10 @@ def create_playlist():
         network_id=network_id,
         trigger_type=trigger_type,
         trigger_config=data.get('trigger_config'),
+        loop_mode=loop_mode,
+        priority=priority,
+        start_date=start_date,
+        end_date=end_date,
         is_active=data.get('is_active', True)
     )
 
@@ -137,6 +171,10 @@ def create_playlist():
             'name': name,
             'network_id': network_id,
             'trigger_type': trigger_type,
+            'loop_mode': loop_mode,
+            'priority': priority,
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
             'is_active': playlist.is_active,
         }
     )
