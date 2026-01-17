@@ -948,14 +948,14 @@
         const statusDiv = document.getElementById('createStatus');
 
         try {
-            const response = await fetch('/api/playlists', {
+            const response = await fetch('/api/v1/playlists', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     name,
                     description,
                     trigger_type: triggerType,
-                    trigger_value: triggerValue
+                    trigger_config: triggerValue || null
                 })
             });
 
@@ -985,15 +985,31 @@
     // Content Browser Functions (Left Panel)
     // =====================================================
 
+    let searchDebounceTimer = null;
+
     async function loadApprovedContent() {
         const grid = document.getElementById('contentBrowserGrid');
         grid.innerHTML = '<div class="content-browser-empty"><p>Loading approved content...</p></div>';
 
         try {
-            const response = await fetch('/api/playlists/approved-content');
+            // Build query params for server-side filtering
+            const params = new URLSearchParams();
+            if (currentTypeFilter !== 'all') {
+                params.append('type', currentTypeFilter);
+            }
+            if (currentSearchQuery) {
+                params.append('search', currentSearchQuery);
+            }
+
+            const queryString = params.toString();
+            const url = '/api/v1/playlists/approved-content' + (queryString ? '?' + queryString : '');
+
+            const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to load content');
 
-            approvedContent = await response.json();
+            const data = await response.json();
+            // API returns { content: [...], count: N }
+            approvedContent = data.content || [];
             renderContentBrowser();
         } catch (error) {
             grid.innerHTML = `<div class="content-browser-empty"><p>Failed to load content: ${error.message}</p></div>`;
@@ -1003,53 +1019,42 @@
     function renderContentBrowser() {
         const grid = document.getElementById('contentBrowserGrid');
 
-        // Filter content based on type and search
-        let filtered = approvedContent;
-
-        if (currentTypeFilter !== 'all') {
-            filtered = filtered.filter(item => getContentType(item) === currentTypeFilter);
-        }
-
-        if (currentSearchQuery) {
-            const query = currentSearchQuery.toLowerCase();
-            filtered = filtered.filter(item =>
-                item.title.toLowerCase().includes(query) ||
-                (item.filename && item.filename.toLowerCase().includes(query))
-            );
-        }
-
-        if (filtered.length === 0) {
+        if (approvedContent.length === 0) {
+            const typeLabel = currentTypeFilter === 'all' ? 'approved' : currentTypeFilter;
+            const searchSuffix = currentSearchQuery ? ` matching "${currentSearchQuery}"` : '';
             grid.innerHTML = `
                 <div class="content-browser-empty">
-                    <p>No ${currentTypeFilter === 'all' ? 'approved' : currentTypeFilter} content found${currentSearchQuery ? ' matching "' + currentSearchQuery + '"' : ''}</p>
+                    <p>No ${typeLabel} content found${searchSuffix}</p>
                 </div>
             `;
             return;
         }
 
-        grid.innerHTML = filtered.map(item => {
+        grid.innerHTML = approvedContent.map(item => {
             const icon = getContentIcon(item);
-            const duration = item.duration ? `${item.duration}s` : '--';
+            const displayName = item.original_name || item.filename || 'Unknown';
+            const duration = item.duration ? formatDuration(item.duration) : (item.content_type === 'image' ? '10s' : '--');
+            // Escape the display name for title attribute
+            const escapedName = displayName.replace(/"/g, '&quot;');
             return `
-                <div class="content-browser-item" onclick="addContentToPlaylist(${item.id})" title="${item.title}">
+                <div class="content-browser-item" onclick="addContentToPlaylist('${item.id}')" title="${escapedName}">
                     <div class="content-icon">${icon}</div>
-                    <div class="content-name">${item.title}</div>
+                    <div class="content-name">${escapeHtml(displayName)}</div>
                     <div class="content-duration">${duration}</div>
                 </div>
             `;
         }).join('');
     }
 
-    function getContentType(item) {
-        const filename = (item.filename || '').toLowerCase();
-        if (filename.match(/\.(mp4|avi|mov|mkv|webm)$/)) return 'video';
-        if (filename.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) return 'image';
-        if (filename.match(/\.(mp3|wav|ogg|aac)$/)) return 'audio';
-        return 'video'; // Default to video
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function getContentIcon(item) {
-        const type = getContentType(item);
+        // Use content_type from API response if available
+        const type = item.content_type || getContentTypeFromFilename(item);
         switch (type) {
             case 'video': return '🎬';
             case 'image': return '🖼️';
@@ -1058,16 +1063,30 @@
         }
     }
 
+    function getContentTypeFromFilename(item) {
+        // Fallback to filename-based detection
+        const filename = (item.filename || '').toLowerCase();
+        if (filename.match(/\.(mp4|avi|mov|mkv|webm)$/)) return 'video';
+        if (filename.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) return 'image';
+        if (filename.match(/\.(mp3|wav|ogg|aac)$/)) return 'audio';
+        return 'unknown';
+    }
+
     function filterContent(type, btn) {
         currentTypeFilter = type;
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        renderContentBrowser();
+        // Reload from server with new filter
+        loadApprovedContent();
     }
 
     function searchContent(query) {
-        currentSearchQuery = query;
-        renderContentBrowser();
+        // Debounce search to avoid excessive API calls
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            currentSearchQuery = query.trim();
+            loadApprovedContent();
+        }, 300);
     }
 
     // =====================================================
@@ -1092,20 +1111,39 @@
             previewBtn.disabled = true;
             settingsSection.style.display = 'none';
             updatePlaylistStats(0, 0);
+            currentPlaylistItems = [];
             return;
         }
 
-        try {
-            const response = await fetch(`/api/playlists/${playlistId}/items`);
-            if (!response.ok) throw new Error('Failed to load playlist items');
+        container.innerHTML = '<div class="playlist-empty"><p>Loading playlist...</p></div>';
 
-            currentPlaylistItems = await response.json();
+        try {
+            // Use the preview endpoint to get full playlist details including items with content
+            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
+            if (!response.ok) throw new Error('Failed to load playlist');
+
+            const playlistData = await response.json();
+
+            // Transform items to the format expected by renderPlaylistItems
+            currentPlaylistItems = (playlistData.items || []).map(item => ({
+                id: item.id,
+                content_id: item.content_id,
+                position: item.position,
+                title: item.content ? (item.content.original_name || item.content.filename) : 'Unknown',
+                filename: item.content ? item.content.filename : '',
+                content_type: item.content ? item.content.content_type : 'unknown',
+                duration: item.effective_duration || item.content?.duration || 10,
+                duration_override: item.duration_override,
+                content_missing: item.content_missing || false
+            }));
+
             renderPlaylistItems();
             saveBtn.disabled = false;
             previewBtn.disabled = currentPlaylistItems.length === 0;
             settingsSection.style.display = 'block';
         } catch (error) {
             container.innerHTML = `<div class="playlist-empty"><p>Failed to load playlist: ${error.message}</p></div>`;
+            currentPlaylistItems = [];
         }
     }
 
@@ -1127,6 +1165,8 @@
         container.innerHTML = currentPlaylistItems.map((item, index) => {
             const duration = item.duration_override || item.duration || 10;
             totalDuration += duration;
+            const itemIcon = getPlaylistItemIcon(item);
+            const displayTitle = escapeHtml(item.title || 'Unknown');
             return `
                 <div class="playlist-item" draggable="true" data-index="${index}"
                      ondragstart="handleDragStart(event, ${index})"
@@ -1134,8 +1174,8 @@
                     <div class="playlist-item-info">
                         <div class="playlist-item-position">${index + 1}</div>
                         <div>
-                            <div class="playlist-item-title">${item.title || 'Unknown'}</div>
-                            <div class="playlist-item-duration">${item.filename || ''}</div>
+                            <div class="playlist-item-title">${itemIcon} ${displayTitle}</div>
+                            <div class="playlist-item-duration">${escapeHtml(item.filename || '')}</div>
                         </div>
                     </div>
                     <div class="playlist-item-actions">
@@ -1150,6 +1190,17 @@
         }).join('');
 
         updatePlaylistStats(currentPlaylistItems.length, totalDuration);
+    }
+
+    function getPlaylistItemIcon(item) {
+        // Use content_type if available, otherwise fallback to filename detection
+        const type = item.content_type || getContentTypeFromFilename(item);
+        switch (type) {
+            case 'video': return '🎬';
+            case 'image': return '🖼️';
+            case 'audio': return '🎵';
+            default: return '📄';
+        }
     }
 
     function updatePlaylistStats(itemCount, totalDuration) {
@@ -1173,12 +1224,16 @@
         const content = approvedContent.find(c => c.id === contentId);
         if (!content) return;
 
+        // Determine default duration: use content duration, or 10s for images
+        const defaultDuration = content.duration || (content.content_type === 'image' ? 10 : null);
+
         // Add to current items (will be saved when user clicks Save)
         const newItem = {
             content_id: contentId,
-            title: content.title,
+            title: content.original_name || content.filename || 'Unknown',
             filename: content.filename,
-            duration: content.duration || 10,
+            content_type: content.content_type,
+            duration: defaultDuration,
             duration_override: null
         };
 
@@ -1250,8 +1305,10 @@
 
     async function loadPlaylistItems(playlistId) {
         try {
-            const response = await fetch(`/api/playlists/${playlistId}/items`);
-            const items = await response.json();
+            // Use the preview endpoint to get playlist items with content details
+            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
+            const data = await response.json();
+            const items = data.items || [];
 
             const container = document.getElementById(`playlist-${playlistId}-items`);
 
@@ -1259,11 +1316,14 @@
                 container.innerHTML = '<div class="empty-playlist">No content added yet</div>';
             } else {
                 container.innerHTML = items.map((item, index) => {
+                    const title = item.content ? (item.content.original_name || item.content.filename) : 'Unknown';
+                    const filename = item.content ? item.content.filename : '';
+                    const duration = item.effective_duration || item.content?.duration || 10;
                     return `
-                        <div class="item" id="item-${playlistId}-${index}" onclick="previewSingleItem('${item.filename}', '${item.title}', ${item.duration}, ${index + 1})">
+                        <div class="item" id="item-${playlistId}-${index}" onclick="previewSingleItem('${filename}', '${escapeHtml(title)}', ${duration}, ${index + 1})">
                             <div class="item-info">
-                                <div class="item-title">${index + 1}. ${item.title}</div>
-                                <div class="item-duration">${item.duration}s</div>
+                                <div class="item-title">${index + 1}. ${escapeHtml(title)}</div>
+                                <div class="item-duration">${duration}s</div>
                             </div>
                         </div>
                     `;
@@ -1296,19 +1356,26 @@
 
     async function previewEntirePlaylist(playlistId, playlistName) {
         try {
-            const response = await fetch(`/api/playlists/${playlistId}/items`);
-            const items = await response.json();
+            // Use the preview endpoint
+            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
+            const data = await response.json();
+            const items = data.items || [];
 
             if (items.length === 0) {
                 alert('This playlist is empty! Add content first.');
                 return;
             }
 
-            playlistQueue = items;
+            // Transform items to include filename and duration for video playback
+            playlistQueue = items.map(item => ({
+                filename: item.content ? item.content.filename : '',
+                title: item.content ? (item.content.original_name || item.content.filename) : 'Unknown',
+                duration: item.effective_duration || item.content?.duration || 10
+            }));
             currentVideoIndex = 0;
             currentPlaylistName = playlistName;
 
-            const totalDuration = items.reduce((sum, item) => sum + item.duration, 0);
+            const totalDuration = playlistQueue.reduce((sum, item) => sum + item.duration, 0);
             document.getElementById('playerTotalDuration').textContent = totalDuration + 's total';
 
             document.getElementById('playerInfo').style.display = 'block';
@@ -1389,7 +1456,7 @@
         }
 
         try {
-            const response = await fetch(`/api/playlists/${currentPlaylistId}/items`, {
+            const response = await fetch(`/api/v1/playlists/${currentPlaylistId}/items`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
