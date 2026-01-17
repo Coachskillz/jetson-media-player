@@ -11,6 +11,7 @@ Blueprint for device management API endpoints:
 - GET /: List all devices
 - POST /pairing/request: Store device pairing code for pairing workflow
 - GET /pairing/status/<hardware_id>: Check device pairing status
+- GET /<hardware_id>/playlist: Get playlist items for a device (no auth)
 
 All endpoints are prefixed with /api/v1/devices when registered with the app.
 """
@@ -18,6 +19,7 @@ All endpoints are prefixed with /api/v1/devices when registered with the app.
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Device, Hub, Network, DeviceAssignment, Playlist
+from cms.models.playlist import PlaylistItem
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 from cms.models.device_assignment import TRIGGER_TYPES
@@ -1079,4 +1081,91 @@ def get_pairing_status(hardware_id):
         'paired': paired,
         'status': device.status,
         'device': device.to_dict()
+    }), 200
+
+
+@devices_bp.route('/<hardware_id>/playlist', methods=['GET'])
+def get_device_playlist(hardware_id):
+    """
+    Get playlist items for a specific device by hardware ID.
+
+    Devices call this endpoint to retrieve their assigned playlist content.
+    No authentication required - devices call this directly.
+
+    Args:
+        hardware_id: The unique hardware identifier of the device
+
+    Returns:
+        200: Playlist data with items
+            {
+                "device_id": "SKZ-D-0001",
+                "hardware_id": "abc123",
+                "playlists": [
+                    {
+                        "id": "uuid",
+                        "name": "Default Playlist",
+                        "trigger_type": "default",
+                        "priority": 0,
+                        "items": [
+                            {
+                                "id": "uuid",
+                                "position": 0,
+                                "content": { content data }
+                            }
+                        ]
+                    }
+                ]
+            }
+        400: Invalid hardware_id
+            {
+                "error": "error message"
+            }
+        404: Device not found
+            {
+                "error": "Device with hardware_id xxx not found"
+            }
+    """
+    # Validate hardware_id
+    if not hardware_id or len(hardware_id) > 100:
+        return jsonify({
+            'error': 'hardware_id must be a string with max 100 characters'
+        }), 400
+
+    # Find device by hardware_id
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        return jsonify({
+            'error': f'Device with hardware_id {hardware_id} not found'
+        }), 404
+
+    # Get all active assignments for this device
+    assignments = DeviceAssignment.get_active_for_device(device.id)
+
+    # Build playlist response with items
+    playlists = []
+    for assignment in assignments:
+        if assignment.playlist:
+            playlist_data = {
+                'id': assignment.playlist.id,
+                'name': assignment.playlist.name,
+                'trigger_type': assignment.trigger_type,
+                'priority': assignment.priority,
+                'loop_mode': assignment.playlist.loop_mode,
+                'items': []
+            }
+
+            # Get playlist items ordered by position
+            items = PlaylistItem.query.filter_by(
+                playlist_id=assignment.playlist.id
+            ).order_by(PlaylistItem.position).all()
+
+            for item in items:
+                playlist_data['items'].append(item.to_dict())
+
+            playlists.append(playlist_data)
+
+    return jsonify({
+        'device_id': device.device_id,
+        'hardware_id': device.hardware_id,
+        'playlists': playlists
     }), 200
