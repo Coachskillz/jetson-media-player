@@ -11,6 +11,7 @@ Blueprint for device management API endpoints:
 - GET /: List all devices
 - POST /pairing/request: Store device pairing code for pairing workflow
 - GET /pairing/status/<hardware_id>: Check device pairing status
+- GET /<hardware_id>/playlist: Get playlist items for a device (no auth)
 
 All endpoints are prefixed with /api/v1/devices when registered with the app.
 """
@@ -18,6 +19,7 @@ All endpoints are prefixed with /api/v1/devices when registered with the app.
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Device, Hub, Network, DeviceAssignment, Playlist
+from cms.models.playlist import PlaylistItem
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 from cms.models.device_assignment import TRIGGER_TYPES
@@ -504,594 +506,55 @@ def update_device_settings(device_id):
         'camera2_ncmec'
     ]
 
-    # Track changes for audit log
+    # Track changes for logging
     changes = {}
 
     for field in allowed_fields:
         if field in data:
-            value = data[field]
-            # Validate boolean fields
-            if field.startswith('camera') and not isinstance(value, bool):
-                return jsonify({
-                    'error': f'{field} must be a boolean'
-                }), 400
-            # Validate name
-            if field == 'name' and value is not None:
-                if not isinstance(value, str) or len(value) > 200:
-                    return jsonify({
-                        'error': 'name must be a string with max 200 characters'
-                    }), 400
-            # Record the change
             old_value = getattr(device, field, None)
-            if old_value != value:
-                changes[field] = {'before': old_value, 'after': value}
-            setattr(device, field, value)
+            new_value = data[field]
+            if old_value != new_value:
+                changes[field] = {
+                    'old_value': old_value,
+                    'new_value': new_value
+                }
+                setattr(device, field, new_value)
+
+    if not changes:
+        return jsonify({'error': 'No valid fields to update'}), 400
 
     try:
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         return jsonify({
-            'error': f'Failed to update device: {str(e)}'
+            'error': f'Failed to update device settings: {str(e)}'
         }), 500
 
-    # Log the settings update
-    if changes:
-        log_action(
-            action='device.update_settings',
-            action_category='devices',
-            resource_type='device',
-            resource_id=device.id,
-            resource_name=device.device_id,
-            details={'changes': changes}
-        )
-
-    return jsonify({
-        'message': 'Device settings updated successfully',
-        'device': device.to_dict()
-    }), 200
-
-
-@devices_bp.route('/<device_id>/playlists', methods=['POST'])
-@login_required
-def add_device_playlist(device_id):
-    """
-    Add a playlist assignment to a device with trigger type.
-
-    Args:
-        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
-
-    Request Body:
-        {
-            "playlist_id": "uuid-of-playlist" (required),
-            "trigger_type": "default" (required, one of TRIGGER_TYPES),
-            "priority": 0 (optional, default 0),
-            "start_date": "2024-01-15T10:00:00Z" (optional),
-            "end_date": "2024-01-20T18:00:00Z" (optional)
-        }
-
-    Returns:
-        201: Assignment created
-        400: Invalid data
-        404: Device or playlist not found
-        409: Assignment already exists for this trigger
-    """
-    # Try to find device by device_id (SKZ format) first, then by UUID
-    device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        device = db.session.get(Device, device_id)
-
-    if not device:
-        return jsonify({'error': 'Device not found'}), 404
-
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({'error': 'Request body is required'}), 400
-
-    # Validate playlist_id
-    playlist_id = data.get('playlist_id')
-    if not playlist_id:
-        return jsonify({'error': 'playlist_id is required'}), 400
-
-    playlist = db.session.get(Playlist, playlist_id)
-    if not playlist:
-        return jsonify({'error': f'Playlist with id {playlist_id} not found'}), 404
-
-    # Validate trigger_type
-    trigger_type = data.get('trigger_type', 'default')
-    if trigger_type not in TRIGGER_TYPES:
-        return jsonify({
-            'error': f'Invalid trigger_type. Must be one of: {", ".join(TRIGGER_TYPES)}'
-        }), 400
-
-    # Check if assignment already exists for this device and trigger
-    existing = DeviceAssignment.query.filter_by(
-        device_id=device.id,
-        trigger_type=trigger_type
-    ).first()
-
-    if existing:
-        return jsonify({
-            'error': f'Assignment for trigger "{trigger_type}" already exists. Delete it first to assign a new playlist.'
-        }), 409
-
-    # Parse optional dates
-    start_date = None
-    end_date = None
-    if data.get('start_date'):
-        try:
-            from datetime import datetime
-            start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
-        except ValueError:
-            return jsonify({'error': 'Invalid start_date format. Use ISO 8601.'}), 400
-
-    if data.get('end_date'):
-        try:
-            from datetime import datetime
-            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
-        except ValueError:
-            return jsonify({'error': 'Invalid end_date format. Use ISO 8601.'}), 400
-
-    # Create assignment
-    assignment = DeviceAssignment(
-        device_id=device.id,
-        playlist_id=playlist_id,
-        trigger_type=trigger_type,
-        priority=data.get('priority', 0),
-        start_date=start_date,
-        end_date=end_date
-    )
-
-    try:
-        db.session.add(assignment)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'error': f'Failed to create assignment: {str(e)}'
-        }), 500
-
-    # Log the playlist assignment
+    # Log the changes
     log_action(
-        action='device.assign_playlist',
+        action='device.settings_update',
         action_category='devices',
         resource_type='device',
         resource_id=device.id,
         resource_name=device.device_id,
         details={
-            'assignment_id': assignment.id,
-            'playlist_id': playlist_id,
-            'playlist_name': playlist.name,
-            'trigger_type': trigger_type,
-            'priority': data.get('priority', 0),
+            'changes': changes
         }
     )
 
-    return jsonify({
-        'message': 'Playlist assigned successfully',
-        'assignment': assignment.to_dict()
-    }), 201
-
-
-@devices_bp.route('/<device_id>/playlists/<assignment_id>', methods=['DELETE'])
-@login_required
-def remove_device_playlist(device_id, assignment_id):
-    """
-    Remove a playlist assignment from a device.
-
-    Args:
-        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
-        assignment_id: Assignment ID (UUID)
-
-    Returns:
-        200: Assignment deleted
-        404: Device or assignment not found
-    """
-    # Try to find device by device_id (SKZ format) first, then by UUID
-    device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        device = db.session.get(Device, device_id)
-
-    if not device:
-        return jsonify({'error': 'Device not found'}), 404
-
-    # Find assignment
-    assignment = DeviceAssignment.query.filter_by(
-        id=assignment_id,
-        device_id=device.id
-    ).first()
-
-    if not assignment:
-        return jsonify({'error': 'Assignment not found'}), 404
-
-    # Store info for audit log before deleting
-    playlist_id = assignment.playlist_id
-    playlist_name = assignment.playlist.name if assignment.playlist else None
-    trigger_type = assignment.trigger_type
-
-    try:
-        db.session.delete(assignment)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'error': f'Failed to delete assignment: {str(e)}'
-        }), 500
-
-    # Log the removal
-    log_action(
-        action='device.unassign_playlist',
-        action_category='devices',
-        resource_type='device',
-        resource_id=device.id,
-        resource_name=device.device_id,
-        details={
-            'assignment_id': assignment_id,
-            'playlist_id': playlist_id,
-            'playlist_name': playlist_name,
-            'trigger_type': trigger_type,
-        }
-    )
-
-    return jsonify({
-        'message': 'Playlist assignment removed successfully'
-    }), 200
-
-
-@devices_bp.route('/<device_id>/connection-config', methods=['GET'])
-def get_connection_config(device_id):
-    """
-    Get connection configuration for a specific device.
-
-    Devices call this endpoint to retrieve their connection settings
-    including connection mode and URLs for hub/CMS connections.
-    This endpoint is polled by devices to detect configuration changes.
-
-    Args:
-        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
-
-    Returns:
-        200: Connection configuration
-            {
-                "connection_mode": "direct" or "hub",
-                "hub_url": "http://localhost:5000",
-                "cms_url": "http://localhost:5002",
-                "hub": { id, code, name } or null
-            }
-        404: Device not found
-            {
-                "error": "Device not found"
-            }
-    """
-    # Try to find device by device_id (SKZ format) first, then by UUID
-    device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        device = db.session.get(Device, device_id)
-
-    if not device:
-        return jsonify({'error': 'Device not found'}), 404
-
-    # Get hub info if available
-    hub_data = None
-    if device.hub:
-        hub_data = {
-            'id': device.hub.id,
-            'code': device.hub.code,
-            'name': device.hub.name
-        }
-
-    return jsonify({
-        'connection_mode': device.connection_mode,
-        'hub_url': device.hub_url or 'http://localhost:5000',
-        'cms_url': device.cms_url or 'http://localhost:5002',
-        'hub': hub_data
-    }), 200
-
-
-@devices_bp.route('/<device_id>/connection-config', methods=['PUT'])
-@login_required
-def update_connection_config(device_id):
-    """
-    Update connection configuration for a specific device.
-
-    Allows the CMS UI to update the connection mode and URLs for a device.
-    Changes take effect on the device's next sync/heartbeat cycle.
-
-    Args:
-        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
-
-    Request Body:
-        {
-            "connection_mode": "direct" or "hub" (optional),
-            "hub_url": "http://192.168.1.100:5000" (optional),
-            "cms_url": "http://cms.example.com:5002" (optional)
-        }
-
-    Returns:
-        200: Connection configuration updated
-            {
-                "message": "Connection configuration updated successfully",
-                "device": { device data }
-            }
-        400: Invalid data
-            {
-                "error": "error message"
-            }
-        404: Device not found
-            {
-                "error": "Device not found"
-            }
-    """
-    # Try to find device by device_id (SKZ format) first, then by UUID
-    device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        device = db.session.get(Device, device_id)
-
-    if not device:
-        return jsonify({'error': 'Device not found'}), 404
-
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({'error': 'Request body is required'}), 400
-
-    # Track changes for audit log
-    changes = {}
-
-    # Validate and update connection_mode
-    if 'connection_mode' in data:
-        connection_mode = data['connection_mode']
-        if connection_mode not in ('direct', 'hub'):
-            return jsonify({
-                'error': "connection_mode must be 'direct' or 'hub'"
-            }), 400
-        if device.connection_mode != connection_mode:
-            changes['connection_mode'] = {
-                'before': device.connection_mode,
-                'after': connection_mode
-            }
-            device.connection_mode = connection_mode
-
-    # Validate and update hub_url
-    if 'hub_url' in data:
-        hub_url = data['hub_url']
-        if hub_url is not None:
-            if not isinstance(hub_url, str) or len(hub_url) > 500:
-                return jsonify({
-                    'error': 'hub_url must be a string with max 500 characters'
-                }), 400
-            # Basic URL validation
-            if hub_url and not (hub_url.startswith('http://') or hub_url.startswith('https://')):
-                return jsonify({
-                    'error': 'hub_url must start with http:// or https://'
-                }), 400
-        if device.hub_url != hub_url:
-            changes['hub_url'] = {
-                'before': device.hub_url,
-                'after': hub_url
-            }
-            device.hub_url = hub_url
-
-    # Validate and update cms_url
-    if 'cms_url' in data:
-        cms_url = data['cms_url']
-        if cms_url is not None:
-            if not isinstance(cms_url, str) or len(cms_url) > 500:
-                return jsonify({
-                    'error': 'cms_url must be a string with max 500 characters'
-                }), 400
-            # Basic URL validation
-            if cms_url and not (cms_url.startswith('http://') or cms_url.startswith('https://')):
-                return jsonify({
-                    'error': 'cms_url must start with http:// or https://'
-                }), 400
-        if device.cms_url != cms_url:
-            changes['cms_url'] = {
-                'before': device.cms_url,
-                'after': cms_url
-            }
-            device.cms_url = cms_url
-
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'error': f'Failed to update connection configuration: {str(e)}'
-        }), 500
-
-    # Log the connection config update if there were changes
-    if changes:
-        log_action(
-            action='device.update_connection_config',
-            action_category='devices',
-            resource_type='device',
-            resource_id=device.id,
-            resource_name=device.device_id,
-            details={'changes': changes}
-        )
-
-    return jsonify({
-        'message': 'Connection configuration updated successfully',
-        'device': device.to_dict()
-    }), 200
-
-
-@devices_bp.route('/trigger-types', methods=['GET'])
-@login_required
-def get_trigger_types():
-    """
-    Get list of available trigger types for playlist assignments.
-
-    Returns:
-        200: List of trigger types with descriptions
-    """
-    trigger_info = [
-        {'value': 'default', 'label': 'Default', 'description': 'Always plays (fallback content)'},
-        {'value': 'face_detected', 'label': 'Face Detected', 'description': 'Plays when any face is detected'},
-        {'value': 'age_child', 'label': 'Age: Child', 'description': 'Plays when child is detected (0-12)'},
-        {'value': 'age_teen', 'label': 'Age: Teen', 'description': 'Plays when teen is detected (13-19)'},
-        {'value': 'age_adult', 'label': 'Age: Adult', 'description': 'Plays when adult is detected (20-64)'},
-        {'value': 'age_senior', 'label': 'Age: Senior', 'description': 'Plays when senior is detected (65+)'},
-        {'value': 'gender_male', 'label': 'Gender: Male', 'description': 'Plays when male is detected'},
-        {'value': 'gender_female', 'label': 'Gender: Female', 'description': 'Plays when female is detected'},
-        {'value': 'loyalty_recognized', 'label': 'Loyalty Member', 'description': 'Plays when loyalty member is recognized'},
-        {'value': 'ncmec_alert', 'label': 'NCMEC Alert', 'description': 'Plays during NCMEC alert (amber alert content)'},
-    ]
-    return jsonify({'trigger_types': trigger_info}), 200
-
-
-@devices_bp.route('/pairing/request', methods=['POST'])
-def request_pairing():
-    """
-    Request pairing for a device by storing its pairing code.
-
-    Devices call this endpoint to initiate the pairing workflow. The device
-    generates a 6-digit pairing code locally and sends it to the CMS. Users
-    can then enter this code in the CMS UI to pair the device.
-
-    Request Body:
-        {
-            "hardware_id": "unique-hardware-id" (required),
-            "pairing_code": "123456" (required, 6-digit code)
-        }
-
-    Returns:
-        200: Pairing request accepted
-            {
-                "message": "Pairing request received",
-                "device": { device data },
-                "pairing_code": "123456"
-            }
-        400: Missing required field or invalid data
-            {
-                "error": "error message"
-            }
-        404: Device not found
-            {
-                "error": "Device with hardware_id xxx not found"
-            }
-    """
-    data = request.get_json(silent=True)
-
-    if not data:
-        return jsonify({'error': 'Request body is required'}), 400
-
-    # Validate hardware_id
-    hardware_id = data.get('hardware_id')
-    if not hardware_id:
-        return jsonify({'error': 'hardware_id is required'}), 400
-
-    if not isinstance(hardware_id, str) or len(hardware_id) > 100:
-        return jsonify({
-            'error': 'hardware_id must be a string with max 100 characters'
-        }), 400
-
-    # Validate pairing_code
-    pairing_code = data.get('pairing_code')
-    if not pairing_code:
-        return jsonify({'error': 'pairing_code is required'}), 400
-
-    if not isinstance(pairing_code, str) or len(pairing_code) > 10:
-        return jsonify({
-            'error': 'pairing_code must be a string with max 10 characters'
-        }), 400
-
-    # Find device by hardware_id
-    device = Device.query.filter_by(hardware_id=hardware_id).first()
-    if not device:
-        return jsonify({
-            'error': f'Device with hardware_id {hardware_id} not found'
-        }), 404
-
-    # Store the pairing code
-    device.pairing_code = pairing_code
-
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'error': f'Failed to store pairing code: {str(e)}'
-        }), 500
-
-    # Log the pairing request (device-initiated action)
-    log_action(
-        action='device.pairing_request',
-        action_category='devices',
-        resource_type='device',
-        resource_id=device.id,
-        resource_name=device.device_id,
-        user_email='device',
-        details={
-            'hardware_id': hardware_id,
-            'pairing_code': pairing_code,
-        }
-    )
-
-    return jsonify({
-        'message': 'Pairing request received',
-        'device': device.to_dict(),
-        'pairing_code': pairing_code
-    }), 200
-
-
-@devices_bp.route('/pairing/status/<hardware_id>', methods=['GET'])
-def get_pairing_status(hardware_id):
-    """
-    Get pairing status for a device.
-
-    Devices poll this endpoint to check if they have been paired. Returns
-    the current pairing status based on the device's status field.
-
-    Args:
-        hardware_id: The unique hardware identifier of the device
-
-    Returns:
-        200: Pairing status
-            {
-                "paired": true/false,
-                "status": "pending" or "active" or "offline",
-                "device": { device data }
-            }
-        404: Device not found
-            {
-                "error": "Device with hardware_id xxx not found"
-            }
-    """
-    # Validate hardware_id
-    if not hardware_id or len(hardware_id) > 100:
-        return jsonify({
-            'error': 'hardware_id must be a string with max 100 characters'
-        }), 400
-
-    # Find device by hardware_id
-    device = Device.query.filter_by(hardware_id=hardware_id).first()
-    if not device:
-        return jsonify({
-            'error': f'Device with hardware_id {hardware_id} not found'
-        }), 404
-
-    # Determine if device is paired based on status
-    # Device is considered paired if status is 'active' and has a network_id
-    paired = device.status == 'active' and device.network_id is not None
-
-    return jsonify({
-        'paired': paired,
-        'status': device.status,
-        'device': device.to_dict()
-    }), 200
-
+    return jsonify(device.to_dict()), 200
 
 @devices_bp.route('/<hardware_id>/playlist', methods=['GET'])
 def get_device_playlist(hardware_id):
-    """Get playlist for a device (called by Jetson player)."""
+    """Get playlist for a device (no auth - called by Jetson player)."""
     device = Device.query.filter_by(hardware_id=hardware_id).first()
     if not device:
         device = Device.query.filter_by(device_id=hardware_id).first()
     if not device:
         return jsonify({'error': 'Device not found'}), 404
     if device.status != 'active':
-        return jsonify({'status': device.status, 'items': []}), 200
+        return jsonify({'device_id': getattr(device, 'device_id', ''), 'status': device.status, 'items': []}), 200
     items = []
     for assignment in device.assignments:
         if assignment.playlist:

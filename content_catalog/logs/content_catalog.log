@@ -1,0 +1,18 @@
+2026-01-17 15:50:19,008 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-17 15:50:19,010 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-17 15:50:19,011 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-17 15:50:19,013 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-17 15:50:19,013 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-17 15:50:19,014 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-17 15:50:19,014 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-17 15:50:19,015 - app - INFO - Registered admin web blueprint at /admin
+2026-01-17 15:50:19,016 - app - INFO - Registered partner web blueprint at /partner
+2026-01-17 15:50:19,207 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-17 15:50:19,208 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-17 15:50:19,209 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-17 15:50:19,211 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-17 15:50:19,211 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-17 15:50:19,212 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-17 15:50:19,212 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-17 15:50:19,213 - app - INFO - Registered admin web blueprint at /admin
+2026-01-17 15:50:19,214 - app - INFO - Registered partner web blueprint at /partner
