@@ -10,8 +10,10 @@ Blueprint for playlist management API endpoints:
 - POST /<playlist_id>/items: Add item to playlist
 - DELETE /<playlist_id>/items/<item_id>: Remove item from playlist
 - PUT /<playlist_id>/items/reorder: Reorder playlist items
+- GET /<playlist_id>/preview: Get playlist preview with full content details
 - POST /<playlist_id>/assign: Assign playlist to device
 - DELETE /<playlist_id>/assign/<assignment_id>: Remove device assignment
+- GET /<playlist_id>/assignments: List device assignments for playlist
 
 All endpoints are prefixed with /api/v1/playlists when registered with the app.
 """
@@ -1056,6 +1058,159 @@ def remove_device_assignment(playlist_id, assignment_id):
         'message': 'Assignment removed',
         'id': assignment_id_response
     }), 200
+
+
+@playlists_bp.route('/<playlist_id>/preview', methods=['GET'])
+@login_required
+def preview_playlist(playlist_id):
+    """
+    Get a playlist preview with full content details.
+
+    Returns the playlist with all items including complete content metadata,
+    calculated durations, and content status. This endpoint is designed for
+    the playlist builder UI to display a full preview of the playlist.
+
+    Args:
+        playlist_id: Playlist UUID
+
+    Returns:
+        200: Playlist preview with full content details
+            {
+                "id": "uuid",
+                "name": "Playlist Name",
+                "description": "Description",
+                "network_id": "uuid" or null,
+                "trigger_type": "manual",
+                "trigger_config": null,
+                "loop_mode": "continuous",
+                "priority": "normal",
+                "start_date": "2024-01-15T10:00:00+00:00" or null,
+                "end_date": "2024-12-31T23:59:59+00:00" or null,
+                "is_active": true,
+                "created_at": "2024-01-01T00:00:00+00:00",
+                "updated_at": "2024-01-01T00:00:00+00:00",
+                "item_count": 5,
+                "total_duration": 120,
+                "items": [
+                    {
+                        "id": "item-uuid",
+                        "playlist_id": "playlist-uuid",
+                        "content_id": "content-uuid",
+                        "position": 0,
+                        "duration_override": null,
+                        "effective_duration": 30,
+                        "created_at": "2024-01-01T00:00:00+00:00",
+                        "content": {
+                            "id": "content-uuid",
+                            "filename": "video.mp4",
+                            "original_name": "My Video.mp4",
+                            "mime_type": "video/mp4",
+                            "file_size": 1024000,
+                            "width": 1920,
+                            "height": 1080,
+                            "duration": 30,
+                            "status": "approved",
+                            "network_id": "uuid",
+                            "created_at": "2024-01-01T00:00:00+00:00",
+                            "content_type": "video"
+                        }
+                    },
+                    ...
+                ]
+            }
+        400: Invalid playlist_id format
+            {
+                "error": "Invalid playlist_id format"
+            }
+        404: Playlist not found
+            {
+                "error": "Playlist not found"
+            }
+    """
+    # Validate playlist_id format
+    if not isinstance(playlist_id, str) or len(playlist_id) > 64:
+        return jsonify({
+            'error': 'Invalid playlist_id format'
+        }), 400
+
+    playlist = db.session.get(Playlist, playlist_id)
+
+    if not playlist:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    # Build preview response with full content details
+    items_preview = []
+    total_duration = 0
+    default_image_duration = 10  # Default duration for images in seconds
+
+    for item in playlist.items.order_by(PlaylistItem.position).all():
+        # Calculate effective duration for this item
+        effective_duration = None
+        if item.duration_override:
+            effective_duration = item.duration_override
+        elif item.content and item.content.duration:
+            effective_duration = item.content.duration
+        elif item.content and item.content.is_image:
+            # Default 10 seconds for images without duration override
+            effective_duration = default_image_duration
+
+        # Add to total duration
+        if effective_duration:
+            total_duration += effective_duration
+
+        # Build item preview with enhanced content details
+        item_data = {
+            'id': item.id,
+            'playlist_id': item.playlist_id,
+            'content_id': item.content_id,
+            'position': item.position,
+            'duration_override': item.duration_override,
+            'effective_duration': effective_duration,
+            'created_at': item.created_at.isoformat() if item.created_at else None,
+        }
+
+        # Add content details if content exists
+        if item.content:
+            content = item.content
+            content_data = content.to_dict()
+            # Add content type for easier frontend handling
+            if content.is_video:
+                content_data['content_type'] = 'video'
+            elif content.is_image:
+                content_data['content_type'] = 'image'
+            elif content.is_audio:
+                content_data['content_type'] = 'audio'
+            else:
+                content_data['content_type'] = 'unknown'
+            item_data['content'] = content_data
+        else:
+            # Content was deleted - mark as missing
+            item_data['content'] = None
+            item_data['content_missing'] = True
+
+        items_preview.append(item_data)
+
+    # Build response
+    response = {
+        'id': playlist.id,
+        'name': playlist.name,
+        'description': playlist.description,
+        'network_id': playlist.network_id,
+        'trigger_type': playlist.trigger_type,
+        'trigger_config': playlist.trigger_config,
+        'loop_mode': playlist.loop_mode,
+        'priority': playlist.priority,
+        'start_date': playlist.start_date.isoformat() if playlist.start_date else None,
+        'end_date': playlist.end_date.isoformat() if playlist.end_date else None,
+        'is_active': playlist.is_active,
+        'created_at': playlist.created_at.isoformat() if playlist.created_at else None,
+        'updated_at': playlist.updated_at.isoformat() if playlist.updated_at else None,
+        'item_count': len(items_preview),
+        'total_duration': total_duration if total_duration > 0 else None,
+        'items': items_preview,
+    }
+
+    return jsonify(response), 200
 
 
 @playlists_bp.route('/<playlist_id>/assignments', methods=['GET'])
