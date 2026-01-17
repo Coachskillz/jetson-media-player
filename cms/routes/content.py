@@ -18,7 +18,7 @@ from pathlib import Path
 from flask import Blueprint, request, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
 
-from cms.models import db, Content, Network
+from cms.models import db, Content, Network, ContentStatus
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 
@@ -244,17 +244,22 @@ def list_content():
     List all content.
 
     Returns a list of all content items in the CMS,
-    with optional filtering by network or MIME type.
+    with optional filtering by network, MIME type, or status.
 
     Query Parameters:
         network_id: Filter by network UUID
         type: Filter by content type (video, image)
+        status: Filter by approval status (pending, approved, rejected)
 
     Returns:
         200: List of content
             {
                 "content": [ { content data }, ... ],
                 "count": 5
+            }
+        400: Invalid status value
+            {
+                "error": "Invalid status: xyz. Valid values: pending, approved, rejected"
             }
     """
     # Build query with optional filters
@@ -274,6 +279,16 @@ def list_content():
             query = query.filter(Content.mime_type.like('image/%'))
         elif content_type == 'audio':
             query = query.filter(Content.mime_type.like('audio/%'))
+
+    # Filter by status
+    status = request.args.get('status')
+    if status:
+        valid_statuses = [s.value for s in ContentStatus]
+        if status not in valid_statuses:
+            return jsonify({
+                'error': f"Invalid status: {status}. Valid values: {', '.join(valid_statuses)}"
+            }), 400
+        query = query.filter_by(status=status)
 
     # Execute query
     content_list = query.order_by(Content.created_at.desc()).all()
