@@ -1,20 +1,33 @@
 [Unit]
-Description=Skillz Media Player Service
+Description=Skillz Media Kiosk Player Service
 Documentation=https://github.com/skillzmedia/jetson-media-player
-After=network.target graphical.target
-Wants=network.target
+After=network-online.target graphical.target
+Wants=network-online.target
+Requires=graphical.target
 
 [Service]
 Type=simple
 User=skillz
 Group=skillz
 WorkingDirectory=/home/skillz
+
+# Environment for GTK3, GStreamer, and X11
 Environment=PYTHONUNBUFFERED=1
 Environment=DISPLAY=:0
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=XAUTHORITY=/home/skillz/.Xauthority
+Environment=GDK_BACKEND=x11
+Environment=GST_GL_WINDOW=x11
 
-# Main executable
-ExecStart=/usr/bin/python3 /home/skillz/src/player/player.py
+# GStreamer hardware acceleration on Jetson
+Environment=GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
+
+# NVIDIA GPU access
+Environment=__NV_PRIME_RENDER_OFFLOAD=1
+Environment=__GLX_VENDOR_LIBRARY_NAME=nvidia
+
+# Main executable - Kiosk Player with GTK3 UI
+ExecStart=/usr/bin/python3 -m src.player.kiosk_player
 
 # Crash recovery - restart within 5 seconds
 Restart=always
@@ -29,15 +42,19 @@ TimeoutStopSec=30
 KillMode=mixed
 KillSignal=SIGTERM
 
-# Security hardening
-NoNewPrivileges=true
+# Security hardening (relaxed for GPU access)
+NoNewPrivileges=false
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/home/skillz/logs /home/skillz/media /home/skillz/config /home/skillz/databases
+PrivateDevices=false
+
+# GPU and video device access
+SupplementaryGroups=video render
 
 # Resource limits
-MemoryMax=1G
-CPUQuota=80%
+MemoryMax=2G
+CPUQuota=90%
 
 # Logging
 StandardOutput=journal
@@ -45,4 +62,4 @@ StandardError=journal
 SyslogIdentifier=skillz-player
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target
