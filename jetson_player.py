@@ -9,18 +9,43 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
+from src.player.config import PlayerConfig
+
+
 class JetsonPlayer:
     """Hardware-accelerated media player for Jetson devices."""
     
-    def __init__(self, media_dir: str = "./media"):
+    def __init__(self, media_dir: str = "./media", config_dir: str = None):
         self.media_dir = Path(media_dir)
         self.playlists_file = self.media_dir / "playlists.json"
         self.current_process = None
         self.current_playlist = None
         self.current_video_index = 0
-        
+
+        # Load player configuration
+        self.config = PlayerConfig(config_dir)
+
+        # Determine connection mode and content source
+        self.connection_mode = self.config.connection_mode
+        self.content_source_url = self._get_content_source_url()
+
         print("🎬 Jetson Media Player Initialized")
         print(f"📁 Media directory: {self.media_dir}")
+        print(f"🔗 Connection mode: {self.connection_mode}")
+        print(f"🌐 Content source: {self.content_source_url}")
+
+    def _get_content_source_url(self) -> str:
+        """
+        Get the content source URL based on connection mode.
+
+        Returns:
+            URL string - hub_url for hub mode, cms_url for direct mode
+        """
+        if self.connection_mode == 'hub':
+            return self.config.hub_url
+        else:
+            # Default to direct mode (CMS)
+            return self.config.cms_url
     
     def load_playlists(self) -> bool:
         """Load playlists from local cache."""
@@ -179,6 +204,8 @@ class JetsonPlayer:
         print("=" * 60)
         print(f"📅 Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"💾 Media Dir: {self.media_dir.absolute()}")
+        print(f"🔗 Mode: {self.connection_mode.upper()}")
+        print(f"🌐 Source: {self.content_source_url}")
         print("=" * 60 + "\n")
         
         # Load playlists
