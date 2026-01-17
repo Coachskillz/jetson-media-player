@@ -8,6 +8,8 @@ Blueprint for device management API endpoints:
 - GET /<id>/connection-config: Get connection mode settings for device polling
 - PUT /<id>/connection-config: Update connection mode settings from UI
 - GET /: List all devices
+- POST /pairing/request: Store device pairing code for pairing workflow
+- GET /pairing/status/<hardware_id>: Check device pairing status
 
 All endpoints are prefixed with /api/v1/devices when registered with the app.
 """
@@ -934,3 +936,145 @@ def get_trigger_types():
         {'value': 'ncmec_alert', 'label': 'NCMEC Alert', 'description': 'Plays during NCMEC alert (amber alert content)'},
     ]
     return jsonify({'trigger_types': trigger_info}), 200
+
+
+@devices_bp.route('/pairing/request', methods=['POST'])
+def request_pairing():
+    """
+    Request pairing for a device by storing its pairing code.
+
+    Devices call this endpoint to initiate the pairing workflow. The device
+    generates a 6-digit pairing code locally and sends it to the CMS. Users
+    can then enter this code in the CMS UI to pair the device.
+
+    Request Body:
+        {
+            "hardware_id": "unique-hardware-id" (required),
+            "pairing_code": "123456" (required, 6-digit code)
+        }
+
+    Returns:
+        200: Pairing request accepted
+            {
+                "message": "Pairing request received",
+                "device": { device data },
+                "pairing_code": "123456"
+            }
+        400: Missing required field or invalid data
+            {
+                "error": "error message"
+            }
+        404: Device not found
+            {
+                "error": "Device with hardware_id xxx not found"
+            }
+    """
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Validate hardware_id
+    hardware_id = data.get('hardware_id')
+    if not hardware_id:
+        return jsonify({'error': 'hardware_id is required'}), 400
+
+    if not isinstance(hardware_id, str) or len(hardware_id) > 100:
+        return jsonify({
+            'error': 'hardware_id must be a string with max 100 characters'
+        }), 400
+
+    # Validate pairing_code
+    pairing_code = data.get('pairing_code')
+    if not pairing_code:
+        return jsonify({'error': 'pairing_code is required'}), 400
+
+    if not isinstance(pairing_code, str) or len(pairing_code) > 10:
+        return jsonify({
+            'error': 'pairing_code must be a string with max 10 characters'
+        }), 400
+
+    # Find device by hardware_id
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        return jsonify({
+            'error': f'Device with hardware_id {hardware_id} not found'
+        }), 404
+
+    # Store the pairing code
+    device.pairing_code = pairing_code
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to store pairing code: {str(e)}'
+        }), 500
+
+    # Log the pairing request (device-initiated action)
+    log_action(
+        action='device.pairing_request',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        user_email='device',
+        details={
+            'hardware_id': hardware_id,
+            'pairing_code': pairing_code,
+        }
+    )
+
+    return jsonify({
+        'message': 'Pairing request received',
+        'device': device.to_dict(),
+        'pairing_code': pairing_code
+    }), 200
+
+
+@devices_bp.route('/pairing/status/<hardware_id>', methods=['GET'])
+def get_pairing_status(hardware_id):
+    """
+    Get pairing status for a device.
+
+    Devices poll this endpoint to check if they have been paired. Returns
+    the current pairing status based on the device's status field.
+
+    Args:
+        hardware_id: The unique hardware identifier of the device
+
+    Returns:
+        200: Pairing status
+            {
+                "paired": true/false,
+                "status": "pending" or "active" or "offline",
+                "device": { device data }
+            }
+        404: Device not found
+            {
+                "error": "Device with hardware_id xxx not found"
+            }
+    """
+    # Validate hardware_id
+    if not hardware_id or len(hardware_id) > 100:
+        return jsonify({
+            'error': 'hardware_id must be a string with max 100 characters'
+        }), 400
+
+    # Find device by hardware_id
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        return jsonify({
+            'error': f'Device with hardware_id {hardware_id} not found'
+        }), 404
+
+    # Determine if device is paired based on status
+    # Device is considered paired if status is 'active' and has a network_id
+    paired = device.status == 'active' and device.network_id is not None
+
+    return jsonify({
+        'paired': paired,
+        'status': device.status,
+        'device': device.to_dict()
+    }), 200

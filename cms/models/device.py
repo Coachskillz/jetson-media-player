@@ -64,6 +64,9 @@ class Device(db.Model):
     hub_url = db.Column(db.String(500), nullable=True)  # e.g., http://192.168.1.100:5000
     cms_url = db.Column(db.String(500), nullable=True)  # e.g., http://cms.skillzmedia.com:5002
 
+    # Pairing code for device registration workflow
+    pairing_code = db.Column(db.String(10), nullable=True, index=True)
+
     # Relationships
     hub = db.relationship('Hub', backref=db.backref('devices', lazy='dynamic'))
     network = db.relationship('Network', backref=db.backref('devices', lazy='dynamic'))
@@ -93,7 +96,8 @@ class Device(db.Model):
             'camera2_ncmec': self.camera2_ncmec,
             'connection_mode': self.connection_mode,
             'hub_url': self.hub_url,
-            'cms_url': self.cms_url
+            'cms_url': self.cms_url,
+            'pairing_code': self.pairing_code
         }
 
     def __repr__(self):
