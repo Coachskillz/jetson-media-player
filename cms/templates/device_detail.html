@@ -838,8 +838,10 @@ input:disabled + .toggle-slider {
     const deviceId = '{{ device.device_id }}';
     const originalConnectionMode = '{{ device.connection_mode or "direct" }}';
 
-    // Connection mode save (placeholder - full implementation in subtask-4-3)
-    function saveConnectionMode() {
+    // Connection mode save with AJAX
+    let connectionModeTimeout = null;
+
+    async function saveConnectionMode() {
         const newMode = document.getElementById('connection_mode').value;
         const warning = document.getElementById('connectionModeWarning');
 
@@ -850,7 +852,36 @@ input:disabled + .toggle-slider {
             warning.classList.remove('visible');
         }
 
-        // Will be implemented with AJAX in subtask-4-3
+        // Clear previous timeout for debounce
+        if (connectionModeTimeout) {
+            clearTimeout(connectionModeTimeout);
+        }
+
+        // Show saving status
+        showSaveStatus('saving', 'Saving...');
+
+        // Debounce the save
+        connectionModeTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/v1/devices/${deviceId}/connection-config`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        connection_mode: newMode
+                    })
+                });
+
+                if (response.ok) {
+                    showSaveStatus('saved', 'Connection mode saved');
+                } else {
+                    const data = await response.json();
+                    showSaveStatus('error', data.error || 'Failed to save connection mode');
+                }
+            } catch (error) {
+                showSaveStatus('error', 'Connection error');
+            }
+        }, 500);
     }
     let saveTimeout = null;
 
