@@ -5,6 +5,7 @@ Blueprint for device management API endpoints:
 - POST /register: Register a new device (direct or hub mode)
 - POST /pair: Pair device with a network
 - GET /<id>/config: Get device configuration
+- GET /<id>/connection-config: Get connection mode settings for device polling
 - GET /: List all devices
 
 All endpoints are prefixed with /api/v1/devices when registered with the app.
@@ -729,6 +730,56 @@ def remove_device_playlist(device_id, assignment_id):
 
     return jsonify({
         'message': 'Playlist assignment removed successfully'
+    }), 200
+
+
+@devices_bp.route('/<device_id>/connection-config', methods=['GET'])
+def get_connection_config(device_id):
+    """
+    Get connection configuration for a specific device.
+
+    Devices call this endpoint to retrieve their connection settings
+    including connection mode and URLs for hub/CMS connections.
+    This endpoint is polled by devices to detect configuration changes.
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Returns:
+        200: Connection configuration
+            {
+                "connection_mode": "direct" or "hub",
+                "hub_url": "http://localhost:5000",
+                "cms_url": "http://localhost:5002",
+                "hub": { id, code, name } or null
+            }
+        404: Device not found
+            {
+                "error": "Device not found"
+            }
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Get hub info if available
+    hub_data = None
+    if device.hub:
+        hub_data = {
+            'id': device.hub.id,
+            'code': device.hub.code,
+            'name': device.hub.name
+        }
+
+    return jsonify({
+        'connection_mode': device.connection_mode,
+        'hub_url': device.hub_url or 'http://localhost:5000',
+        'cms_url': device.cms_url or 'http://localhost:5002',
+        'hub': hub_data
     }), 200
 
 
