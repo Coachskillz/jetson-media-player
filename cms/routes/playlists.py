@@ -4,6 +4,7 @@ CMS Playlists Routes
 Blueprint for playlist management API endpoints:
 - POST /: Create playlist
 - GET /: List all playlists
+- GET /approved-content: List approved content for playlist builder
 - GET /<playlist_id>: Get playlist details
 - PUT /<playlist_id>: Update playlist
 - DELETE /<playlist_id>: Delete playlist
@@ -22,7 +23,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 
-from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network
+from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network, ContentStatus
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 from cms.models.playlist import TriggerType, LoopMode, Priority
@@ -51,6 +52,74 @@ def _parse_datetime(datetime_str):
         return datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
     except ValueError:
         return None
+
+
+@playlists_bp.route('/approved-content', methods=['GET'])
+@login_required
+def list_approved_content():
+    """
+    List all approved content for the playlist builder.
+
+    Returns a list of content items with status="approved" that can be
+    added to playlists. This endpoint is designed for the playlist builder
+    UI to populate the content browser panel.
+
+    Query Parameters:
+        network_id: Filter by network UUID
+        type: Filter by content type (video, image, audio)
+        search: Search by original filename (case-insensitive)
+
+    Returns:
+        200: List of approved content
+            {
+                "content": [ { content data }, ... ],
+                "count": 5
+            }
+    """
+    # Build query filtering for approved content only
+    query = Content.query.filter_by(status=ContentStatus.APPROVED.value)
+
+    # Filter by network
+    network_id = request.args.get('network_id')
+    if network_id:
+        query = query.filter_by(network_id=network_id)
+
+    # Filter by content type
+    content_type = request.args.get('type')
+    if content_type:
+        if content_type == 'video':
+            query = query.filter(Content.mime_type.like('video/%'))
+        elif content_type == 'image':
+            query = query.filter(Content.mime_type.like('image/%'))
+        elif content_type == 'audio':
+            query = query.filter(Content.mime_type.like('audio/%'))
+
+    # Search by original filename
+    search = request.args.get('search')
+    if search:
+        query = query.filter(Content.original_name.ilike(f'%{search}%'))
+
+    # Execute query
+    content_list = query.order_by(Content.created_at.desc()).all()
+
+    # Add content_type helper field to each item
+    result = []
+    for content in content_list:
+        content_data = content.to_dict()
+        if content.is_video:
+            content_data['content_type'] = 'video'
+        elif content.is_image:
+            content_data['content_type'] = 'image'
+        elif content.is_audio:
+            content_data['content_type'] = 'audio'
+        else:
+            content_data['content_type'] = 'unknown'
+        result.append(content_data)
+
+    return jsonify({
+        'content': result,
+        'count': len(result)
+    }), 200
 
 
 @playlists_bp.route('', methods=['POST'])
