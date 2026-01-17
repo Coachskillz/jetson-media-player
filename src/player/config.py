@@ -143,6 +143,18 @@ class PlayerConfig:
         """Set device location description."""
         self._device['location_in_store'] = value
 
+    @property
+    def connection_mode(self) -> str:
+        """Get connection mode (hub or direct)."""
+        return self._device.get('connection_mode', 'direct')
+
+    @connection_mode.setter
+    def connection_mode(self, value: str) -> None:
+        """Set connection mode."""
+        if value not in ('hub', 'direct'):
+            raise ValueError("connection_mode must be 'hub' or 'direct'")
+        self._device['connection_mode'] = value
+
     # Playlist config accessors
 
     @property
