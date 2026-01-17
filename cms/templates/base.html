@@ -793,26 +793,27 @@
                 <p class="subtitle">{% block header_subtitle %}Manage your media screens and content{% endblock %}</p>
                 <nav class="nav">
                     <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
-                    <a href="/screens" class="{% if request.path == '/screens' %}active{% endif %}">Screens</a>
-                    <a href="/templates" class="{% if request.path == '/templates' %}active{% endif %}">Templates</a>
-                    <a href="/campaigns" class="{% if request.path == '/campaigns' %}active{% endif %}">Campaigns</a>
+                    <a href="/devices" class="{% if request.path == '/devices' or request.path.startswith('/devices/') %}active{% endif %}">Screens</a>
+                    <a href="/content" class="{% if request.path == '/content' %}active{% endif %}">Content</a>
+                    <a href="/playlists" class="{% if request.path == '/playlists' %}active{% endif %}">Playlists</a>
+                    <a href="/hubs" class="{% if request.path == '/hubs' %}active{% endif %}">Hubs</a>
 {% block nav_items %}{% endblock %}
                 </nav>
             </div>
             <div class="header-right">
                 <div class="user-menu" id="userMenu">
                     <button class="user-menu-btn" id="userMenuBtn">
-                        <div class="user-avatar">{{ user.username|first|upper }}</div>
+                        <div class="user-avatar">{{ user.username|first|upper if user else 'U' }}</div>
                         <div class="user-info">
-                            <div class="user-name">{{ user.username }}</div>
-                            <div class="user-role">{{ user.role }}</div>
+                            <div class="user-name">{{ user.username if user else 'User' }}</div>
+                            <div class="user-role">{{ user.role if user else 'admin' }}</div>
                         </div>
                         <span class="user-menu-arrow">▼</span>
                     </button>
                     <div class="user-menu-dropdown">
                         <div class="user-menu-header">
-                            <div class="user-menu-header-name">{{ user.username }}</div>
-                            <div class="user-menu-header-email">{{ user.email }}</div>
+                            <div class="user-menu-header-name">{{ user.username if user else 'User' }}</div>
+                            <div class="user-menu-header-email">{{ user.email if user else '' }}</div>
                         </div>
                         <div class="user-menu-items">
                             <a href="/profile" class="user-menu-item">

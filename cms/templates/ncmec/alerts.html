@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}NCMEC Alerts - Skillz Media CMS{% endblock %}
+
+{% block extra_styles %}
+.alerts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.alert-stats {
+    display: flex;
+    gap: 15px;
+}
+
+.stat-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.stat-badge.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.stat-badge.confirmed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.stat-badge.reported {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    border-color: #667eea;
+}
+
+.filter-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.alerts-list {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.alert-item:hover {
+    background: #f8fafc;
+}
+
+.alert-item:last-child {
+    border-bottom: none;
+}
+
+.alert-priority {
+    width: 8px;
+    height: 60px;
+    border-radius: 4px;
+    margin-right: 20px;
+}
+
+.alert-priority.pending {
+    background: #f59e0b;
+}
+
+.alert-priority.reviewing {
+    background: #3b82f6;
+}
+
+.alert-priority.confirmed {
+    background: #ef4444;
+}
+
+.alert-priority.reported {
+    background: #10b981;
+}
+
+.alert-priority.dismissed {
+    background: #94a3b8;
+}
+
+.alert-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    object-fit: cover;
+    margin-right: 20px;
+    background: #f1f5f9;
+}
+
+.alert-info {
+    flex: 1;
+}
+
+.alert-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.alert-meta {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.alert-meta span {
+    margin-right: 15px;
+}
+
+.alert-confidence {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-right: 20px;
+}
+
+.alert-confidence.high {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.alert-confidence.medium {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.alert-confidence.low {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.alert-status {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.alert-status.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.alert-status.reviewing {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.alert-status.confirmed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.alert-status.reported {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.alert-status.dismissed {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.settings-link {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 15px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s;
+}
+
+.settings-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+{% endblock %}
+
+{% block content %}
+<div class="alerts-header">
+    <h2 style="color: white; font-size: 24px; font-weight: 700;">🚨 NCMEC Alerts</h2>
+    <div class="alert-stats" id="alertStats">
+        <span class="stat-badge pending" id="pendingCount">0 Pending</span>
+        <span class="stat-badge confirmed" id="confirmedCount">0 Confirmed</span>
+        <span class="stat-badge reported" id="reportedCount">0 Reported</span>
+    </div>
+</div>
+
+<div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="pending">Pending</button>
+    <button class="filter-btn" data-filter="reviewing">Reviewing</button>
+    <button class="filter-btn" data-filter="confirmed">Confirmed</button>
+    <button class="filter-btn" data-filter="reported">Reported</button>
+    <button class="filter-btn" data-filter="dismissed">Dismissed</button>
+</div>
+
+<div class="alerts-list" id="alertsList">
+    <div class="empty-state" id="emptyState">
+        <div class="empty-state-icon">✅</div>
+        <h3>No Alerts</h3>
+        <p>No NCMEC alerts to review at this time.</p>
+    </div>
+</div>
+
+<a href="/ncmec/settings" class="settings-link">⚙️ Notification Settings</a>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentFilter = 'all';
+let alerts = [];
+
+async function loadAlerts() {
+    try {
+        const url = currentFilter === 'all' 
+            ? '/api/v1/ncmec/alerts'
+            : `/api/v1/ncmec/alerts?status=${currentFilter}`;
+        
+        const response = await fetch(url, {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+        alerts = data.alerts || [];
+        renderAlerts();
+        loadStats();
+    } catch (error) {
+        console.error('Failed to load alerts:', error);
+    }
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/v1/ncmec/stats', {
+            credentials: 'same-origin'
+        });
+        const stats = await response.json();
+        
+        document.getElementById('pendingCount').textContent = `${stats.pending} Pending`;
+        document.getElementById('confirmedCount').textContent = `${stats.confirmed} Confirmed`;
+        document.getElementById('reportedCount').textContent = `${stats.reported} Reported`;
+    } catch (error) {
+        console.error('Failed to load stats:', error);
+    }
+}
+
+function renderAlerts() {
+    const container = document.getElementById('alertsList');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (alerts.length === 0) {
+        emptyState.style.display = 'block';
+        container.innerHTML = '';
+        container.appendChild(emptyState);
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    
+    container.innerHTML = alerts.map(alert => `
+        <div class="alert-item" onclick="window.location.href='/ncmec/alerts/${alert.id}'">
+            <div class="alert-priority ${alert.status}"></div>
+            <img src="${alert.captured_image_path || '/static/placeholder.png'}" class="alert-image" alt="Captured">
+            <div class="alert-info">
+                <div class="alert-title">Case: ${alert.ncmec_case_id}</div>
+                <div class="alert-meta">
+                    <span>📍 ${alert.store_name || 'Unknown Location'}</span>
+                    <span>🕐 ${formatDate(alert.detected_at)}</span>
+                    ${alert.ncmec_child_name ? `<span>👤 ${alert.ncmec_child_name}</span>` : ''}
+                </div>
+            </div>
+            <div class="alert-confidence ${getConfidenceClass(alert.confidence_score)}">
+                ${Math.round(alert.confidence_score * 100)}%
+            </div>
+            <div class="alert-status ${alert.status}">
+                ${alert.status}
+            </div>
+        </div>
+    `).join('');
+}
+
+function getConfidenceClass(score) {
+    if (score >= 0.9) return 'high';
+    if (score >= 0.8) return 'medium';
+    return 'low';
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'Unknown';
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        loadAlerts();
+    });
+});
+
+// Initial load
+loadAlerts();
+
+// Auto-refresh every 30 seconds
+setInterval(loadAlerts, 30000);
+</script>
+{% endblock %}

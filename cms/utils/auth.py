@@ -24,6 +24,7 @@ from functools import wraps
 from datetime import datetime, timezone
 
 from flask import request, jsonify, g
+from flask_login import current_user as flask_login_user
 
 from cms.models import db, User, UserSession
 
@@ -166,6 +167,12 @@ def login_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # First check if user is logged in via Flask-Login session
+        if flask_login_user and flask_login_user.is_authenticated:
+            g.current_user = flask_login_user
+            g.current_session = None
+            return f(*args, **kwargs)
+        
         # Extract token from Authorization header
         token = _extract_token_from_header()
         if not token:
@@ -173,7 +180,7 @@ def login_required(f):
                 'error': 'Authentication required',
                 'code': 'missing_token'
             }), 401
-
+        
         # Validate the session
         user, session = _validate_session(token)
         if not user:
@@ -181,15 +188,14 @@ def login_required(f):
                 'error': 'Invalid or expired session',
                 'code': 'invalid_session'
             }), 401
-
+        
         # Store user and session in g for access by route
         g.current_user = user
         g.current_session = session
-
+        
         return f(*args, **kwargs)
 
     return decorated_function
-
 
 def login_required_allow_password_change(f):
     """
@@ -214,6 +220,12 @@ def login_required_allow_password_change(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # First check if user is logged in via Flask-Login session
+        if flask_login_user and flask_login_user.is_authenticated:
+            g.current_user = flask_login_user
+            g.current_session = None
+            return f(*args, **kwargs)
+        
         # Extract token from Authorization header
         token = _extract_token_from_header()
         if not token:
@@ -221,7 +233,7 @@ def login_required_allow_password_change(f):
                 'error': 'Authentication required',
                 'code': 'missing_token'
             }), 401
-
+        
         # Validate the session
         user, session = _validate_session(token)
         if not user:
@@ -229,15 +241,14 @@ def login_required_allow_password_change(f):
                 'error': 'Invalid or expired session',
                 'code': 'invalid_session'
             }), 401
-
+        
         # Store user and session in g for access by route
         g.current_user = user
         g.current_session = session
-
+        
         return f(*args, **kwargs)
 
     return decorated_function
-
 
 def get_client_ip():
     """

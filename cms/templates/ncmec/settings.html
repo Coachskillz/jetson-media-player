@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}NCMEC Notification Settings - Skillz Media CMS{% endblock %}
+
+{% block extra_styles %}
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    opacity: 0.9;
+    transition: all 0.2s;
+}
+
+.back-link:hover {
+    opacity: 1;
+    transform: translateX(-4px);
+}
+
+.settings-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.settings-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.setting-info h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.setting-info p {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: 0.3s;
+    border-radius: 28px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+.input-group {
+    margin-top: 15px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.input-group input, .input-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.input-group input:focus, .input-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.input-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.input-group .help-text {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 5px;
+}
+
+.threshold-slider {
+    margin-top: 10px;
+}
+
+.threshold-slider input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.threshold-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+}
+
+.threshold-value {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #667eea;
+    margin-top: 10px;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.save-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.save-status {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.save-status.success {
+    color: #059669;
+}
+
+.save-status.error {
+    color: #dc2626;
+}
+
+.warning-box {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.warning-box h4 {
+    color: #92400e;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.warning-box p {
+    color: #a16207;
+    font-size: 13px;
+    line-height: 1.5;
+}
+{% endblock %}
+
+{% block content %}
+<a href="/ncmec/alerts" class="back-link">
+    <span>←</span> Back to Alerts
+</a>
+
+<h2 style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px;">⚙️ NCMEC Notification Settings</h2>
+
+<div class="warning-box">
+    <h4>⚠️ Important</h4>
+    <p>These settings control who gets notified when a potential NCMEC match is detected. Ensure at least one notification method is enabled and contacts are configured to avoid missing critical alerts.</p>
+</div>
+
+<div class="settings-card">
+    <h3>📧 Email Notifications</h3>
+    
+    <div class="setting-row">
+        <div class="setting-info">
+            <h4>Enable Email Alerts</h4>
+            <p>Send email notifications when a potential match is detected</p>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox" id="emailEnabled">
+            <span class="toggle-slider"></span>
+        </label>
+    </div>
+    
+    <div class="input-group">
+        <label>Email Addresses</label>
+        <textarea id="emailAddresses" placeholder="Enter email addresses, one per line"></textarea>
+        <div class="help-text">Enter one email address per line. All addresses will receive alerts.</div>
+    </div>
+</div>
+
+<div class="settings-card">
+    <h3>📱 SMS Notifications</h3>
+    
+    <div class="setting-row">
+        <div class="setting-info">
+            <h4>Enable SMS Alerts</h4>
+            <p>Send text message notifications when a potential match is detected</p>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox" id="smsEnabled">
+            <span class="toggle-slider"></span>
+        </label>
+    </div>
+    
+    <div class="input-group">
+        <label>Phone Numbers</label>
+        <textarea id="phoneNumbers" placeholder="Enter phone numbers, one per line"></textarea>
+        <div class="help-text">Enter one phone number per line in format: +1XXXXXXXXXX</div>
+    </div>
+</div>
+
+<div class="settings-card">
+    <h3>🎯 Detection Threshold</h3>
+    
+    <div class="setting-row" style="flex-direction: column; align-items: stretch;">
+        <div class="setting-info" style="margin-bottom: 15px;">
+            <h4>Minimum Confidence Threshold</h4>
+            <p>Only send notifications when match confidence is above this percentage</p>
+        </div>
+        
+        <div class="threshold-slider">
+            <input type="range" id="confidenceThreshold" min="50" max="99" value="85">
+            <div class="threshold-value"><span id="thresholdDisplay">85</span>%</div>
+        </div>
+    </div>
+</div>
+
+<button class="save-btn" id="saveBtn" onclick="saveSettings()">
+    Save Settings
+</button>
+
+<div class="save-status" id="saveStatus"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Load current settings
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/v1/ncmec/settings', {
+            credentials: 'same-origin'
+        });
+        const settings = await response.json();
+        
+        document.getElementById('emailEnabled').checked = settings.email_enabled;
+        document.getElementById('emailAddresses').value = (settings.email_addresses || []).join('\n');
+        document.getElementById('smsEnabled').checked = settings.sms_enabled;
+        document.getElementById('phoneNumbers').value = (settings.phone_numbers || []).join('\n');
+        
+        const threshold = Math.round((settings.min_confidence_threshold || 0.85) * 100);
+        document.getElementById('confidenceThreshold').value = threshold;
+        document.getElementById('thresholdDisplay').textContent = threshold;
+    } catch (error) {
+        console.error('Failed to load settings:', error);
+    }
+}
+
+// Update threshold display
+document.getElementById('confidenceThreshold').addEventListener('input', function() {
+    document.getElementById('thresholdDisplay').textContent = this.value;
+});
+
+// Save settings
+async function saveSettings() {
+    const btn = document.getElementById('saveBtn');
+    const status = document.getElementById('saveStatus');
+    
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    status.textContent = '';
+    
+    const emailAddresses = document.getElementById('emailAddresses').value
+        .split('\n')
+        .map(e => e.trim())
+        .filter(e => e);
+    
+    const phoneNumbers = document.getElementById('phoneNumbers').value
+        .split('\n')
+        .map(p => p.trim())
+        .filter(p => p);
+    
+    const settings = {
+        email_enabled: document.getElementById('emailEnabled').checked,
+        email_addresses: emailAddresses,
+        sms_enabled: document.getElementById('smsEnabled').checked,
+        phone_numbers: phoneNumbers,
+        min_confidence_threshold: parseInt(document.getElementById('confidenceThreshold').value) / 100
+    };
+    
+    try {
+        const response = await fetch('/api/v1/ncmec/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(settings)
+        });
+        
+        if (response.ok) {
+            status.textContent = '✓ Settings saved successfully';
+            status.className = 'save-status success';
+        } else {
+            const data = await response.json();
+            status.textContent = 'Error: ' + (data.error || 'Failed to save settings');
+            status.className = 'save-status error';
+        }
+    } catch (error) {
+        status.textContent = 'Error: ' + error.message;
+        status.className = 'save-status error';
+    }
+    
+    btn.disabled = false;
+    btn.textContent = 'Save Settings';
+}
+
+// Load settings on page load
+loadSettings();
+</script>
+{% endblock %}

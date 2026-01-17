@@ -71,3 +71,5 @@ __all__ = [
     'LayerPlaylistAssignment',
     'DeviceLayout',
 ]
+# NCMEC Alert models
+from cms.models.ncmec_alert import NCMECAlert, NCMECNotificationConfig

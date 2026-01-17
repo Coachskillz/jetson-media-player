@@ -118,6 +118,7 @@ def _seed_default_users(app: Flask) -> None:
     try:
         from cms.models import User
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('User model not available yet, skipping user seeding')
         return
 
@@ -224,6 +225,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(devices_bp, url_prefix='/api/v1/devices')
         app.logger.info('Registered devices blueprint at /api/v1/devices')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Devices blueprint not available yet')
 
     try:
@@ -231,6 +233,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(hubs_bp, url_prefix='/api/v1/hubs')
         app.logger.info('Registered hubs blueprint at /api/v1/hubs')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Hubs blueprint not available yet')
 
     try:
@@ -238,6 +241,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(content_bp, url_prefix='/api/v1/content')
         app.logger.info('Registered content blueprint at /api/v1/content')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Content blueprint not available yet')
 
     try:
@@ -245,6 +249,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(playlists_bp, url_prefix='/api/v1/playlists')
         app.logger.info('Registered playlists blueprint at /api/v1/playlists')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Playlists blueprint not available yet')
 
     try:
@@ -252,6 +257,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(networks_bp, url_prefix='/api/v1/networks')
         app.logger.info('Registered networks blueprint at /api/v1/networks')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Networks blueprint not available yet')
 
     try:
@@ -259,6 +265,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(layouts_bp, url_prefix='/api/v1/layouts')
         app.logger.info('Registered layouts blueprint at /api/v1/layouts')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Layouts blueprint not available yet')
 
     # Authentication Blueprint - login, logout, password management
@@ -267,6 +274,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
         app.logger.info('Registered auth blueprint at /api/v1/auth')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Auth blueprint not available yet')
 
     # Users Blueprint - user management (CRUD, approve, suspend, deactivate)
@@ -275,6 +283,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(users_bp, url_prefix='/api/v1/users')
         app.logger.info('Registered users blueprint at /api/v1/users')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Users blueprint not available yet')
 
     # Invitations Blueprint - user invitation system
@@ -283,6 +292,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(invitations_bp, url_prefix='/api/v1/invitations')
         app.logger.info('Registered invitations blueprint at /api/v1/invitations')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Invitations blueprint not available yet')
 
     # Sessions Blueprint - session management (list, revoke)
@@ -291,6 +301,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(sessions_bp, url_prefix='/api/v1/sessions')
         app.logger.info('Registered sessions blueprint at /api/v1/sessions')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Sessions blueprint not available yet')
 
     # Audit Blueprint - audit log viewing and export
@@ -299,6 +310,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(audit_bp, url_prefix='/api/v1/audit-logs')
         app.logger.info('Registered audit blueprint at /api/v1/audit-logs')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Audit blueprint not available yet')
 
     # Web UI Blueprints - registered at root for page rendering
@@ -307,6 +319,7 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(web_bp)
         app.logger.info('Registered web blueprint at /')
     except ImportError:
+        app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Web blueprint not available yet')
 
     try:
@@ -314,7 +327,16 @@ def _register_blueprints(app: Flask) -> None:
         app.register_blueprint(layouts_web_bp)
         app.logger.info('Registered layouts web blueprint at /')
     except ImportError:
-        app.logger.debug('Layouts web blueprint not available yet')
+        app.logger.debug("Layouts web blueprint not available yet")
+
+    # NCMEC Alert routes
+    try:
+        from cms.routes.ncmec import ncmec_bp, ncmec_api_bp
+        app.register_blueprint(ncmec_bp)
+        app.register_blueprint(ncmec_api_bp)
+        app.logger.info("Registered NCMEC blueprints")
+    except ImportError as e:
+        app.logger.warning(f"Could not import NCMEC routes: {e}")
 
 
 def _register_error_handlers(app: Flask) -> None:

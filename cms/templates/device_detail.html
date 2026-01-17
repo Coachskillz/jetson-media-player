@@ -773,6 +773,7 @@ input:disabled + .toggle-slider {
             try {
                 const response = await fetch(`/api/v1/devices/${deviceId}/settings`, {
                     method: 'PATCH',
+                    credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settings)
                 });
