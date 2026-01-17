@@ -260,6 +260,66 @@ input:disabled + .toggle-slider {
     border-left: 2px solid #e2e8f0;
 }
 
+/* Connection Mode Section */
+.connection-settings-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.connection-settings-card h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.connection-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.connection-mode-select {
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    background: white;
+    color: #1e293b;
+    cursor: pointer;
+    min-width: 160px;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.connection-mode-select:hover {
+    border-color: #667eea;
+}
+
+.connection-mode-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 /* Playlists Section */
 .playlists-section {
     background: rgba(255, 255, 255, 0.95);
@@ -570,6 +630,26 @@ input:disabled + .toggle-slider {
     </div>
 </div>
 
+<!-- Connection Settings -->
+<div class="connection-settings-card">
+    <h3>
+        <div class="connection-icon">🔗</div>
+        Connection Settings
+    </h3>
+    <div class="toggle-group">
+        <div class="toggle-row main-toggle">
+            <div class="toggle-label">
+                <span class="toggle-label-text">Connection Mode</span>
+                <span class="toggle-label-desc">Hub mode connects to local hub; Direct mode connects to CMS</span>
+            </div>
+            <select id="connection_mode" class="connection-mode-select" onchange="saveConnectionMode()">
+                <option value="direct" {% if device.connection_mode == 'direct' or not device.connection_mode %}selected{% endif %}>📡 Direct (CMS)</option>
+                <option value="hub" {% if device.connection_mode == 'hub' %}selected{% endif %}>🔗 Hub</option>
+            </select>
+        </div>
+    </div>
+</div>
+
 <!-- Camera Settings -->
 <div class="settings-grid">
     <!-- Camera 1: Demographics & Loyalty -->
@@ -730,6 +810,11 @@ input:disabled + .toggle-slider {
 {% block extra_scripts %}
 <script>
     const deviceId = '{{ device.device_id }}';
+
+    // Connection mode save (placeholder - full implementation in subtask-4-3)
+    function saveConnectionMode() {
+        // Will be implemented with AJAX in subtask-4-3
+    }
     let saveTimeout = null;
 
     // Update sub-toggle disabled state based on main toggle
