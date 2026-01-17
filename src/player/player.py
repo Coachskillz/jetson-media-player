@@ -103,6 +103,10 @@ class SkillzPlayer:
         self._pairing_code: Optional[str] = None
         self._pairing_poll_timer: Optional[int] = None
 
+        # CMS status polling state
+        self._cms_poll_timer: Optional[int] = None
+        self._cms_poll_interval: int = 30000  # 30 seconds default
+
         # Main loop event
         self._stop_event = threading.Event()
 
@@ -693,6 +697,88 @@ class SkillzPlayer:
 
         return True  # Continue polling
 
+    def _start_cms_status_poll(self) -> None:
+        """Start polling CMS for device status during playback."""
+        if self._headless:
+            return
+
+        # Stop existing poll if any
+        self._stop_cms_status_poll()
+
+        # Poll every 30 seconds using GLib timer
+        if GTK_AVAILABLE and self._kiosk_window:
+            self._cms_poll_timer = self._kiosk_window.add_timeout(
+                self._cms_poll_interval,
+                self._poll_cms_status
+            )
+            logger.debug("Started CMS status poll timer")
+
+    def _stop_cms_status_poll(self) -> None:
+        """Stop the CMS status poll."""
+        if self._cms_poll_timer and self._kiosk_window:
+            self._kiosk_window.remove_timeout(self._cms_poll_timer)
+            self._cms_poll_timer = None
+            logger.debug("Stopped CMS status poll timer")
+
+    def _poll_cms_status(self) -> bool:
+        """
+        Poll CMS for device status with automatic mode transition.
+
+        Checks if the device is still paired and handles remote unpair.
+        Can also receive mode commands from CMS in the future.
+
+        Returns:
+            True to continue polling, False to stop
+        """
+        if not self._cms_client or not self._running:
+            return False
+
+        try:
+            # Check if device is still paired
+            is_paired = self._cms_client.check_pairing_status()
+
+            if not is_paired:
+                # Device was unpaired remotely - transition to pairing mode
+                logger.info("Device unpaired remotely - transitioning to pairing mode")
+
+                # Update config
+                if self._config:
+                    self._config.set_paired(False)
+
+                # Transition to pairing mode
+                if GTK_AVAILABLE and self._kiosk_window:
+                    self._kiosk_window.schedule_callback(
+                        lambda: self._transition_to_pairing()
+                    )
+
+                return False  # Stop polling (pairing poll will take over)
+
+            # Device is still paired - continue normal operation
+            logger.debug("CMS status poll: device still paired")
+
+        except Exception as e:
+            logger.error("Error polling CMS status: %s", e)
+            # Continue polling even on error - might be temporary network issue
+
+        return True  # Continue polling
+
+    def _transition_to_pairing(self) -> None:
+        """Transition from playback to pairing mode due to remote unpair."""
+        if self._state_machine:
+            try:
+                # If in menu mode, close it first
+                if self._state_machine.is_menu:
+                    self._state_machine.to_playback()
+
+                # Now transition to pairing
+                self._state_machine.to_pairing()
+
+                # Stop CMS status poll (pairing poll will start)
+                self._stop_cms_status_poll()
+
+            except StateTransitionError as e:
+                logger.error("Failed to transition to pairing: %s", e)
+
     def _transition_to_playback(self) -> None:
         """Transition from pairing to playback mode."""
         if self._state_machine:
@@ -701,6 +787,9 @@ class SkillzPlayer:
 
                 # Start playback
                 self._start_playback()
+
+                # Start CMS status polling to detect remote unpair
+                self._start_cms_status_poll()
 
             except StateTransitionError as e:
                 logger.error("Failed to transition to playback: %s", e)
@@ -892,6 +981,9 @@ class SkillzPlayer:
             if not self._headless:
                 self._show_playback_screen()
 
+            # Start CMS status polling to detect remote unpair
+            self._start_cms_status_poll()
+
         # Step 6: Start background services
         self._start_background_services()
 
@@ -913,6 +1005,9 @@ class SkillzPlayer:
 
         # Stop pairing poll timer if running
         self._stop_pairing_poll()
+
+        # Stop CMS status poll timer if running
+        self._stop_cms_status_poll()
 
         # Stop background services first
         self._stop_background_services()
