@@ -402,6 +402,100 @@
     font-weight: 700;
 }
 
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.settings-grid .form-group {
+    margin: 0;
+}
+
+.settings-row {
+    margin-bottom: 15px;
+}
+
+.date-range-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.settings-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.settings-select, .settings-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.settings-select:focus, .settings-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.settings-select:disabled, .settings-input:disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+.settings-help {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.settings-save-indicator {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 12px;
+    color: #10b981;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.settings-save-indicator.visible {
+    opacity: 1;
+}
+
+.priority-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.priority-badge.normal {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.priority-badge.high {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.priority-badge.interrupt {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
 /* Legacy styles preserved for backward compatibility */
 .preview-panel {
     position: sticky;
@@ -888,11 +982,56 @@
             </div>
         </div>
 
-        <!-- Playlist Settings Section (to be populated in subtask 4-5) -->
+        <!-- Playlist Settings Section -->
         <div class="playlist-settings" id="playlistSettingsSection" style="display: none;">
-            <h3>⚙️ Playlist Settings</h3>
-            <!-- Settings form will be added in subtask 4-5 -->
-            <p style="color: #94a3b8; font-size: 14px;">Select a playlist to configure settings</p>
+            <h3>⚙️ Playlist Settings <span class="settings-save-indicator" id="settingsSaveIndicator">✓ Saved</span></h3>
+
+            <!-- Loop Mode & Priority Row -->
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label class="settings-label">Loop Mode</label>
+                    <select class="settings-select" id="settingsLoopMode" onchange="updatePlaylistSettings()">
+                        <option value="continuous">🔄 Continuous</option>
+                        <option value="play_once">▶️ Play Once</option>
+                        <option value="scheduled">📅 Scheduled</option>
+                    </select>
+                    <div class="settings-help">How the playlist repeats</div>
+                </div>
+                <div class="form-group">
+                    <label class="settings-label">Priority</label>
+                    <select class="settings-select" id="settingsPriority" onchange="updatePlaylistSettings()">
+                        <option value="normal">Normal</option>
+                        <option value="high">⚡ High</option>
+                        <option value="interrupt">🚨 Interrupt (NCMEC)</option>
+                    </select>
+                    <div class="settings-help">Playback priority level</div>
+                </div>
+            </div>
+
+            <!-- Date Range Row -->
+            <div class="settings-row">
+                <label class="settings-label">Schedule Date Range <span style="font-weight: normal; color: #94a3b8;">(optional)</span></label>
+                <div class="date-range-row">
+                    <div>
+                        <input type="datetime-local" class="settings-input" id="settingsStartDate" onchange="updatePlaylistSettings()">
+                        <div class="settings-help">Start date</div>
+                    </div>
+                    <div>
+                        <input type="datetime-local" class="settings-input" id="settingsEndDate" onchange="updatePlaylistSettings()">
+                        <div class="settings-help">End date</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Duration Display -->
+            <div class="settings-row" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; color: #64748b;">
+                        <strong>Total Duration:</strong>
+                    </span>
+                    <span id="settingsTotalDuration" style="font-size: 16px; font-weight: 700; color: #1e293b;">0s</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1199,6 +1338,7 @@
             settingsSection.style.display = 'none';
             updatePlaylistStats(0, 0);
             currentPlaylistItems = [];
+            clearPlaylistSettings();
             return;
         }
 
@@ -1228,9 +1368,140 @@
             saveBtn.disabled = false;
             previewBtn.disabled = currentPlaylistItems.length === 0;
             settingsSection.style.display = 'block';
+
+            // Load playlist settings
+            loadPlaylistSettings(playlistData);
         } catch (error) {
             container.innerHTML = `<div class="playlist-empty"><p>Failed to load playlist: ${error.message}</p></div>`;
             currentPlaylistItems = [];
+            clearPlaylistSettings();
+        }
+    }
+
+    // =====================================================
+    // Playlist Settings Functions
+    // =====================================================
+
+    function loadPlaylistSettings(playlistData) {
+        // Set loop mode
+        const loopModeSelect = document.getElementById('settingsLoopMode');
+        loopModeSelect.value = playlistData.loop_mode || 'continuous';
+
+        // Set priority
+        const prioritySelect = document.getElementById('settingsPriority');
+        prioritySelect.value = playlistData.priority || 'normal';
+
+        // Set date range
+        const startDateInput = document.getElementById('settingsStartDate');
+        const endDateInput = document.getElementById('settingsEndDate');
+
+        if (playlistData.start_date) {
+            // Convert ISO string to datetime-local format (remove timezone info)
+            startDateInput.value = formatDateTimeForInput(playlistData.start_date);
+        } else {
+            startDateInput.value = '';
+        }
+
+        if (playlistData.end_date) {
+            endDateInput.value = formatDateTimeForInput(playlistData.end_date);
+        } else {
+            endDateInput.value = '';
+        }
+
+        // Update total duration in settings section
+        updateSettingsTotalDuration();
+    }
+
+    function clearPlaylistSettings() {
+        document.getElementById('settingsLoopMode').value = 'continuous';
+        document.getElementById('settingsPriority').value = 'normal';
+        document.getElementById('settingsStartDate').value = '';
+        document.getElementById('settingsEndDate').value = '';
+        document.getElementById('settingsTotalDuration').textContent = '0s';
+    }
+
+    function formatDateTimeForInput(isoString) {
+        // Convert ISO string to datetime-local format (YYYY-MM-DDTHH:MM)
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    function updateSettingsTotalDuration() {
+        const totalDuration = currentPlaylistItems.reduce((sum, item) => {
+            const isImage = item.content_type === 'image';
+            if (item.duration_override !== null && item.duration_override !== undefined) {
+                return sum + item.duration_override;
+            } else if (isImage) {
+                return sum + 10;
+            } else {
+                return sum + (item.duration || 10);
+            }
+        }, 0);
+        document.getElementById('settingsTotalDuration').textContent = formatDuration(totalDuration);
+    }
+
+    let settingsUpdateTimer = null;
+
+    async function updatePlaylistSettings() {
+        if (!currentPlaylistId) return;
+
+        // Debounce to avoid too many API calls
+        clearTimeout(settingsUpdateTimer);
+        settingsUpdateTimer = setTimeout(async () => {
+            await savePlaylistSettingsToServer();
+        }, 500);
+    }
+
+    async function savePlaylistSettingsToServer() {
+        if (!currentPlaylistId) return;
+
+        const loopMode = document.getElementById('settingsLoopMode').value;
+        const priority = document.getElementById('settingsPriority').value;
+        const startDateValue = document.getElementById('settingsStartDate').value;
+        const endDateValue = document.getElementById('settingsEndDate').value;
+
+        // Validate date range
+        if (startDateValue && endDateValue) {
+            const startDate = new Date(startDateValue);
+            const endDate = new Date(endDateValue);
+            if (startDate >= endDate) {
+                showNotification('Start date must be before end date', 'error');
+                return;
+            }
+        }
+
+        const indicator = document.getElementById('settingsSaveIndicator');
+
+        try {
+            const response = await fetch(`/api/v1/playlists/${currentPlaylistId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    loop_mode: loopMode,
+                    priority: priority,
+                    start_date: startDateValue ? new Date(startDateValue).toISOString() : null,
+                    end_date: endDateValue ? new Date(endDateValue).toISOString() : null
+                })
+            });
+
+            if (response.ok) {
+                // Show save indicator
+                indicator.classList.add('visible');
+                setTimeout(() => {
+                    indicator.classList.remove('visible');
+                }, 2000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to save settings', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to save settings: ' + error.message, 'error');
         }
     }
 
@@ -1320,6 +1591,7 @@
 
         container.innerHTML = html;
         updatePlaylistStats(currentPlaylistItems.length, totalDuration);
+        updateSettingsTotalDuration();
     }
 
     function handleItemDragOver(event, index) {
