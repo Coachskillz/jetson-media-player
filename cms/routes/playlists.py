@@ -296,6 +296,10 @@ def update_playlist(playlist_id):
             "network_id": "uuid-of-network" (optional),
             "trigger_type": "manual" | "time" | "event" (optional),
             "trigger_config": "{...}" (optional),
+            "loop_mode": "continuous" | "play_once" | "scheduled" (optional),
+            "priority": "normal" | "high" | "interrupt" (optional),
+            "start_date": "2024-01-15T10:00:00Z" (optional, ISO datetime),
+            "end_date": "2024-12-31T23:59:59Z" (optional, ISO datetime),
             "is_active": true/false (optional)
         }
 
@@ -377,6 +381,54 @@ def update_playlist(playlist_id):
         if playlist.trigger_config != data['trigger_config']:
             changes['trigger_config'] = {'before': playlist.trigger_config, 'after': data['trigger_config']}
         playlist.trigger_config = data['trigger_config']
+
+    # Update loop_mode if provided
+    if 'loop_mode' in data:
+        loop_mode = data['loop_mode']
+        valid_loop_modes = [m.value for m in LoopMode]
+        if loop_mode not in valid_loop_modes:
+            return jsonify({
+                'error': f"Invalid loop_mode: {loop_mode}. Valid values: {', '.join(valid_loop_modes)}"
+            }), 400
+        if playlist.loop_mode != loop_mode:
+            changes['loop_mode'] = {'before': playlist.loop_mode, 'after': loop_mode}
+        playlist.loop_mode = loop_mode
+
+    # Update priority if provided
+    if 'priority' in data:
+        priority = data['priority']
+        valid_priorities = [p.value for p in Priority]
+        if priority not in valid_priorities:
+            return jsonify({
+                'error': f"Invalid priority: {priority}. Valid values: {', '.join(valid_priorities)}"
+            }), 400
+        if playlist.priority != priority:
+            changes['priority'] = {'before': playlist.priority, 'after': priority}
+        playlist.priority = priority
+
+    # Update start_date if provided
+    if 'start_date' in data:
+        start_date = _parse_datetime(data['start_date'])
+        old_start_date = playlist.start_date.isoformat() if playlist.start_date else None
+        new_start_date = start_date.isoformat() if start_date else None
+        if old_start_date != new_start_date:
+            changes['start_date'] = {'before': old_start_date, 'after': new_start_date}
+        playlist.start_date = start_date
+
+    # Update end_date if provided
+    if 'end_date' in data:
+        end_date = _parse_datetime(data['end_date'])
+        old_end_date = playlist.end_date.isoformat() if playlist.end_date else None
+        new_end_date = end_date.isoformat() if end_date else None
+        if old_end_date != new_end_date:
+            changes['end_date'] = {'before': old_end_date, 'after': new_end_date}
+        playlist.end_date = end_date
+
+    # Validate date range after both dates are potentially updated
+    if playlist.start_date and playlist.end_date and playlist.start_date > playlist.end_date:
+        return jsonify({
+            'error': 'start_date must be before end_date'
+        }), 400
 
     # Update is_active if provided
     if 'is_active' in data:
