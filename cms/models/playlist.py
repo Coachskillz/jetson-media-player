@@ -28,6 +28,32 @@ class TriggerType(enum.Enum):
     MANUAL = 'manual'
 
 
+class LoopMode(enum.Enum):
+    """Loop mode enum for playlists.
+
+    Defines how the playlist should loop:
+    - CONTINUOUS: Loop forever until stopped
+    - PLAY_ONCE: Play through once, then stop
+    - SCHEDULED: Play only during scheduled times (start_date to end_date)
+    """
+    CONTINUOUS = 'continuous'
+    PLAY_ONCE = 'play_once'
+    SCHEDULED = 'scheduled'
+
+
+class Priority(enum.Enum):
+    """Priority enum for playlists.
+
+    Defines the priority level for playlist playback:
+    - NORMAL: Standard priority, plays in normal rotation
+    - HIGH: High priority, plays before normal playlists
+    - INTERRUPT: Interrupts current playback (for NCMEC alerts)
+    """
+    NORMAL = 'normal'
+    HIGH = 'high'
+    INTERRUPT = 'interrupt'
+
+
 class Playlist(db.Model):
     """
     SQLAlchemy model representing a playlist with trigger support.
@@ -43,6 +69,10 @@ class Playlist(db.Model):
         network_id: Foreign key reference to the owning network
         trigger_type: Type of trigger (time/event/manual)
         trigger_config: JSON configuration for the trigger
+        loop_mode: How the playlist loops (continuous/play_once/scheduled)
+        priority: Playback priority level (normal/high/interrupt)
+        start_date: Optional start date for scheduled playback
+        end_date: Optional end date for scheduled playback
         is_active: Whether the playlist is currently active
         created_at: Timestamp when the playlist was created
         updated_at: Timestamp when the playlist was last modified
@@ -56,6 +86,10 @@ class Playlist(db.Model):
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
     trigger_type = db.Column(db.String(50), nullable=True, default=TriggerType.MANUAL.value)
     trigger_config = db.Column(db.Text, nullable=True)  # JSON string for trigger configuration
+    loop_mode = db.Column(db.String(20), nullable=False, default=LoopMode.CONTINUOUS.value)
+    priority = db.Column(db.String(20), nullable=False, default=Priority.NORMAL.value)
+    start_date = db.Column(db.DateTime, nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -84,6 +118,10 @@ class Playlist(db.Model):
             'network_id': self.network_id,
             'trigger_type': self.trigger_type,
             'trigger_config': self.trigger_config,
+            'loop_mode': self.loop_mode,
+            'priority': self.priority,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

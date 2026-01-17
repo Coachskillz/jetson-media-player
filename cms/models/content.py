@@ -6,12 +6,27 @@ Represents uploaded media content with file metadata including:
 - Dimensions: width, height (for 16:9 aspect ratio preview)
 - Duration: duration in seconds (for video/audio content)
 - Organization: network_id for content ownership
+- Status: approval status (pending/approved/rejected)
 """
 
+import enum
 from datetime import datetime, timezone
 import uuid
 
 from cms.models import db
+
+
+class ContentStatus(enum.Enum):
+    """Content status enum for approval workflow.
+
+    Defines the approval status of content items:
+    - PENDING: Awaiting review/approval
+    - APPROVED: Approved for use in playlists
+    - REJECTED: Rejected and not available for playlists
+    """
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
 
 
 class Content(db.Model):
@@ -31,6 +46,7 @@ class Content(db.Model):
         width: Content width in pixels (for images/video)
         height: Content height in pixels (for images/video)
         duration: Duration in seconds (for video/audio content)
+        status: Approval status (pending/approved/rejected)
         network_id: Foreign key reference to the owning network
         created_at: Timestamp when the content was uploaded
     """
@@ -45,6 +61,7 @@ class Content(db.Model):
     width = db.Column(db.Integer, nullable=True)
     height = db.Column(db.Integer, nullable=True)
     duration = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default=ContentStatus.PENDING.value)
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -67,6 +84,7 @@ class Content(db.Model):
             'width': self.width,
             'height': self.height,
             'duration': self.duration,
+            'status': self.status,
             'network_id': self.network_id,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

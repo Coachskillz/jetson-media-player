@@ -4,14 +4,17 @@ CMS Playlists Routes
 Blueprint for playlist management API endpoints:
 - POST /: Create playlist
 - GET /: List all playlists
+- GET /approved-content: List approved content for playlist builder
 - GET /<playlist_id>: Get playlist details
 - PUT /<playlist_id>: Update playlist
 - DELETE /<playlist_id>: Delete playlist
 - POST /<playlist_id>/items: Add item to playlist
 - DELETE /<playlist_id>/items/<item_id>: Remove item from playlist
 - PUT /<playlist_id>/items/reorder: Reorder playlist items
+- GET /<playlist_id>/preview: Get playlist preview with full content details
 - POST /<playlist_id>/assign: Assign playlist to device
 - DELETE /<playlist_id>/assign/<assignment_id>: Remove device assignment
+- GET /<playlist_id>/assignments: List device assignments for playlist
 
 All endpoints are prefixed with /api/v1/playlists when registered with the app.
 """
@@ -20,10 +23,10 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 
-from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network
+from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network, ContentStatus
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
-from cms.models.playlist import TriggerType
+from cms.models.playlist import TriggerType, LoopMode, Priority
 
 
 # Create playlists blueprint
@@ -51,6 +54,74 @@ def _parse_datetime(datetime_str):
         return None
 
 
+@playlists_bp.route('/approved-content', methods=['GET'])
+@login_required
+def list_approved_content():
+    """
+    List all approved content for the playlist builder.
+
+    Returns a list of content items with status="approved" that can be
+    added to playlists. This endpoint is designed for the playlist builder
+    UI to populate the content browser panel.
+
+    Query Parameters:
+        network_id: Filter by network UUID
+        type: Filter by content type (video, image, audio)
+        search: Search by original filename (case-insensitive)
+
+    Returns:
+        200: List of approved content
+            {
+                "content": [ { content data }, ... ],
+                "count": 5
+            }
+    """
+    # Build query filtering for approved content only
+    query = Content.query.filter_by(status=ContentStatus.APPROVED.value)
+
+    # Filter by network
+    network_id = request.args.get('network_id')
+    if network_id:
+        query = query.filter_by(network_id=network_id)
+
+    # Filter by content type
+    content_type = request.args.get('type')
+    if content_type:
+        if content_type == 'video':
+            query = query.filter(Content.mime_type.like('video/%'))
+        elif content_type == 'image':
+            query = query.filter(Content.mime_type.like('image/%'))
+        elif content_type == 'audio':
+            query = query.filter(Content.mime_type.like('audio/%'))
+
+    # Search by original filename
+    search = request.args.get('search')
+    if search:
+        query = query.filter(Content.original_name.ilike(f'%{search}%'))
+
+    # Execute query
+    content_list = query.order_by(Content.created_at.desc()).all()
+
+    # Add content_type helper field to each item
+    result = []
+    for content in content_list:
+        content_data = content.to_dict()
+        if content.is_video:
+            content_data['content_type'] = 'video'
+        elif content.is_image:
+            content_data['content_type'] = 'image'
+        elif content.is_audio:
+            content_data['content_type'] = 'audio'
+        else:
+            content_data['content_type'] = 'unknown'
+        result.append(content_data)
+
+    return jsonify({
+        'content': result,
+        'count': len(result)
+    }), 200
+
+
 @playlists_bp.route('', methods=['POST'])
 @login_required
 def create_playlist():
@@ -64,6 +135,10 @@ def create_playlist():
             "network_id": "uuid-of-network" (optional),
             "trigger_type": "manual" | "time" | "event" (optional, default: "manual"),
             "trigger_config": "{...}" (optional, JSON string for trigger configuration),
+            "loop_mode": "continuous" | "play_once" | "scheduled" (optional, default: "continuous"),
+            "priority": "normal" | "high" | "interrupt" (optional, default: "normal"),
+            "start_date": "2024-01-15T10:00:00Z" (optional, ISO datetime for scheduled playback),
+            "end_date": "2024-12-31T23:59:59Z" (optional, ISO datetime for scheduled playback),
             "is_active": true (optional, default: true)
         }
 
@@ -107,6 +182,32 @@ def create_playlist():
             'error': f"Invalid trigger_type: {trigger_type}. Valid values: {', '.join(valid_trigger_types)}"
         }), 400
 
+    # Validate loop_mode if provided
+    loop_mode = data.get('loop_mode', LoopMode.CONTINUOUS.value)
+    valid_loop_modes = [m.value for m in LoopMode]
+    if loop_mode not in valid_loop_modes:
+        return jsonify({
+            'error': f"Invalid loop_mode: {loop_mode}. Valid values: {', '.join(valid_loop_modes)}"
+        }), 400
+
+    # Validate priority if provided
+    priority = data.get('priority', Priority.NORMAL.value)
+    valid_priorities = [p.value for p in Priority]
+    if priority not in valid_priorities:
+        return jsonify({
+            'error': f"Invalid priority: {priority}. Valid values: {', '.join(valid_priorities)}"
+        }), 400
+
+    # Parse dates
+    start_date = _parse_datetime(data.get('start_date'))
+    end_date = _parse_datetime(data.get('end_date'))
+
+    # Validate date range
+    if start_date and end_date and start_date > end_date:
+        return jsonify({
+            'error': 'start_date must be before end_date'
+        }), 400
+
     # Create playlist
     playlist = Playlist(
         name=name,
@@ -114,6 +215,10 @@ def create_playlist():
         network_id=network_id,
         trigger_type=trigger_type,
         trigger_config=data.get('trigger_config'),
+        loop_mode=loop_mode,
+        priority=priority,
+        start_date=start_date,
+        end_date=end_date,
         is_active=data.get('is_active', True)
     )
 
@@ -137,6 +242,10 @@ def create_playlist():
             'name': name,
             'network_id': network_id,
             'trigger_type': trigger_type,
+            'loop_mode': loop_mode,
+            'priority': priority,
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
             'is_active': playlist.is_active,
         }
     )
@@ -258,6 +367,10 @@ def update_playlist(playlist_id):
             "network_id": "uuid-of-network" (optional),
             "trigger_type": "manual" | "time" | "event" (optional),
             "trigger_config": "{...}" (optional),
+            "loop_mode": "continuous" | "play_once" | "scheduled" (optional),
+            "priority": "normal" | "high" | "interrupt" (optional),
+            "start_date": "2024-01-15T10:00:00Z" (optional, ISO datetime),
+            "end_date": "2024-12-31T23:59:59Z" (optional, ISO datetime),
             "is_active": true/false (optional)
         }
 
@@ -339,6 +452,54 @@ def update_playlist(playlist_id):
         if playlist.trigger_config != data['trigger_config']:
             changes['trigger_config'] = {'before': playlist.trigger_config, 'after': data['trigger_config']}
         playlist.trigger_config = data['trigger_config']
+
+    # Update loop_mode if provided
+    if 'loop_mode' in data:
+        loop_mode = data['loop_mode']
+        valid_loop_modes = [m.value for m in LoopMode]
+        if loop_mode not in valid_loop_modes:
+            return jsonify({
+                'error': f"Invalid loop_mode: {loop_mode}. Valid values: {', '.join(valid_loop_modes)}"
+            }), 400
+        if playlist.loop_mode != loop_mode:
+            changes['loop_mode'] = {'before': playlist.loop_mode, 'after': loop_mode}
+        playlist.loop_mode = loop_mode
+
+    # Update priority if provided
+    if 'priority' in data:
+        priority = data['priority']
+        valid_priorities = [p.value for p in Priority]
+        if priority not in valid_priorities:
+            return jsonify({
+                'error': f"Invalid priority: {priority}. Valid values: {', '.join(valid_priorities)}"
+            }), 400
+        if playlist.priority != priority:
+            changes['priority'] = {'before': playlist.priority, 'after': priority}
+        playlist.priority = priority
+
+    # Update start_date if provided
+    if 'start_date' in data:
+        start_date = _parse_datetime(data['start_date'])
+        old_start_date = playlist.start_date.isoformat() if playlist.start_date else None
+        new_start_date = start_date.isoformat() if start_date else None
+        if old_start_date != new_start_date:
+            changes['start_date'] = {'before': old_start_date, 'after': new_start_date}
+        playlist.start_date = start_date
+
+    # Update end_date if provided
+    if 'end_date' in data:
+        end_date = _parse_datetime(data['end_date'])
+        old_end_date = playlist.end_date.isoformat() if playlist.end_date else None
+        new_end_date = end_date.isoformat() if end_date else None
+        if old_end_date != new_end_date:
+            changes['end_date'] = {'before': old_end_date, 'after': new_end_date}
+        playlist.end_date = end_date
+
+    # Validate date range after both dates are potentially updated
+    if playlist.start_date and playlist.end_date and playlist.start_date > playlist.end_date:
+        return jsonify({
+            'error': 'start_date must be before end_date'
+        }), 400
 
     # Update is_active if provided
     if 'is_active' in data:
@@ -966,6 +1127,159 @@ def remove_device_assignment(playlist_id, assignment_id):
         'message': 'Assignment removed',
         'id': assignment_id_response
     }), 200
+
+
+@playlists_bp.route('/<playlist_id>/preview', methods=['GET'])
+@login_required
+def preview_playlist(playlist_id):
+    """
+    Get a playlist preview with full content details.
+
+    Returns the playlist with all items including complete content metadata,
+    calculated durations, and content status. This endpoint is designed for
+    the playlist builder UI to display a full preview of the playlist.
+
+    Args:
+        playlist_id: Playlist UUID
+
+    Returns:
+        200: Playlist preview with full content details
+            {
+                "id": "uuid",
+                "name": "Playlist Name",
+                "description": "Description",
+                "network_id": "uuid" or null,
+                "trigger_type": "manual",
+                "trigger_config": null,
+                "loop_mode": "continuous",
+                "priority": "normal",
+                "start_date": "2024-01-15T10:00:00+00:00" or null,
+                "end_date": "2024-12-31T23:59:59+00:00" or null,
+                "is_active": true,
+                "created_at": "2024-01-01T00:00:00+00:00",
+                "updated_at": "2024-01-01T00:00:00+00:00",
+                "item_count": 5,
+                "total_duration": 120,
+                "items": [
+                    {
+                        "id": "item-uuid",
+                        "playlist_id": "playlist-uuid",
+                        "content_id": "content-uuid",
+                        "position": 0,
+                        "duration_override": null,
+                        "effective_duration": 30,
+                        "created_at": "2024-01-01T00:00:00+00:00",
+                        "content": {
+                            "id": "content-uuid",
+                            "filename": "video.mp4",
+                            "original_name": "My Video.mp4",
+                            "mime_type": "video/mp4",
+                            "file_size": 1024000,
+                            "width": 1920,
+                            "height": 1080,
+                            "duration": 30,
+                            "status": "approved",
+                            "network_id": "uuid",
+                            "created_at": "2024-01-01T00:00:00+00:00",
+                            "content_type": "video"
+                        }
+                    },
+                    ...
+                ]
+            }
+        400: Invalid playlist_id format
+            {
+                "error": "Invalid playlist_id format"
+            }
+        404: Playlist not found
+            {
+                "error": "Playlist not found"
+            }
+    """
+    # Validate playlist_id format
+    if not isinstance(playlist_id, str) or len(playlist_id) > 64:
+        return jsonify({
+            'error': 'Invalid playlist_id format'
+        }), 400
+
+    playlist = db.session.get(Playlist, playlist_id)
+
+    if not playlist:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    # Build preview response with full content details
+    items_preview = []
+    total_duration = 0
+    default_image_duration = 10  # Default duration for images in seconds
+
+    for item in playlist.items.order_by(PlaylistItem.position).all():
+        # Calculate effective duration for this item
+        effective_duration = None
+        if item.duration_override:
+            effective_duration = item.duration_override
+        elif item.content and item.content.duration:
+            effective_duration = item.content.duration
+        elif item.content and item.content.is_image:
+            # Default 10 seconds for images without duration override
+            effective_duration = default_image_duration
+
+        # Add to total duration
+        if effective_duration:
+            total_duration += effective_duration
+
+        # Build item preview with enhanced content details
+        item_data = {
+            'id': item.id,
+            'playlist_id': item.playlist_id,
+            'content_id': item.content_id,
+            'position': item.position,
+            'duration_override': item.duration_override,
+            'effective_duration': effective_duration,
+            'created_at': item.created_at.isoformat() if item.created_at else None,
+        }
+
+        # Add content details if content exists
+        if item.content:
+            content = item.content
+            content_data = content.to_dict()
+            # Add content type for easier frontend handling
+            if content.is_video:
+                content_data['content_type'] = 'video'
+            elif content.is_image:
+                content_data['content_type'] = 'image'
+            elif content.is_audio:
+                content_data['content_type'] = 'audio'
+            else:
+                content_data['content_type'] = 'unknown'
+            item_data['content'] = content_data
+        else:
+            # Content was deleted - mark as missing
+            item_data['content'] = None
+            item_data['content_missing'] = True
+
+        items_preview.append(item_data)
+
+    # Build response
+    response = {
+        'id': playlist.id,
+        'name': playlist.name,
+        'description': playlist.description,
+        'network_id': playlist.network_id,
+        'trigger_type': playlist.trigger_type,
+        'trigger_config': playlist.trigger_config,
+        'loop_mode': playlist.loop_mode,
+        'priority': playlist.priority,
+        'start_date': playlist.start_date.isoformat() if playlist.start_date else None,
+        'end_date': playlist.end_date.isoformat() if playlist.end_date else None,
+        'is_active': playlist.is_active,
+        'created_at': playlist.created_at.isoformat() if playlist.created_at else None,
+        'updated_at': playlist.updated_at.isoformat() if playlist.updated_at else None,
+        'item_count': len(items_preview),
+        'total_duration': total_duration if total_duration > 0 else None,
+        'items': items_preview,
+    }
+
+    return jsonify(response), 200
 
 
 @playlists_bp.route('/<playlist_id>/assignments', methods=['GET'])
