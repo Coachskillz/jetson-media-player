@@ -85,6 +85,14 @@ class PlayerConfig:
         if 'JMP_HUB_URL' in os.environ:
             self._device['hub_url'] = os.environ['JMP_HUB_URL']
 
+        if 'JMP_CONNECTION_MODE' in os.environ:
+            mode = os.environ['JMP_CONNECTION_MODE']
+            if mode in ('hub', 'direct'):
+                self._device['connection_mode'] = mode
+
+        if 'JMP_CMS_URL' in os.environ:
+            self._device['cms_url'] = os.environ['JMP_CMS_URL']
+
     def save_all(self) -> None:
         """Save all configuration files."""
         self._save_json("device.json", self._device)

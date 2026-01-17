@@ -3,13 +3,13 @@
   "spec": "017-add-hub-vs-direct-cms-connection-mode-toggle-to-bo",
   "state": "building",
   "subtasks": {
-    "completed": 5,
+    "completed": 9,
     "total": 14,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Frontend - Device Detail Toggle",
+    "current": "Player - Config Updates",
     "id": null,
     "total": 3
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 6,
+    "number": 10,
     "started_at": "2026-01-17T07:55:16.303757"
   },
-  "last_update": "2026-01-17T08:02:40.387799"
+  "last_update": "2026-01-17T08:08:49.669265"
 }
