@@ -9,7 +9,8 @@ Blueprint for web page rendering:
 - GET /playlists: Playlist management page
 """
 
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, redirect, url_for, request, flash
+from flask_login import login_required
 
 from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment
 from cms.models.device_assignment import TRIGGER_TYPES
@@ -20,6 +21,7 @@ web_bp = Blueprint('web', __name__)
 
 
 @web_bp.route('/')
+@login_required
 def dashboard():
     """
     Dashboard page showing system overview.
@@ -244,3 +246,42 @@ def device_detail_page(device_id):
         all_playlists=all_playlists,
         trigger_types=trigger_info
     )
+
+@web_bp.route('/login')
+def login_page():
+    """Render the login page."""
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return redirect(url_for('web.dashboard'))
+    return render_template('auth/login.html')
+
+@web_bp.route('/logout')
+def logout_page():
+    """Handle logout and redirect to login."""
+    from flask_login import logout_user
+    logout_user()
+    return redirect(url_for('web.login_page'))
+
+@web_bp.route('/login', methods=['GET', 'POST'])
+def web_login():
+    """Handle web login - both display form and process submission."""
+    from flask import request, flash
+    from flask_login import current_user, login_user, login_required
+    from cms.models.user import User
+    
+    if current_user.is_authenticated:
+        return redirect(url_for('web.dashboard'))
+    
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        remember = request.form.get('remember_me') == 'on'
+        
+        user = User.query.filter_by(email=email).first()
+        if user and user.check_password(password):
+            login_user(user, remember=remember)
+            return redirect(url_for('web.dashboard'))
+        else:
+            flash('Invalid email or password', 'error')
+    
+    return render_template('auth/login.html')

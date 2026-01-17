@@ -1,0 +1,685 @@
+{% extends "base.html" %}
+
+{% block title %}{{ layout.name }} - Assign to Devices{% endblock %}
+
+{% block extra_styles %}
+/* Back button */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    opacity: 0.9;
+    transition: all 0.2s;
+}
+
+.back-link:hover {
+    opacity: 1;
+    transform: translateX(-4px);
+}
+
+/* Layout Header Section */
+.layout-header-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.layout-header-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.layout-thumbnail-container {
+    width: 120px;
+    height: 68px;
+    border-radius: 10px;
+    background: #0a0a10;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.layout-thumbnail-container.portrait {
+    width: 68px;
+    height: 120px;
+}
+
+.layout-thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.layout-thumbnail-placeholder {
+    color: #64748b;
+    font-size: 24px;
+}
+
+.layout-title-info {
+    flex: 1;
+}
+
+.layout-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.layout-resolution {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 14px;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: #667eea;
+    display: inline-block;
+}
+
+.layout-meta-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.meta-item strong {
+    color: #1e293b;
+}
+
+/* Assignment Grid */
+.assignment-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 25px;
+    margin: 20px 0;
+}
+
+@media (max-width: 1200px) {
+    .assignment-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Assigned Devices Section */
+.assigned-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.assigned-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+/* Device Assignment Cards */
+.device-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.device-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.device-card:hover {
+    border-color: #e2e8f0;
+    transform: translateY(-2px);
+}
+
+.device-card.active {
+    border-color: #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+}
+
+.device-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.device-status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.device-status-dot.online {
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.device-status-dot.offline {
+    background: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.device-status-dot.pending {
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.device-card-info {
+    flex: 1;
+}
+
+.device-card-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 15px;
+}
+
+.device-card-id {
+    font-size: 12px;
+    color: #64748b;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.device-card-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.device-card-details span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.device-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.schedule-info {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+
+.schedule-info-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #64748b;
+}
+
+.schedule-info-item strong {
+    color: #1e293b;
+}
+
+/* Assign Form Section */
+.assign-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.assign-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-group select,
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+}
+
+/* Buttons */
+.btn-remove {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-remove:hover {
+    background: #fecaca;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-state h4 {
+    font-size: 16px;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+}
+
+/* Status Toast */
+.status-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    z-index: 100;
+}
+
+.status-toast.success {
+    display: flex;
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-toast.error {
+    display: flex;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-toast.loading {
+    display: flex;
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .layout-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .device-card-details {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<a href="/layouts" class="back-link">
+    <span>&larr;</span> Back to Layouts
+</a>
+
+<h2 style="margin: 10px 0 20px 0; color: white; font-size: 24px; font-weight: 700;">Assign Layout to Devices</h2>
+
+<!-- Layout Header -->
+<div class="layout-header-section">
+    <div class="layout-header-row">
+        <div class="layout-thumbnail-container {% if layout.orientation == 'portrait' %}portrait{% endif %}">
+            {% if layout.thumbnail_path %}
+            <img src="{{ layout.thumbnail_path }}" alt="{{ layout.name }}" class="layout-thumbnail-image">
+            {% else %}
+            <div class="layout-thumbnail-placeholder">Layout</div>
+            {% endif %}
+        </div>
+        <div class="layout-title-info">
+            <div class="layout-title">{{ layout.name }}</div>
+            <span class="layout-resolution">{{ layout.canvas_width }} x {{ layout.canvas_height }}</span>
+        </div>
+        <a href="/layouts/{{ layout.id }}/designer" class="btn btn-secondary">
+            Edit Layout
+        </a>
+    </div>
+
+    <div class="layout-meta-row">
+        <div class="meta-item">
+            <strong>Orientation:</strong> {{ layout.orientation|capitalize }}
+        </div>
+        <div class="meta-item">
+            <strong>Layers:</strong> {{ layout.layer_count or 0 }}
+        </div>
+        {% if layout.description %}
+        <div class="meta-item">
+            <strong>Description:</strong> {{ layout.description }}
+        </div>
+        {% endif %}
+        {% if layout.is_template %}
+        <div class="meta-item">
+            <span class="badge badge-success">Template</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Assignment Grid -->
+<div class="assignment-grid">
+    <!-- Assigned Devices -->
+    <div class="assigned-section">
+        <h3>
+            <div class="section-icon">Devices</div>
+            Assigned Devices ({{ assignments|length }})
+        </h3>
+
+        {% if assignments %}
+        <div class="device-cards" id="assignmentsList">
+            {% for assignment in assignments %}
+            <div class="device-card {% if assignment.is_active %}active{% endif %}" data-assignment-id="{{ assignment.id }}">
+                <div class="device-card-header">
+                    <div class="device-status-dot {{ assignment.device.status if assignment.device else 'offline' }}"></div>
+                    <div class="device-card-info">
+                        <div class="device-card-name">{{ assignment.device.name if assignment.device else 'Unknown Device' }}</div>
+                        <div class="device-card-id">{{ assignment.device.device_id if assignment.device else assignment.device_id }}</div>
+                    </div>
+                </div>
+
+                <div class="schedule-info">
+                    <div class="schedule-info-item">
+                        <span>Priority:</span>
+                        <strong>{{ assignment.priority }}</strong>
+                    </div>
+                    {% if assignment.start_date %}
+                    <div class="schedule-info-item">
+                        <span>Start:</span>
+                        <strong>{{ assignment.start_date.strftime('%Y-%m-%d %H:%M') if assignment.start_date else 'Immediate' }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if assignment.end_date %}
+                    <div class="schedule-info-item">
+                        <span>End:</span>
+                        <strong>{{ assignment.end_date.strftime('%Y-%m-%d %H:%M') if assignment.end_date else 'No end' }}</strong>
+                    </div>
+                    {% endif %}
+                    <div class="schedule-info-item">
+                        <span>Status:</span>
+                        <strong style="color: {% if assignment.is_active %}#10b981{% else %}#64748b{% endif %};">
+                            {% if assignment.is_active %}Active{% else %}Scheduled{% endif %}
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="device-card-details">
+                    {% if assignment.device and assignment.device.hub %}
+                    <span>Hub: {{ assignment.device.hub.name }}</span>
+                    {% endif %}
+                    {% if assignment.device and assignment.device.network %}
+                    <span>Network: {{ assignment.device.network.name }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="device-card-actions">
+                    <button class="btn-remove" onclick="removeAssignment('{{ assignment.id }}', '{{ assignment.device.name if assignment.device else "this device" }}')">
+                        Remove Assignment
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">Devices</div>
+            <h4>No devices assigned</h4>
+            <p>Use the form on the right to assign this layout to devices.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Assign Form -->
+    <div class="assign-section">
+        <h3>Assign to New Device</h3>
+
+        <form id="assignForm">
+            <div class="form-group">
+                <label for="deviceSelect">Select Device</label>
+                <select id="deviceSelect" required>
+                    <option value="">Choose a device...</option>
+                    {% for device in available_devices %}
+                    <option value="{{ device.id }}">
+                        {{ device.name or device.device_id }} {% if device.hub %}({{ device.hub.name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if not available_devices %}
+                <p class="form-hint">No available devices. All devices are already assigned to this layout or no devices exist.</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <input type="number" id="priority" value="0" min="0" max="100">
+                <p class="form-hint">Higher priority layouts take precedence when multiple layouts are assigned to a device.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="startDate">Start Date (Optional)</label>
+                <input type="datetime-local" id="startDate">
+                <p class="form-hint">Leave empty for immediate activation.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="endDate">End Date (Optional)</label>
+                <input type="datetime-local" id="endDate">
+                <p class="form-hint">Leave empty for no end date.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;" {% if not available_devices %}disabled{% endif %}>
+                Assign Layout
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Status Toast -->
+<div class="status-toast" id="statusToast">
+    <span id="statusIcon"></span>
+    <span id="statusText"></span>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const layoutId = '{{ layout.id }}';
+
+    // Show status toast
+    function showStatus(type, message) {
+        const toast = document.getElementById('statusToast');
+        const icon = document.getElementById('statusIcon');
+        const text = document.getElementById('statusText');
+
+        toast.className = 'status-toast ' + type;
+        text.textContent = message;
+
+        if (type === 'loading') {
+            icon.textContent = '...';
+        } else if (type === 'success') {
+            icon.textContent = '\u2713';
+            setTimeout(() => {
+                toast.className = 'status-toast';
+            }, 2000);
+        } else if (type === 'error') {
+            icon.textContent = '\u2717';
+            setTimeout(() => {
+                toast.className = 'status-toast';
+            }, 3000);
+        }
+    }
+
+    // Assign form submission
+    document.getElementById('assignForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const deviceId = document.getElementById('deviceSelect').value;
+        const priority = parseInt(document.getElementById('priority').value) || 0;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        if (!deviceId) {
+            showStatus('error', 'Please select a device');
+            return;
+        }
+
+        showStatus('loading', 'Assigning layout...');
+
+        try {
+            const body = {
+                device_id: deviceId,
+                priority: priority
+            };
+
+            if (startDate) {
+                body.start_date = new Date(startDate).toISOString();
+            }
+            if (endDate) {
+                body.end_date = new Date(endDate).toISOString();
+            }
+
+            const response = await fetch(`/api/v1/layouts/${layoutId}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showStatus('success', 'Layout assigned successfully');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showStatus('error', data.error || 'Failed to assign layout');
+            }
+        } catch (error) {
+            showStatus('error', 'Connection error: ' + error.message);
+        }
+    });
+
+    // Remove assignment
+    async function removeAssignment(assignmentId, deviceName) {
+        if (!confirm(`Remove layout assignment from "${deviceName}"?`)) {
+            return;
+        }
+
+        showStatus('loading', 'Removing assignment...');
+
+        try {
+            const response = await fetch(`/api/v1/layouts/${layoutId}/assign/${assignmentId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showStatus('success', 'Assignment removed');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showStatus('error', data.error || 'Failed to remove assignment');
+            }
+        } catch (error) {
+            showStatus('error', 'Connection error: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}

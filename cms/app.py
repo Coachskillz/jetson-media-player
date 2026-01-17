@@ -53,6 +53,17 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Initialize extensions
     db.init_app(app)
 
+    # Initialize Flask-Login
+    from flask_login import LoginManager
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "web.login_page"
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        from cms.models.user import User
+        return User.query.get(user_id)
+
     # Create database tables and seed default users
     with app.app_context():
         db.create_all()
@@ -243,13 +254,12 @@ def _register_blueprints(app: Flask) -> None:
     except ImportError:
         app.logger.debug('Networks blueprint not available yet')
 
-    # Web UI Blueprint - registered at root for page rendering
     try:
-        from cms.routes import web_bp
-        app.register_blueprint(web_bp)
-        app.logger.info('Registered web blueprint at /')
+        from cms.routes import layouts_bp
+        app.register_blueprint(layouts_bp, url_prefix='/api/v1/layouts')
+        app.logger.info('Registered layouts blueprint at /api/v1/layouts')
     except ImportError:
-        app.logger.debug('Web blueprint not available yet')
+        app.logger.debug('Layouts blueprint not available yet')
 
     # Authentication Blueprint - login, logout, password management
     try:
@@ -290,6 +300,21 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.info('Registered audit blueprint at /api/v1/audit-logs')
     except ImportError:
         app.logger.debug('Audit blueprint not available yet')
+
+    # Web UI Blueprints - registered at root for page rendering
+    try:
+        from cms.routes import web_bp
+        app.register_blueprint(web_bp)
+        app.logger.info('Registered web blueprint at /')
+    except ImportError:
+        app.logger.debug('Web blueprint not available yet')
+
+    try:
+        from cms.routes import layouts_web_bp
+        app.register_blueprint(layouts_web_bp)
+        app.logger.info('Registered layouts web blueprint at /')
+    except ImportError:
+        app.logger.debug('Layouts web blueprint not available yet')
 
 
 def _register_error_handlers(app: Flask) -> None:
@@ -355,7 +380,7 @@ def _register_context_processors(app: Flask) -> None:
         """
         from flask import g
         current_user = getattr(g, 'current_user', None)
-        return {'current_user': current_user}
+        return {'current_user': current_user, 'user': current_user}
 
 
 if __name__ == '__main__':

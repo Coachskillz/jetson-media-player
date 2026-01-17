@@ -12,6 +12,11 @@ SQLAlchemy models for the Content Management System including:
 - User Sessions (session management)
 - User Invitations (user onboarding)
 - Audit Logs (activity tracking)
+- Screen Layouts (visual screen layout design)
+- Screen Layers (layout components)
+- Layer Content (content within layout layers)
+- Layer Playlist Assignments (playlist assignments to layers)
+- Device Layouts (device-specific layout configurations)
 """
 
 from flask_sqlalchemy import SQLAlchemy
@@ -44,6 +49,7 @@ from cms.models.user import User
 from cms.models.user_session import UserSession
 from cms.models.user_invitation import UserInvitation
 from cms.models.audit_log import AuditLog
+from cms.models.layout import ScreenLayout, ScreenLayer, LayerContent, LayerPlaylistAssignment, DeviceLayout
 
 __all__ = [
     'db',
@@ -59,4 +65,9 @@ __all__ = [
     'UserSession',
     'UserInvitation',
     'AuditLog',
+    'ScreenLayout',
+    'ScreenLayer',
+    'LayerContent',
+    'LayerPlaylistAssignment',
+    'DeviceLayout',
 ]

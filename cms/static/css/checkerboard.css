@@ -1,0 +1,366 @@
+/**
+ * Skillz Media Screens CMS - Checkerboard Pattern Styles
+ * Transparency Visualization for Canvas and UI Elements
+ *
+ * This file provides reusable checkerboard patterns for displaying
+ * transparent or semi-transparent areas in the layout designer.
+ */
+
+/* ============================================
+   CSS Custom Properties (Checkerboard Theme)
+   ============================================ */
+:root {
+    /* Standard checkerboard colors (light theme) */
+    --checkerboard-light: #cccccc;
+    --checkerboard-dark: #999999;
+    --checkerboard-size: 10px;
+
+    /* Dark theme checkerboard (for dark backgrounds) */
+    --checkerboard-dark-light: #333333;
+    --checkerboard-dark-dark: #222222;
+
+    /* Alternative sizes */
+    --checkerboard-size-xs: 4px;
+    --checkerboard-size-sm: 6px;
+    --checkerboard-size-md: 10px;
+    --checkerboard-size-lg: 16px;
+    --checkerboard-size-xl: 24px;
+}
+
+/* ============================================
+   Base Checkerboard Pattern Mixin (via CSS class)
+   ============================================
+   Creates a classic transparency checkerboard pattern
+   using overlapping 45-degree linear gradients.
+*/
+.checkerboard {
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-light) 75%);
+    background-size: calc(var(--checkerboard-size) * 2) calc(var(--checkerboard-size) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size),
+        var(--checkerboard-size) calc(-1 * var(--checkerboard-size)),
+        calc(-1 * var(--checkerboard-size)) 0;
+    background-color: var(--checkerboard-dark);
+}
+
+/* ============================================
+   Dark Theme Checkerboard
+   ============================================ */
+.checkerboard-dark {
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-dark-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark-light) 75%);
+    background-size: calc(var(--checkerboard-size) * 2) calc(var(--checkerboard-size) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size),
+        var(--checkerboard-size) calc(-1 * var(--checkerboard-size)),
+        calc(-1 * var(--checkerboard-size)) 0;
+    background-color: var(--checkerboard-dark-dark);
+}
+
+/* ============================================
+   Size Variants
+   ============================================ */
+
+/* Extra Small (4px squares) - for small thumbnails */
+.checkerboard-xs,
+.checkerboard-dark-xs {
+    --checkerboard-size: var(--checkerboard-size-xs);
+    background-size: calc(var(--checkerboard-size-xs) * 2) calc(var(--checkerboard-size-xs) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-xs),
+        var(--checkerboard-size-xs) calc(-1 * var(--checkerboard-size-xs)),
+        calc(-1 * var(--checkerboard-size-xs)) 0;
+}
+
+/* Small (6px squares) - for color pickers and swatches */
+.checkerboard-sm,
+.checkerboard-dark-sm {
+    --checkerboard-size: var(--checkerboard-size-sm);
+    background-size: calc(var(--checkerboard-size-sm) * 2) calc(var(--checkerboard-size-sm) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-sm),
+        var(--checkerboard-size-sm) calc(-1 * var(--checkerboard-size-sm)),
+        calc(-1 * var(--checkerboard-size-sm)) 0;
+}
+
+/* Medium (10px squares) - default, for general use */
+.checkerboard-md,
+.checkerboard-dark-md {
+    --checkerboard-size: var(--checkerboard-size-md);
+    background-size: calc(var(--checkerboard-size-md) * 2) calc(var(--checkerboard-size-md) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-md),
+        var(--checkerboard-size-md) calc(-1 * var(--checkerboard-size-md)),
+        calc(-1 * var(--checkerboard-size-md)) 0;
+}
+
+/* Large (16px squares) - for canvas backgrounds */
+.checkerboard-lg,
+.checkerboard-dark-lg {
+    --checkerboard-size: var(--checkerboard-size-lg);
+    background-size: calc(var(--checkerboard-size-lg) * 2) calc(var(--checkerboard-size-lg) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-lg),
+        var(--checkerboard-size-lg) calc(-1 * var(--checkerboard-size-lg)),
+        calc(-1 * var(--checkerboard-size-lg)) 0;
+}
+
+/* Extra Large (24px squares) - for large preview areas */
+.checkerboard-xl,
+.checkerboard-dark-xl {
+    --checkerboard-size: var(--checkerboard-size-xl);
+    background-size: calc(var(--checkerboard-size-xl) * 2) calc(var(--checkerboard-size-xl) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-xl),
+        var(--checkerboard-size-xl) calc(-1 * var(--checkerboard-size-xl)),
+        calc(-1 * var(--checkerboard-size-xl)) 0;
+}
+
+/* ============================================
+   Canvas Background Pattern
+   ============================================
+   Specifically for the layout designer canvas
+   with proper z-indexing and positioning.
+*/
+.canvas-checkerboard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-dark-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark-light) 75%);
+    background-size: calc(var(--checkerboard-size-md) * 2) calc(var(--checkerboard-size-md) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-md),
+        var(--checkerboard-size-md) calc(-1 * var(--checkerboard-size-md)),
+        calc(-1 * var(--checkerboard-size-md)) 0;
+    background-color: var(--checkerboard-dark-dark);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ============================================
+   Color Swatch with Transparency Background
+   ============================================
+   For displaying colors with alpha channel,
+   shows checkerboard pattern behind the color.
+*/
+.color-swatch {
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+}
+
+.color-swatch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-dark-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark-light) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    background-color: var(--checkerboard-dark-dark);
+    z-index: 0;
+}
+
+.color-swatch::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--swatch-color, transparent);
+    z-index: 1;
+}
+
+/* ============================================
+   Layer Preview with Transparency
+   ============================================
+   For layer thumbnails in the layer panel
+*/
+.layer-preview-transparent {
+    position: relative;
+    overflow: hidden;
+}
+
+.layer-preview-transparent::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-dark-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark-light) 75%);
+    background-size: 6px 6px;
+    background-position: 0 0, 0 3px, 3px -3px, -3px 0;
+    background-color: var(--checkerboard-dark-dark);
+    z-index: 0;
+}
+
+/* ============================================
+   Transparency Indicator Badge
+   ============================================
+   Shows a small checkerboard icon to indicate
+   that an element has transparency.
+*/
+.transparency-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background-image:
+        linear-gradient(45deg, #666 25%, transparent 25%),
+        linear-gradient(-45deg, #666 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #666 75%),
+        linear-gradient(-45deg, transparent 75%, #666 75%);
+    background-size: 4px 4px;
+    background-position: 0 0, 0 2px, 2px -2px, -2px 0;
+    background-color: #444;
+    border: 1px solid #555;
+}
+
+/* ============================================
+   Opacity Preview Strip
+   ============================================
+   Shows opacity gradient over checkerboard
+   for opacity slider previews.
+*/
+.opacity-preview-strip {
+    position: relative;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.opacity-preview-strip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-dark-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark-light) 75%);
+    background-size: 6px 6px;
+    background-position: 0 0, 0 3px, 3px -3px, -3px 0;
+    background-color: var(--checkerboard-dark-dark);
+}
+
+.opacity-preview-strip::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right,
+        transparent 0%,
+        var(--opacity-color, #00D4AA) 100%
+    );
+}
+
+/* ============================================
+   Image/Video Placeholder with Transparency
+   ============================================ */
+.media-placeholder-transparent {
+    background-image:
+        linear-gradient(45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checkerboard-dark-light) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checkerboard-dark-light) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark-light) 75%);
+    background-size: calc(var(--checkerboard-size-lg) * 2) calc(var(--checkerboard-size-lg) * 2);
+    background-position:
+        0 0,
+        0 var(--checkerboard-size-lg),
+        var(--checkerboard-size-lg) calc(-1 * var(--checkerboard-size-lg)),
+        calc(-1 * var(--checkerboard-size-lg)) 0;
+    background-color: var(--checkerboard-dark-dark);
+}
+
+/* ============================================
+   Animated Checkerboard (for loading states)
+   ============================================ */
+@keyframes checkerboard-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.checkerboard-animated {
+    animation: checkerboard-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   High Contrast Mode (for accessibility)
+   ============================================ */
+@media (prefers-contrast: high) {
+    :root {
+        --checkerboard-light: #ffffff;
+        --checkerboard-dark: #808080;
+        --checkerboard-dark-light: #404040;
+        --checkerboard-dark-dark: #1a1a1a;
+    }
+}
+
+/* ============================================
+   Reduced Motion (for accessibility)
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    .checkerboard-animated {
+        animation: none;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================
+   Use solid grey background for printing.
+*/
+@media print {
+    .checkerboard,
+    .checkerboard-dark,
+    .canvas-checkerboard,
+    .color-swatch::before,
+    .layer-preview-transparent::before {
+        background-image: none;
+        background-color: #e0e0e0;
+    }
+}

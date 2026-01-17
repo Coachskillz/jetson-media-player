@@ -21,6 +21,7 @@ Status workflow:
 from datetime import datetime, timezone
 import uuid
 
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from cms.models import db
@@ -38,7 +39,7 @@ ROLE_HIERARCHY = {
 USER_STATUSES = ['pending', 'rejected', 'active', 'suspended', 'deactivated']
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """
     SQLAlchemy model representing a user account.
 
@@ -154,7 +155,7 @@ class User(db.Model):
         Args:
             password: Plain text password to hash and store
         """
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
         self.password_changed_at = datetime.now(timezone.utc)
 
     def check_password(self, password):

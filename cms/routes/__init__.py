@@ -7,6 +7,7 @@ Blueprint registration for all API route modules:
 - Hubs: Hub registration and manifest delivery
 - Content: Media file upload and management
 - Playlists: Playlist creation and device assignment
+- Layouts: Screen layout management for multi-zone displays
 - Web: Web UI page rendering
 - Auth: Authentication (login, logout, password management)
 - Users: User management and profiles
@@ -29,6 +30,9 @@ from cms.routes.content import content_bp
 
 # Import Playlists blueprint from its module
 from cms.routes.playlists import playlists_bp
+
+# Import Layouts blueprints from its module
+from cms.routes.layouts import layouts_bp, layouts_web_bp
 
 # Import Web UI blueprint from its module
 from cms.routes.web import web_bp
@@ -55,6 +59,8 @@ __all__ = [
     'hubs_bp',
     'content_bp',
     'playlists_bp',
+    'layouts_bp',
+    'layouts_web_bp',
     'web_bp',
     'auth_bp',
     'users_bp',
