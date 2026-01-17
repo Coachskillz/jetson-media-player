@@ -377,3 +377,150 @@ class TestEdgeCases:
 
         config.set('cms.sync_interval', 600)
         assert config.get('cms.sync_interval') == 600
+
+
+# =============================================================================
+# PlayerConfig Tests (src.player.config.PlayerConfig)
+# =============================================================================
+
+from src.player.config import PlayerConfig
+
+
+@pytest.fixture
+def temp_player_config_dir():
+    """Create a temporary config directory for PlayerConfig testing."""
+    temp_dir = tempfile.mkdtemp()
+    yield temp_dir
+    # Cleanup
+    import shutil
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@pytest.fixture
+def player_config(temp_player_config_dir):
+    """Create a PlayerConfig instance with test configuration."""
+    return PlayerConfig(temp_player_config_dir)
+
+
+class TestPlayerConfigConnectionMode:
+    """Tests for PlayerConfig connection mode properties."""
+
+    def test_connection_mode_default(self, player_config):
+        """connection_mode should default to 'direct'."""
+        assert player_config.connection_mode == 'direct'
+
+    def test_connection_mode_setter_valid_hub(self, player_config):
+        """connection_mode setter should accept 'hub'."""
+        player_config.connection_mode = 'hub'
+        assert player_config.connection_mode == 'hub'
+
+    def test_connection_mode_setter_valid_direct(self, player_config):
+        """connection_mode setter should accept 'direct'."""
+        player_config.connection_mode = 'hub'  # First set to hub
+        player_config.connection_mode = 'direct'  # Then back to direct
+        assert player_config.connection_mode == 'direct'
+
+    def test_connection_mode_setter_invalid(self, player_config):
+        """connection_mode setter should reject invalid values."""
+        with pytest.raises(ValueError) as exc_info:
+            player_config.connection_mode = 'invalid'
+        assert "must be 'hub' or 'direct'" in str(exc_info.value)
+
+    def test_connection_mode_setter_invalid_empty(self, player_config):
+        """connection_mode setter should reject empty string."""
+        with pytest.raises(ValueError) as exc_info:
+            player_config.connection_mode = ''
+        assert "must be 'hub' or 'direct'" in str(exc_info.value)
+
+
+class TestPlayerConfigCmsUrl:
+    """Tests for PlayerConfig cms_url property."""
+
+    def test_cms_url_default(self, player_config):
+        """cms_url should default to 'http://localhost:5002'."""
+        assert player_config.cms_url == 'http://localhost:5002'
+
+    def test_cms_url_setter(self, player_config):
+        """cms_url setter should store the value."""
+        player_config.cms_url = 'http://cms.example.com:5002'
+        assert player_config.cms_url == 'http://cms.example.com:5002'
+
+
+class TestPlayerConfigHubUrl:
+    """Tests for PlayerConfig hub_url property."""
+
+    def test_hub_url_default(self, player_config):
+        """hub_url should return default value when not set."""
+        # Default is 'http://192.168.1.100:5000' from the config
+        assert 'http://' in player_config.hub_url
+
+    def test_hub_url_setter(self, player_config):
+        """hub_url setter should store the value."""
+        player_config.hub_url = 'http://myhub.local:5000'
+        assert player_config.hub_url == 'http://myhub.local:5000'
+
+
+class TestPlayerConfigEnvironmentOverrides:
+    """Tests for PlayerConfig environment variable overrides."""
+
+    def test_env_override_connection_mode_hub(self, temp_player_config_dir):
+        """JMP_CONNECTION_MODE env var should override config to 'hub'."""
+        with mock.patch.dict(os.environ, {'JMP_CONNECTION_MODE': 'hub'}):
+            config = PlayerConfig(temp_player_config_dir)
+            assert config.connection_mode == 'hub'
+
+    def test_env_override_connection_mode_direct(self, temp_player_config_dir):
+        """JMP_CONNECTION_MODE env var should override config to 'direct'."""
+        with mock.patch.dict(os.environ, {'JMP_CONNECTION_MODE': 'direct'}):
+            config = PlayerConfig(temp_player_config_dir)
+            assert config.connection_mode == 'direct'
+
+    def test_env_override_connection_mode_invalid_ignored(self, temp_player_config_dir):
+        """JMP_CONNECTION_MODE with invalid value should be ignored."""
+        with mock.patch.dict(os.environ, {'JMP_CONNECTION_MODE': 'invalid'}):
+            config = PlayerConfig(temp_player_config_dir)
+            # Should fall back to default since invalid value is ignored
+            assert config.connection_mode == 'direct'
+
+    def test_env_override_cms_url(self, temp_player_config_dir):
+        """JMP_CMS_URL env var should override config."""
+        with mock.patch.dict(os.environ, {'JMP_CMS_URL': 'http://env-cms.example.com:5002'}):
+            config = PlayerConfig(temp_player_config_dir)
+            assert config.cms_url == 'http://env-cms.example.com:5002'
+
+    def test_env_override_hub_url(self, temp_player_config_dir):
+        """JMP_HUB_URL env var should override config."""
+        with mock.patch.dict(os.environ, {'JMP_HUB_URL': 'http://env-hub.example.com:5000'}):
+            config = PlayerConfig(temp_player_config_dir)
+            assert config.hub_url == 'http://env-hub.example.com:5000'
+
+
+class TestPlayerConfigSaveLoad:
+    """Tests for PlayerConfig save and load functionality."""
+
+    def test_save_and_load_connection_mode(self, player_config):
+        """connection_mode should persist after save and load."""
+        player_config.connection_mode = 'hub'
+        player_config.save_device()
+
+        # Create new instance and load
+        new_config = PlayerConfig(player_config.config_dir)
+        assert new_config.connection_mode == 'hub'
+
+    def test_save_and_load_cms_url(self, player_config):
+        """cms_url should persist after save and load."""
+        player_config.cms_url = 'http://saved-cms.example.com:5002'
+        player_config.save_device()
+
+        # Create new instance and load
+        new_config = PlayerConfig(player_config.config_dir)
+        assert new_config.cms_url == 'http://saved-cms.example.com:5002'
+
+    def test_save_and_load_hub_url(self, player_config):
+        """hub_url should persist after save and load."""
+        player_config.hub_url = 'http://saved-hub.example.com:5000'
+        player_config.save_device()
+
+        # Create new instance and load
+        new_config = PlayerConfig(player_config.config_dir)
+        assert new_config.hub_url == 'http://saved-hub.example.com:5000'

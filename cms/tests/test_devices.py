@@ -591,3 +591,186 @@ class TestDeviceListAPI:
             d['network_id'] == sample_network.id
             for d in data['devices']
         )
+
+
+# =============================================================================
+# Connection Config API Tests (GET/PUT /api/v1/devices/<id>/connection-config)
+# =============================================================================
+
+class TestConnectionConfigAPI:
+    """Tests for GET/PUT /api/v1/devices/<id>/connection-config endpoints."""
+
+    # -------------------------------------------------------------------------
+    # GET Tests
+    # -------------------------------------------------------------------------
+
+    def test_get_connection_config_by_device_id(self, client, app, sample_device_direct):
+        """GET /devices/<id>/connection-config should return config by device_id."""
+        response = client.get(f'/api/v1/devices/{sample_device_direct.device_id}/connection-config')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'connection_mode' in data
+        assert 'hub_url' in data
+        assert 'cms_url' in data
+        assert 'hub' in data
+
+    def test_get_connection_config_by_uuid(self, client, app, sample_device_direct):
+        """GET /devices/<id>/connection-config should return config by UUID."""
+        response = client.get(f'/api/v1/devices/{sample_device_direct.id}/connection-config')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['connection_mode'] == 'direct'
+
+    def test_get_connection_config_default_values(self, client, app, sample_device_direct):
+        """GET should return sensible defaults for null hub_url and cms_url."""
+        response = client.get(f'/api/v1/devices/{sample_device_direct.device_id}/connection-config')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['connection_mode'] == 'direct'  # Default
+        assert data['hub_url'] == 'http://localhost:5000'  # Default when null
+        assert data['cms_url'] == 'http://localhost:5002'  # Default when null
+
+    def test_get_connection_config_with_hub(self, client, app, sample_device_hub, sample_hub):
+        """GET should return hub info for hub mode device."""
+        response = client.get(f'/api/v1/devices/{sample_device_hub.device_id}/connection-config')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['hub'] is not None
+        assert data['hub']['id'] == sample_hub.id
+        assert data['hub']['code'] == sample_hub.code
+        assert data['hub']['name'] == sample_hub.name
+
+    def test_get_connection_config_direct_device_no_hub(self, client, app, sample_device_direct):
+        """GET should return null hub for direct mode device."""
+        response = client.get(f'/api/v1/devices/{sample_device_direct.device_id}/connection-config')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['hub'] is None
+
+    def test_get_connection_config_not_found(self, client, app):
+        """GET should return 404 for non-existent device."""
+        response = client.get('/api/v1/devices/non-existent-device/connection-config')
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'Device not found' in data['error']
+
+    # -------------------------------------------------------------------------
+    # PUT Tests
+    # -------------------------------------------------------------------------
+
+    def test_put_connection_config_update_mode(self, client, app, sample_device_direct):
+        """PUT should update connection_mode."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={'connection_mode': 'hub'}
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['device']['connection_mode'] == 'hub'
+
+    def test_put_connection_config_invalid_mode(self, client, app, sample_device_direct):
+        """PUT should reject invalid connection_mode values."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={'connection_mode': 'invalid'}
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "must be 'direct' or 'hub'" in data['error']
+
+    def test_put_connection_config_update_urls(self, client, app, sample_device_direct):
+        """PUT should update hub_url and cms_url."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={
+                'hub_url': 'http://192.168.1.100:5000',
+                'cms_url': 'http://cms.example.com:5002'
+            }
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['device']['hub_url'] == 'http://192.168.1.100:5000'
+        assert data['device']['cms_url'] == 'http://cms.example.com:5002'
+
+    def test_put_connection_config_invalid_hub_url_format(self, client, app, sample_device_direct):
+        """PUT should reject hub_url without http:// or https://."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={'hub_url': 'ftp://invalid.url'}
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'must start with http://' in data['error']
+
+    def test_put_connection_config_invalid_cms_url_format(self, client, app, sample_device_direct):
+        """PUT should reject cms_url without http:// or https://."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={'cms_url': 'ftp://invalid.url'}
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'must start with http://' in data['error']
+
+    def test_put_connection_config_empty_body(self, client, app, sample_device_direct):
+        """PUT should reject empty request body."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            data='',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'Request body is required' in data['error']
+
+    def test_put_connection_config_not_found(self, client, app):
+        """PUT should return 404 for non-existent device."""
+        response = client.put(
+            '/api/v1/devices/non-existent-device/connection-config',
+            json={'connection_mode': 'hub'}
+        )
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'Device not found' in data['error']
+
+    def test_put_connection_config_persists_changes(self, client, app, sample_device_direct):
+        """PUT should persist changes that are visible on subsequent GET."""
+        # Update the mode
+        put_response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={'connection_mode': 'hub', 'hub_url': 'http://test.hub:5000'}
+        )
+        assert put_response.status_code == 200
+
+        # Verify with GET
+        get_response = client.get(f'/api/v1/devices/{sample_device_direct.device_id}/connection-config')
+        assert get_response.status_code == 200
+        data = get_response.get_json()
+        assert data['connection_mode'] == 'hub'
+        assert data['hub_url'] == 'http://test.hub:5000'
+
+    def test_put_connection_config_partial_update(self, client, app, sample_device_direct):
+        """PUT should allow partial updates (only connection_mode)."""
+        response = client.put(
+            f'/api/v1/devices/{sample_device_direct.device_id}/connection-config',
+            json={'connection_mode': 'hub'}
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['device']['connection_mode'] == 'hub'
+        # Other fields should remain unchanged/default
+        assert 'message' in data
