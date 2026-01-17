@@ -42,8 +42,8 @@ db = SQLAlchemy(model_class=Base)
 from cms.models.network import Network
 from cms.models.hub import Hub
 from cms.models.device import Device
-from cms.models.content import Content
-from cms.models.playlist import Playlist, PlaylistItem
+from cms.models.content import Content, ContentStatus
+from cms.models.playlist import Playlist, PlaylistItem, LoopMode, Priority
 from cms.models.device_assignment import DeviceAssignment
 from cms.models.user import User
 from cms.models.user_session import UserSession
@@ -58,8 +58,11 @@ __all__ = [
     'Hub',
     'Device',
     'Content',
+    'ContentStatus',
     'Playlist',
     'PlaylistItem',
+    'LoopMode',
+    'Priority',
     'DeviceAssignment',
     'User',
     'UserSession',
