@@ -173,6 +173,66 @@ class PlayerConfig:
             raise ValueError("connection_mode must be 'hub' or 'direct'")
         self._device['connection_mode'] = value
 
+    # Pairing state accessors
+
+    @property
+    def pairing_status(self) -> str:
+        """Get device pairing status (unpaired, pairing, paired, error)."""
+        return self._device.get('pairing_status', 'unpaired')
+
+    @pairing_status.setter
+    def pairing_status(self, value: str) -> None:
+        """Set device pairing status."""
+        valid_statuses = ('unpaired', 'pairing', 'paired', 'error')
+        if value not in valid_statuses:
+            raise ValueError(f"pairing_status must be one of {valid_statuses}")
+        self._device['pairing_status'] = value
+
+    @property
+    def paired(self) -> bool:
+        """Check if device is paired with CMS."""
+        return self._device.get('paired', False)
+
+    @paired.setter
+    def paired(self, value: bool) -> None:
+        """Set paired state."""
+        self._device['paired'] = value
+
+    @property
+    def pairing_code(self) -> str:
+        """Get current pairing code (empty if not in pairing state)."""
+        return self._device.get('pairing_code', '')
+
+    @pairing_code.setter
+    def pairing_code(self, value: str) -> None:
+        """Set current pairing code."""
+        self._device['pairing_code'] = value
+
+    @property
+    def paired_at(self) -> str:
+        """Get timestamp when device was paired (ISO format)."""
+        return self._device.get('paired_at', '')
+
+    @paired_at.setter
+    def paired_at(self, value: str) -> None:
+        """Set paired timestamp."""
+        self._device['paired_at'] = value
+
+    def set_paired(self, paired: bool, pairing_code: str = '') -> None:
+        """
+        Update pairing state and persist to disk.
+
+        Args:
+            paired: Whether device is now paired
+            pairing_code: Current pairing code (cleared when paired)
+        """
+        import datetime
+        self._device['paired'] = paired
+        self._device['pairing_code'] = pairing_code if not paired else ''
+        if paired:
+            self._device['paired_at'] = datetime.datetime.now().isoformat()
+        self.save_device()
+
     # Playlist config accessors
 
     @property

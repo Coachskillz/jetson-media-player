@@ -235,6 +235,38 @@ install_service() {
     log_info "Service ${SERVICE_NAME} installed and enabled"
 }
 
+# Install XDG desktop file for autostart fallback
+install_desktop_file() {
+    log_info "Installing XDG autostart desktop file..."
+
+    # Check if desktop file exists
+    if [[ ! -f "${SCRIPT_DIR}/skillz-player.desktop" ]]; then
+        log_warn "Desktop file ${SCRIPT_DIR}/skillz-player.desktop not found, skipping"
+        return 0
+    fi
+
+    # Create user autostart directory
+    local autostart_dir="${INSTALL_DIR}/.config/autostart"
+    mkdir -p "${autostart_dir}"
+
+    # Copy desktop file to user autostart
+    cp "${SCRIPT_DIR}/skillz-player.desktop" "${autostart_dir}/"
+    chmod 644 "${autostart_dir}/skillz-player.desktop"
+
+    # Set ownership
+    chown -R "${SKILLZ_USER}:${SKILLZ_GROUP}" "${INSTALL_DIR}/.config"
+
+    log_info "Desktop file installed to ${autostart_dir}/skillz-player.desktop"
+
+    # Also install to system-wide XDG autostart as fallback
+    local system_autostart="/etc/xdg/autostart"
+    if [[ -d "${system_autostart}" ]]; then
+        cp "${SCRIPT_DIR}/skillz-player.desktop" "${system_autostart}/"
+        chmod 644 "${system_autostart}/skillz-player.desktop"
+        log_info "Desktop file also installed to ${system_autostart}/skillz-player.desktop"
+    fi
+}
+
 # Verify GStreamer plugins
 verify_gstreamer() {
     log_info "Verifying GStreamer installation..."
@@ -343,6 +375,11 @@ uninstall() {
     rm -f /etc/systemd/system/skillz-player.service
     systemctl daemon-reload
 
+    # Remove desktop autostart files
+    rm -f "${INSTALL_DIR}/.config/autostart/skillz-player.desktop"
+    rm -f /etc/xdg/autostart/skillz-player.desktop
+    log_info "Removed autostart desktop files"
+
     # Optionally remove install directory (ask user)
     read -p "Remove ${INSTALL_DIR}? This will delete all data! (y/N): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
@@ -391,6 +428,7 @@ main() {
     copy_config_templates
     set_permissions
     install_service
+    install_desktop_file
 
     log_info "Running verification..."
     verify_gstreamer

@@ -1,0 +1,29 @@
+[Desktop Entry]
+Type=Application
+Version=1.1
+Name=Skillz Media Player
+GenericName=Media Kiosk Player
+Comment=Kiosk media player for digital signage with CMS integration
+Icon=video-display
+Exec=env PYTHONUNBUFFERED=1 GDK_BACKEND=x11 GST_GL_WINDOW=x11 /usr/bin/python3 -m src.player.kiosk_player
+Path=/home/skillz
+Terminal=false
+StartupNotify=false
+Categories=AudioVideo;Video;Player;
+
+# Autostart configuration - enables auto-launch on user login
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Phase=Applications
+X-GNOME-Autostart-Delay=5
+X-KDE-autostart-after=panel
+X-MATE-Autostart-enabled=true
+
+# Hide from application menus (kiosk mode - not meant to be manually launched)
+NoDisplay=true
+Hidden=false
+
+# Only start in graphical sessions
+OnlyShowIn=GNOME;Unity;XFCE;KDE;MATE;Cinnamon;
+
+# Keywords for search
+Keywords=media;player;kiosk;signage;skillz;digital;

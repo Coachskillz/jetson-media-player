@@ -65,6 +65,9 @@ class Device(db.Model):
     cms_url = db.Column(db.String(500), nullable=True)  # e.g., http://cms.skillzmedia.com:5002
     pairing_code = db.Column(db.String(6), nullable=True, index=True)
 
+    # Pairing code for device registration workflow
+    pairing_code = db.Column(db.String(10), nullable=True, index=True)
+
     # Relationships
     hub = db.relationship('Hub', backref=db.backref('devices', lazy='dynamic'))
     network = db.relationship('Network', backref=db.backref('devices', lazy='dynamic'))
