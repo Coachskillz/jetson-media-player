@@ -124,6 +124,16 @@ class PlayerConfig:
         self._device['hub_url'] = value
 
     @property
+    def cms_url(self) -> str:
+        """Get direct CMS URL for direct connection mode."""
+        return self._device.get('cms_url', 'http://localhost:5002')
+
+    @cms_url.setter
+    def cms_url(self, value: str) -> None:
+        """Set direct CMS URL."""
+        self._device['cms_url'] = value
+
+    @property
     def device_name(self) -> str:
         """Get device display name."""
         return self._device.get('name', 'Unnamed Screen')
