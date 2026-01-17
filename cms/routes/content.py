@@ -6,6 +6,7 @@ Blueprint for content management API endpoints:
 - GET /: List all content
 - GET /<content_id>: Get content metadata
 - GET /<content_id>/download: Download content file
+- PUT /<content_id>/status: Update content approval status
 - DELETE /<content_id>: Delete content
 
 All endpoints are prefixed with /api/v1/content when registered with the app.
@@ -477,3 +478,91 @@ def delete_content(content_id):
         'message': 'Content deleted successfully',
         'id': content_id_response
     }), 200
+
+
+@content_bp.route('/<content_id>/status', methods=['PUT'])
+@login_required
+def update_content_status(content_id):
+    """
+    Update the approval status of a content item.
+
+    Changes the status of a content item between pending, approved, and rejected.
+    Only approved content can be added to playlists.
+
+    Args:
+        content_id: Content UUID
+
+    Request Body:
+        {
+            "status": "approved" | "pending" | "rejected" (required)
+        }
+
+    Returns:
+        200: Status updated successfully
+            { content data with updated status }
+        400: Missing required field or invalid status value
+            {
+                "error": "error message"
+            }
+        404: Content not found
+            {
+                "error": "Content not found"
+            }
+    """
+    # Validate content_id format (basic sanitization)
+    if not isinstance(content_id, str) or len(content_id) > 64:
+        return jsonify({
+            'error': 'Invalid content_id format'
+        }), 400
+
+    content = db.session.get(Content, content_id)
+
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Validate status
+    status = data.get('status')
+    if not status:
+        return jsonify({'error': 'status is required'}), 400
+
+    valid_statuses = [s.value for s in ContentStatus]
+    if status not in valid_statuses:
+        return jsonify({
+            'error': f"Invalid status: {status}. Valid values: {', '.join(valid_statuses)}"
+        }), 400
+
+    # Track change for audit log
+    old_status = content.status
+
+    # Update status
+    content.status = status
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to update content status: {str(e)}'
+        }), 500
+
+    # Log status change
+    log_action(
+        action='content.status_update',
+        action_category='content',
+        resource_type='content',
+        resource_id=content.id,
+        resource_name=content.original_name,
+        details={
+            'old_status': old_status,
+            'new_status': status,
+            'filename': content.filename,
+            'original_name': content.original_name,
+        }
+    )
+
+    return jsonify(content.to_dict()), 200
