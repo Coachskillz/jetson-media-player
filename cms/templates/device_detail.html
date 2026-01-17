@@ -320,6 +320,28 @@ input:disabled + .toggle-slider {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.connection-mode-warning {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #92400e;
+}
+
+.connection-mode-warning.visible {
+    display: flex;
+}
+
+.connection-mode-warning-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
 /* Playlists Section */
 .playlists-section {
     background: rgba(255, 255, 255, 0.95);
@@ -647,6 +669,10 @@ input:disabled + .toggle-slider {
                 <option value="hub" {% if device.connection_mode == 'hub' %}selected{% endif %}>🔗 Hub</option>
             </select>
         </div>
+        <div id="connectionModeWarning" class="connection-mode-warning">
+            <span class="connection-mode-warning-icon">⚠️</span>
+            <span>Device will reconnect on next sync</span>
+        </div>
     </div>
 </div>
 
@@ -810,9 +836,20 @@ input:disabled + .toggle-slider {
 {% block extra_scripts %}
 <script>
     const deviceId = '{{ device.device_id }}';
+    const originalConnectionMode = '{{ device.connection_mode or "direct" }}';
 
     // Connection mode save (placeholder - full implementation in subtask-4-3)
     function saveConnectionMode() {
+        const newMode = document.getElementById('connection_mode').value;
+        const warning = document.getElementById('connectionModeWarning');
+
+        // Show warning if mode has changed from original
+        if (newMode !== originalConnectionMode) {
+            warning.classList.add('visible');
+        } else {
+            warning.classList.remove('visible');
+        }
+
         // Will be implemented with AJAX in subtask-4-3
     }
     let saveTimeout = null;
