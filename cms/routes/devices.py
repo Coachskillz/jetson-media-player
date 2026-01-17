@@ -1080,3 +1080,22 @@ def get_pairing_status(hardware_id):
         'status': device.status,
         'device': device.to_dict()
     }), 200
+
+
+@devices_bp.route('/<hardware_id>/playlist', methods=['GET'])
+def get_device_playlist(hardware_id):
+    """Get playlist for a device (called by Jetson player)."""
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        device = Device.query.filter_by(device_id=hardware_id).first()
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+    if device.status != 'active':
+        return jsonify({'status': device.status, 'items': []}), 200
+    items = []
+    for assignment in device.assignments:
+        if assignment.playlist:
+            for item in assignment.playlist.items:
+                if item.content:
+                    items.append({'url': f"/api/v1/content/{item.content.id}/file", 'filename': item.content.filename, 'duration': item.duration or 10})
+    return jsonify({'device_id': device.device_id, 'status': device.status, 'items': items}), 200

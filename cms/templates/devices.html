@@ -524,10 +524,10 @@
             <span class="count" id="count-all">{{ devices|length }}</span>
         </button>
         {% for location in locations %}
-        <button class="location-btn" style="color: {{ location.color }};" onclick="filterLocation({{ location.id }})">
+        <button class="location-btn" style="color: {{ location.color }};" onclick="filterLocation('{{ location.id }}')">
             {{ location.icon }} {{ location.name }}
             <span class="count" id="count-{{ location.id }}">0</span>
-            <button class="delete-location" onclick="event.stopPropagation(); deleteLocation({{ location.id }}, '{{ location.name }}')">×</button>
+            <button class="delete-location" onclick="event.stopPropagation(); deleteLocation('{{ location.id }}', '{{ location.name }}')">×</button>
         </button>
         {% endfor %}
     </div>
