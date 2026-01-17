@@ -6,6 +6,7 @@ Blueprint for device management API endpoints:
 - POST /pair: Pair device with a network
 - GET /<id>/config: Get device configuration
 - GET /<id>/connection-config: Get connection mode settings for device polling
+- PUT /<id>/connection-config: Update connection mode settings from UI
 - GET /: List all devices
 
 All endpoints are prefixed with /api/v1/devices when registered with the app.
@@ -780,6 +781,134 @@ def get_connection_config(device_id):
         'hub_url': device.hub_url or 'http://localhost:5000',
         'cms_url': device.cms_url or 'http://localhost:5002',
         'hub': hub_data
+    }), 200
+
+
+@devices_bp.route('/<device_id>/connection-config', methods=['PUT'])
+@login_required
+def update_connection_config(device_id):
+    """
+    Update connection configuration for a specific device.
+
+    Allows the CMS UI to update the connection mode and URLs for a device.
+    Changes take effect on the device's next sync/heartbeat cycle.
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Request Body:
+        {
+            "connection_mode": "direct" or "hub" (optional),
+            "hub_url": "http://192.168.1.100:5000" (optional),
+            "cms_url": "http://cms.example.com:5002" (optional)
+        }
+
+    Returns:
+        200: Connection configuration updated
+            {
+                "message": "Connection configuration updated successfully",
+                "device": { device data }
+            }
+        400: Invalid data
+            {
+                "error": "error message"
+            }
+        404: Device not found
+            {
+                "error": "Device not found"
+            }
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Track changes for audit log
+    changes = {}
+
+    # Validate and update connection_mode
+    if 'connection_mode' in data:
+        connection_mode = data['connection_mode']
+        if connection_mode not in ('direct', 'hub'):
+            return jsonify({
+                'error': "connection_mode must be 'direct' or 'hub'"
+            }), 400
+        if device.connection_mode != connection_mode:
+            changes['connection_mode'] = {
+                'before': device.connection_mode,
+                'after': connection_mode
+            }
+            device.connection_mode = connection_mode
+
+    # Validate and update hub_url
+    if 'hub_url' in data:
+        hub_url = data['hub_url']
+        if hub_url is not None:
+            if not isinstance(hub_url, str) or len(hub_url) > 500:
+                return jsonify({
+                    'error': 'hub_url must be a string with max 500 characters'
+                }), 400
+            # Basic URL validation
+            if hub_url and not (hub_url.startswith('http://') or hub_url.startswith('https://')):
+                return jsonify({
+                    'error': 'hub_url must start with http:// or https://'
+                }), 400
+        if device.hub_url != hub_url:
+            changes['hub_url'] = {
+                'before': device.hub_url,
+                'after': hub_url
+            }
+            device.hub_url = hub_url
+
+    # Validate and update cms_url
+    if 'cms_url' in data:
+        cms_url = data['cms_url']
+        if cms_url is not None:
+            if not isinstance(cms_url, str) or len(cms_url) > 500:
+                return jsonify({
+                    'error': 'cms_url must be a string with max 500 characters'
+                }), 400
+            # Basic URL validation
+            if cms_url and not (cms_url.startswith('http://') or cms_url.startswith('https://')):
+                return jsonify({
+                    'error': 'cms_url must start with http:// or https://'
+                }), 400
+        if device.cms_url != cms_url:
+            changes['cms_url'] = {
+                'before': device.cms_url,
+                'after': cms_url
+            }
+            device.cms_url = cms_url
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to update connection configuration: {str(e)}'
+        }), 500
+
+    # Log the connection config update if there were changes
+    if changes:
+        log_action(
+            action='device.update_connection_config',
+            action_category='devices',
+            resource_type='device',
+            resource_id=device.id,
+            resource_name=device.device_id,
+            details={'changes': changes}
+        )
+
+    return jsonify({
+        'message': 'Connection configuration updated successfully',
+        'device': device.to_dict()
     }), 200
 
 
