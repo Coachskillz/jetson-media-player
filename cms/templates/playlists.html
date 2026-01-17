@@ -292,6 +292,45 @@
     text-align: center;
 }
 
+.playlist-item-duration-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.playlist-item-duration-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.playlist-item-duration-hint {
+    font-size: 10px;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.playlist-item-duration-hint.video-hint {
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.playlist-item-duration-hint.image-default {
+    background: #fef3c7;
+    color: #d97706;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.playlist-item-duration-hint.custom {
+    background: #d1fae5;
+    color: #059669;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
 .playlist-item-remove {
     background: #fee2e2;
     color: #ef4444;
@@ -1213,10 +1252,35 @@
         let html = '';
 
         currentPlaylistItems.forEach((item, index) => {
-            const duration = item.duration_override || item.duration || 10;
-            totalDuration += duration;
+            const isImage = item.content_type === 'image';
+            const isVideo = item.content_type === 'video';
+            const inherentDuration = item.duration || null;
+            const hasOverride = item.duration_override !== null && item.duration_override !== undefined;
+
+            // For images: use override if set, otherwise default to 10s
+            // For videos: use override if set, otherwise use inherent duration
+            let displayDuration;
+            if (hasOverride) {
+                displayDuration = item.duration_override;
+            } else if (isImage) {
+                displayDuration = 10; // Default for images
+            } else {
+                displayDuration = inherentDuration || 10;
+            }
+
+            totalDuration += displayDuration;
             const itemIcon = getPlaylistItemIcon(item);
             const displayTitle = escapeHtml(item.title || 'Unknown');
+
+            // Build duration hint based on content type and override status
+            let durationHint = '';
+            if (isVideo && inherentDuration && !hasOverride) {
+                durationHint = `<span class="playlist-item-duration-hint video-hint" title="Video inherent duration">video</span>`;
+            } else if (isImage && !hasOverride) {
+                durationHint = `<span class="playlist-item-duration-hint image-default" title="Default duration for images">default</span>`;
+            } else if (hasOverride) {
+                durationHint = `<span class="playlist-item-duration-hint custom" title="Custom duration set">custom</span>`;
+            }
 
             // Add drag indicator before each item (for drop position)
             html += `<div class="playlist-item-drag-indicator" id="drag-indicator-${index}"></div>`;
@@ -1235,10 +1299,16 @@
                         </div>
                     </div>
                     <div class="playlist-item-actions">
-                        <input type="number" class="playlist-item-duration-input"
-                               value="${duration}" min="1" title="Duration (seconds)"
-                               onchange="updateItemDuration(${index}, this.value)">
-                        <span style="font-size: 11px; color: #64748b;">sec</span>
+                        <div class="playlist-item-duration-wrapper">
+                            <input type="number" class="playlist-item-duration-input"
+                                   value="${displayDuration}" min="1"
+                                   title="${isVideo && inherentDuration ? `Original: ${inherentDuration}s - Edit to override` : 'Duration in seconds'}"
+                                   onchange="updateItemDuration(${index}, this.value)"
+                                   data-original="${inherentDuration || ''}"
+                                   data-content-type="${item.content_type || 'unknown'}">
+                            <span style="font-size: 11px; color: #64748b;">sec</span>
+                            ${durationHint}
+                        </div>
                         <button class="playlist-item-remove" onclick="removePlaylistItem(${index})" title="Remove item">✕</button>
                     </div>
                 </div>
@@ -1318,11 +1388,41 @@
 
     function updateItemDuration(index, value) {
         const duration = parseInt(value) || 10;
-        currentPlaylistItems[index].duration_override = duration;
+        const item = currentPlaylistItems[index];
+        const isImage = item.content_type === 'image';
+        const inherentDuration = item.duration || null;
+
+        // Determine if this is a custom override or just setting back to default
+        // For images: default is 10s
+        // For videos: default is the inherent duration
+        const defaultDuration = isImage ? 10 : (inherentDuration || 10);
+
+        if (duration === defaultDuration && !item.duration_override) {
+            // Already at default, no need to set override
+            item.duration_override = null;
+        } else if (duration === defaultDuration) {
+            // Changed back to default, clear override
+            item.duration_override = null;
+        } else {
+            // Custom duration set
+            item.duration_override = duration;
+        }
+
         // Recalculate total duration
-        const totalDuration = currentPlaylistItems.reduce((sum, item) =>
-            sum + (item.duration_override || item.duration || 10), 0);
+        const totalDuration = currentPlaylistItems.reduce((sum, item) => {
+            const isImg = item.content_type === 'image';
+            if (item.duration_override !== null && item.duration_override !== undefined) {
+                return sum + item.duration_override;
+            } else if (isImg) {
+                return sum + 10;
+            } else {
+                return sum + (item.duration || 10);
+            }
+        }, 0);
         document.getElementById('statTotalDuration').textContent = formatDuration(totalDuration);
+
+        // Re-render to update the duration hint badges
+        renderPlaylistItems();
         markPlaylistDirty();
     }
 
