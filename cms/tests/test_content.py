@@ -678,3 +678,390 @@ class TestContentUploadRetrievalIntegration:
         # 6. Verify gone
         verify_response = client.get(f'/api/v1/content/{content_id}')
         assert verify_response.status_code == 404
+
+
+# =============================================================================
+# Content Status and ContentStatus Enum Tests
+# =============================================================================
+
+class TestContentStatusEnum:
+    """Tests for ContentStatus enum."""
+
+    def test_status_enum_values(self, app):
+        """ContentStatus enum should have correct values."""
+        from cms.models import ContentStatus
+
+        assert ContentStatus.PENDING.value == 'pending'
+        assert ContentStatus.APPROVED.value == 'approved'
+        assert ContentStatus.REJECTED.value == 'rejected'
+
+    def test_status_enum_members(self, app):
+        """ContentStatus enum should have exactly three members."""
+        from cms.models import ContentStatus
+
+        members = list(ContentStatus)
+        assert len(members) == 3
+        assert ContentStatus.PENDING in members
+        assert ContentStatus.APPROVED in members
+        assert ContentStatus.REJECTED in members
+
+    def test_status_enum_from_value(self, app):
+        """ContentStatus enum should be constructible from string value."""
+        from cms.models import ContentStatus
+
+        assert ContentStatus('pending') == ContentStatus.PENDING
+        assert ContentStatus('approved') == ContentStatus.APPROVED
+        assert ContentStatus('rejected') == ContentStatus.REJECTED
+
+
+class TestContentModelStatus:
+    """Tests for Content model status field."""
+
+    def test_content_status_default_value(self, db_session, sample_network):
+        """Content should default to pending status when created."""
+        from cms.models import Content, ContentStatus
+
+        content = Content(
+            filename='test_default_status.mp4',
+            original_name='test.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            network_id=sample_network.id
+        )
+        db_session.add(content)
+        db_session.commit()
+
+        assert content.status == ContentStatus.PENDING.value
+
+    def test_content_status_in_to_dict(self, db_session, sample_network):
+        """Content.to_dict() should include status field."""
+        from cms.models import Content, ContentStatus
+
+        content = Content(
+            filename='test_dict_status.mp4',
+            original_name='test.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            network_id=sample_network.id
+        )
+        db_session.add(content)
+        db_session.commit()
+
+        content_dict = content.to_dict()
+        assert 'status' in content_dict
+        assert content_dict['status'] == ContentStatus.PENDING.value
+
+    def test_content_status_can_be_set_approved(self, db_session, sample_network):
+        """Content status can be set to approved."""
+        from cms.models import Content, ContentStatus
+
+        content = Content(
+            filename='test_approved_status.mp4',
+            original_name='test.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.APPROVED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(content)
+        db_session.commit()
+
+        assert content.status == ContentStatus.APPROVED.value
+        assert content.to_dict()['status'] == 'approved'
+
+    def test_content_status_can_be_set_rejected(self, db_session, sample_network):
+        """Content status can be set to rejected."""
+        from cms.models import Content, ContentStatus
+
+        content = Content(
+            filename='test_rejected_status.mp4',
+            original_name='test.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.REJECTED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(content)
+        db_session.commit()
+
+        assert content.status == ContentStatus.REJECTED.value
+        assert content.to_dict()['status'] == 'rejected'
+
+    def test_content_status_persists_after_refresh(self, db_session, sample_network):
+        """Content status should persist across database operations."""
+        from cms.models import Content, ContentStatus
+
+        content = Content(
+            filename='test_persist_status.mp4',
+            original_name='test.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.APPROVED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(content)
+        db_session.commit()
+        content_id = content.id
+
+        # Expire and refresh from database
+        db_session.expire(content)
+        refreshed_content = db_session.get(Content, content_id)
+
+        assert refreshed_content.status == ContentStatus.APPROVED.value
+
+
+class TestContentStatusAPI:
+    """Tests for content status API endpoints."""
+
+    # -------------------------------------------------------------------------
+    # Status Update Endpoint Tests (PUT /api/v1/content/<id>/status)
+    # -------------------------------------------------------------------------
+
+    def test_update_status_to_approved(self, client, app, sample_content):
+        """PUT /content/<id>/status should update status to approved."""
+        response = client.put(
+            f'/api/v1/content/{sample_content.id}/status',
+            json={'status': 'approved'}
+        )
+
+        assert response.status_code == 200
+        result = response.get_json()
+        assert result['status'] == 'approved'
+        assert result['id'] == sample_content.id
+
+    def test_update_status_to_rejected(self, client, app, sample_content):
+        """PUT /content/<id>/status should update status to rejected."""
+        response = client.put(
+            f'/api/v1/content/{sample_content.id}/status',
+            json={'status': 'rejected'}
+        )
+
+        assert response.status_code == 200
+        result = response.get_json()
+        assert result['status'] == 'rejected'
+
+    def test_update_status_to_pending(self, client, app, db_session, sample_network):
+        """PUT /content/<id>/status should update status back to pending."""
+        from cms.models import Content, ContentStatus
+
+        # Create approved content
+        content = Content(
+            filename='approved_content.mp4',
+            original_name='approved.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.APPROVED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(content)
+        db_session.commit()
+
+        response = client.put(
+            f'/api/v1/content/{content.id}/status',
+            json={'status': 'pending'}
+        )
+
+        assert response.status_code == 200
+        result = response.get_json()
+        assert result['status'] == 'pending'
+
+    def test_update_status_invalid_value(self, client, app, sample_content):
+        """PUT /content/<id>/status should reject invalid status values."""
+        response = client.put(
+            f'/api/v1/content/{sample_content.id}/status',
+            json={'status': 'invalid_status'}
+        )
+
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'Invalid status' in result['error']
+        assert 'pending' in result['error']
+        assert 'approved' in result['error']
+        assert 'rejected' in result['error']
+
+    def test_update_status_missing_status_field(self, client, app, sample_content):
+        """PUT /content/<id>/status should reject request without status field."""
+        response = client.put(
+            f'/api/v1/content/{sample_content.id}/status',
+            json={}
+        )
+
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'status is required' in result['error']
+
+    def test_update_status_no_body(self, client, app, sample_content):
+        """PUT /content/<id>/status should reject request without body."""
+        response = client.put(
+            f'/api/v1/content/{sample_content.id}/status',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'Request body is required' in result['error']
+
+    def test_update_status_not_found(self, client, app):
+        """PUT /content/<id>/status should return 404 for non-existent content."""
+        response = client.put(
+            '/api/v1/content/non-existent-id/status',
+            json={'status': 'approved'}
+        )
+
+        assert response.status_code == 404
+        result = response.get_json()
+        assert 'Content not found' in result['error']
+
+    def test_update_status_invalid_id_format(self, client, app):
+        """PUT /content/<id>/status should reject overly long content_id."""
+        long_id = 'x' * 65
+        response = client.put(
+            f'/api/v1/content/{long_id}/status',
+            json={'status': 'approved'}
+        )
+
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'Invalid content_id format' in result['error']
+
+    # -------------------------------------------------------------------------
+    # Status Filter Tests (GET /api/v1/content?status=X)
+    # -------------------------------------------------------------------------
+
+    def test_list_content_filter_by_status_pending(self, client, app, db_session, sample_network):
+        """GET /content?status=pending should filter by pending status."""
+        from cms.models import Content, ContentStatus
+
+        # Create content with different statuses
+        pending_content = Content(
+            filename='pending.mp4',
+            original_name='pending.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.PENDING.value,
+            network_id=sample_network.id
+        )
+        approved_content = Content(
+            filename='approved.mp4',
+            original_name='approved.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.APPROVED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(pending_content)
+        db_session.add(approved_content)
+        db_session.commit()
+
+        response = client.get('/api/v1/content?status=pending')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert all(c['status'] == 'pending' for c in data['content'])
+
+    def test_list_content_filter_by_status_approved(self, client, app, db_session, sample_network):
+        """GET /content?status=approved should filter by approved status."""
+        from cms.models import Content, ContentStatus
+
+        # Create content with different statuses
+        pending_content = Content(
+            filename='pending2.mp4',
+            original_name='pending.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.PENDING.value,
+            network_id=sample_network.id
+        )
+        approved_content = Content(
+            filename='approved2.mp4',
+            original_name='approved.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.APPROVED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(pending_content)
+        db_session.add(approved_content)
+        db_session.commit()
+
+        response = client.get('/api/v1/content?status=approved')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert all(c['status'] == 'approved' for c in data['content'])
+
+    def test_list_content_filter_by_status_rejected(self, client, app, db_session, sample_network):
+        """GET /content?status=rejected should filter by rejected status."""
+        from cms.models import Content, ContentStatus
+
+        # Create content with different statuses
+        rejected_content = Content(
+            filename='rejected.mp4',
+            original_name='rejected.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.REJECTED.value,
+            network_id=sample_network.id
+        )
+        approved_content = Content(
+            filename='approved3.mp4',
+            original_name='approved.mp4',
+            mime_type='video/mp4',
+            file_size=1000,
+            status=ContentStatus.APPROVED.value,
+            network_id=sample_network.id
+        )
+        db_session.add(rejected_content)
+        db_session.add(approved_content)
+        db_session.commit()
+
+        response = client.get('/api/v1/content?status=rejected')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert all(c['status'] == 'rejected' for c in data['content'])
+
+    def test_list_content_filter_by_status_invalid(self, client, app):
+        """GET /content?status=invalid should return 400 with error."""
+        response = client.get('/api/v1/content?status=invalid_status')
+
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'Invalid status' in result['error']
+
+    # -------------------------------------------------------------------------
+    # Status in Response Tests
+    # -------------------------------------------------------------------------
+
+    def test_upload_content_has_default_pending_status(self, client, app):
+        """POST /content/upload should create content with pending status."""
+        data = {
+            'file': (io.BytesIO(b'test content'), 'test_status.mp4')
+        }
+        response = client.post(
+            '/api/v1/content/upload',
+            data=data,
+            content_type='multipart/form-data'
+        )
+
+        assert response.status_code == 201
+        result = response.get_json()
+        assert result['status'] == 'pending'
+
+    def test_get_content_includes_status(self, client, app, sample_content):
+        """GET /content/<id> should include status in response."""
+        response = client.get(f'/api/v1/content/{sample_content.id}')
+
+        assert response.status_code == 200
+        result = response.get_json()
+        assert 'status' in result
+
+    def test_list_content_items_include_status(self, client, app, sample_content):
+        """GET /content should include status in each content item."""
+        response = client.get('/api/v1/content')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['count'] > 0
+        for content in data['content']:
+            assert 'status' in content
