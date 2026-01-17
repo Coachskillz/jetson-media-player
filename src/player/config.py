@@ -85,6 +85,14 @@ class PlayerConfig:
         if 'JMP_HUB_URL' in os.environ:
             self._device['hub_url'] = os.environ['JMP_HUB_URL']
 
+        if 'JMP_CONNECTION_MODE' in os.environ:
+            mode = os.environ['JMP_CONNECTION_MODE']
+            if mode in ('hub', 'direct'):
+                self._device['connection_mode'] = mode
+
+        if 'JMP_CMS_URL' in os.environ:
+            self._device['cms_url'] = os.environ['JMP_CMS_URL']
+
     def save_all(self) -> None:
         """Save all configuration files."""
         self._save_json("device.json", self._device)
@@ -124,6 +132,16 @@ class PlayerConfig:
         self._device['hub_url'] = value
 
     @property
+    def cms_url(self) -> str:
+        """Get direct CMS URL for direct connection mode."""
+        return self._device.get('cms_url', 'http://localhost:5002')
+
+    @cms_url.setter
+    def cms_url(self, value: str) -> None:
+        """Set direct CMS URL."""
+        self._device['cms_url'] = value
+
+    @property
     def device_name(self) -> str:
         """Get device display name."""
         return self._device.get('name', 'Unnamed Screen')
@@ -142,6 +160,18 @@ class PlayerConfig:
     def location_in_store(self, value: str) -> None:
         """Set device location description."""
         self._device['location_in_store'] = value
+
+    @property
+    def connection_mode(self) -> str:
+        """Get connection mode (hub or direct)."""
+        return self._device.get('connection_mode', 'direct')
+
+    @connection_mode.setter
+    def connection_mode(self, value: str) -> None:
+        """Set connection mode."""
+        if value not in ('hub', 'direct'):
+            raise ValueError("connection_mode must be 'hub' or 'direct'")
+        self._device['connection_mode'] = value
 
     # Playlist config accessors
 

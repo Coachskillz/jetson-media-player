@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "014-task-build-visual-screen-layout-designer-with-draw",
+  "spec": "017-add-hub-vs-direct-cms-connection-mode-toggle-to-bo",
   "state": "building",
   "subtasks": {
-    "completed": 42,
-    "total": 43,
+    "completed": 13,
+    "total": 14,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Integration",
+    "current": "Integration Testing",
     "id": null,
-    "total": 4
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 85,
-    "started_at": "2026-01-16T13:16:02.692621"
+    "number": 14,
+    "started_at": "2026-01-17T07:55:16.303757"
   },
-  "last_update": "2026-01-16T15:55:06.389609"
+  "last_update": "2026-01-17T08:15:28.613397"
 }

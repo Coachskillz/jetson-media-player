@@ -336,6 +336,27 @@
     color: #92400e;
 }
 
+/* Connection Mode Badges */
+.connection-mode-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-hub {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-direct {
+    background: #d1fae5;
+    color: #065f46;
+}
+
 .device-playlists {
     margin: 15px 0;
 }
@@ -557,6 +578,13 @@
                             </div>
                         </div>
                         {% endif %}
+                        <div class="device-meta-item">
+                            {% if device.connection_mode == 'hub' %}
+                            <span class="connection-mode-badge badge-hub">🔗 Hub</span>
+                            {% else %}
+                            <span class="connection-mode-badge badge-direct">📡 Direct</span>
+                            {% endif %}
+                        </div>
                         {% if device.mac_address %}
                         <div class="device-meta-item">
                             <strong>MAC:</strong> {{ device.mac_address }}
