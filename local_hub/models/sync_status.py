@@ -41,8 +41,9 @@ class SyncStatus(db.Model):
     RESOURCE_CONTENT = 'content'
     RESOURCE_NCMEC_DB = 'ncmec_db'
     RESOURCE_LOYALTY_DB = 'loyalty_db'
+    RESOURCE_PLAYLIST = 'playlist'
 
-    VALID_RESOURCE_TYPES = [RESOURCE_CONTENT, RESOURCE_NCMEC_DB, RESOURCE_LOYALTY_DB]
+    VALID_RESOURCE_TYPES = [RESOURCE_CONTENT, RESOURCE_NCMEC_DB, RESOURCE_LOYALTY_DB, RESOURCE_PLAYLIST]
 
     id = db.Column(db.Integer, primary_key=True)
     resource_type = db.Column(db.String(32), unique=True, nullable=False, index=True)
@@ -244,6 +245,16 @@ class SyncStatus(db.Model):
             SyncStatus: Loyalty DB sync status (created if needed)
         """
         return cls.get_or_create(cls.RESOURCE_LOYALTY_DB)
+
+    @classmethod
+    def get_playlist_status(cls):
+        """
+        Get sync status for playlists.
+
+        Returns:
+            SyncStatus: Playlist sync status (created if needed)
+        """
+        return cls.get_or_create(cls.RESOURCE_PLAYLIST)
 
     def __repr__(self):
         """String representation."""

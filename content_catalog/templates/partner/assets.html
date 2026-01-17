@@ -1,0 +1,523 @@
+{% extends "partner/base.html" %}
+
+{% block title %}My Assets - Partner Portal{% endblock %}
+
+{% block page_title %}My Assets{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('partner.upload') }}" class="btn btn-primary">
+    <span>&#8679;</span> Upload New
+</a>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Filter Section */
+.filter-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+
+.filter-section h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.filter-tab:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-medium);
+}
+
+.filter-tab.active {
+    border-color: var(--primary);
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--text-primary);
+}
+
+.filter-tab .count {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.filter-tab.active .count {
+    background: var(--primary);
+    color: var(--bg-dark);
+}
+
+/* Assets Grid */
+.assets-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.assets-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.assets-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.assets-count {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.assets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Asset Card */
+.asset-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    border: 1px solid var(--border-light);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.asset-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
+}
+
+.asset-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.asset-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.asset-filename {
+    font-size: 12px;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+.asset-status {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-draft {
+    background: rgba(100, 116, 139, 0.2);
+    color: #94a3b8;
+}
+
+.status-pending_review {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.status-approved {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.status-rejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.status-published {
+    background: rgba(6, 182, 212, 0.2);
+    color: #22d3ee;
+}
+
+.status-archived {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+/* Asset Meta */
+.asset-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.meta-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.meta-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Asset Actions */
+.asset-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.asset-actions .btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+/* Asset Category/Tags */
+.asset-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.asset-tag {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.asset-category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Description */
+.asset-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filter Section -->
+<div class="filter-section animate-fade-in">
+    <h3>&#128269; Filter by Status</h3>
+    <div class="filter-tabs">
+        <a href="{{ url_for('partner.assets') }}" class="filter-tab {% if not status_filter %}active{% endif %}">
+            &#128193; All Assets
+            <span class="count">{{ total_count }}</span>
+        </a>
+        <a href="{{ url_for('partner.assets', status='draft') }}" class="filter-tab {% if status_filter == 'draft' %}active{% endif %}">
+            &#128221; Drafts
+            <span class="count">{{ draft_count }}</span>
+        </a>
+        <a href="{{ url_for('partner.assets', status='pending_review') }}" class="filter-tab {% if status_filter == 'pending_review' %}active{% endif %}">
+            &#9203; Pending
+            <span class="count">{{ pending_count }}</span>
+        </a>
+        <a href="{{ url_for('partner.assets', status='approved') }}" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">
+            &#10003; Approved
+            <span class="count">{{ approved_count }}</span>
+        </a>
+        <a href="{{ url_for('partner.assets', status='rejected') }}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
+            &#10007; Rejected
+            <span class="count">{{ rejected_count }}</span>
+        </a>
+        <a href="{{ url_for('partner.assets', status='published') }}" class="filter-tab {% if status_filter == 'published' %}active{% endif %}">
+            &#127760; Published
+            <span class="count">{{ published_count }}</span>
+        </a>
+    </div>
+</div>
+
+<!-- Assets Grid Section -->
+<div class="assets-section animate-fade-in">
+    <div class="assets-header">
+        <h3>
+            {% if status_filter == 'draft' %}&#128221; Draft Assets
+            {% elif status_filter == 'pending_review' %}&#9203; Pending Review
+            {% elif status_filter == 'approved' %}&#10003; Approved Assets
+            {% elif status_filter == 'rejected' %}&#10007; Rejected Assets
+            {% elif status_filter == 'published' %}&#127760; Published Assets
+            {% else %}&#128193; All Assets
+            {% endif %}
+        </h3>
+        <span class="assets-count">{{ assets|length }} asset{% if assets|length != 1 %}s{% endif %}</span>
+    </div>
+
+    {% if assets %}
+    <div class="assets-grid">
+        {% for asset in assets %}
+        <div class="asset-card" data-id="{{ asset.id }}">
+            <div class="asset-header">
+                <div>
+                    <div class="asset-title">{{ asset.title }}</div>
+                    <div class="asset-filename">{{ asset.filename }}</div>
+                </div>
+                <div class="asset-status">
+                    <span class="status-badge status-{{ asset.status }}">
+                        {% if asset.status == 'draft' %}Draft
+                        {% elif asset.status == 'pending_review' %}Pending
+                        {% elif asset.status == 'approved' %}Approved
+                        {% elif asset.status == 'rejected' %}Rejected
+                        {% elif asset.status == 'published' %}Published
+                        {% elif asset.status == 'archived' %}Archived
+                        {% else %}{{ asset.status }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {% if asset.description %}
+            <div class="asset-description">{{ asset.description }}</div>
+            {% endif %}
+
+            {% if asset.category or asset.tags %}
+            <div class="asset-tags">
+                {% if asset.category %}
+                <span class="asset-category">{{ asset.category }}</span>
+                {% endif %}
+                {% if asset.tags %}
+                    {% for tag in asset.tags.split(',')[:3] %}
+                    <span class="asset-tag">{{ tag.strip() }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="asset-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Format</span>
+                    <span class="meta-value">{{ asset.format|upper if asset.format else 'Unknown' }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Size</span>
+                    <span class="meta-value">
+                        {% if asset.file_size %}
+                            {{ (asset.file_size / 1024 / 1024)|round(1) }} MB
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </span>
+                </div>
+                {% if asset.duration %}
+                <div class="meta-item">
+                    <span class="meta-label">Duration</span>
+                    <span class="meta-value">{{ asset.duration|round(1) }}s</span>
+                </div>
+                {% endif %}
+                {% if asset.resolution %}
+                <div class="meta-item">
+                    <span class="meta-label">Resolution</span>
+                    <span class="meta-value">{{ asset.resolution }}</span>
+                </div>
+                {% endif %}
+                <div class="meta-item">
+                    <span class="meta-label">Created</span>
+                    <span class="meta-value">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
+                </div>
+                {% if asset.status == 'published' and asset.published_at %}
+                <div class="meta-item">
+                    <span class="meta-label">Published</span>
+                    <span class="meta-value">{{ asset.published_at.strftime('%b %d, %Y') }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="asset-actions">
+                {% if asset.status == 'draft' %}
+                <a href="{{ url_for('partner.upload') }}?edit={{ asset.uuid }}" class="btn btn-secondary btn-sm">&#9998; Edit</a>
+                <button class="btn btn-primary btn-sm" onclick="submitForReview('{{ asset.uuid }}')">&#10003; Submit</button>
+                {% elif asset.status == 'rejected' %}
+                <a href="{{ url_for('partner.upload') }}?edit={{ asset.uuid }}" class="btn btn-secondary btn-sm">&#9998; Edit &amp; Resubmit</a>
+                {% elif asset.status == 'pending_review' %}
+                <button class="btn btn-secondary btn-sm" disabled>&#9203; Awaiting Review</button>
+                {% elif asset.status == 'approved' or asset.status == 'published' %}
+                <button class="btn btn-secondary btn-sm" onclick="viewAsset('{{ asset.uuid }}')">&#128065; View Details</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            {% if status_filter == 'draft' %}&#128221;
+            {% elif status_filter == 'pending_review' %}&#9203;
+            {% elif status_filter == 'approved' %}&#10003;
+            {% elif status_filter == 'rejected' %}&#10007;
+            {% elif status_filter == 'published' %}&#127760;
+            {% else %}&#128193;
+            {% endif %}
+        </div>
+        <h3>
+            {% if status_filter %}No {{ status_filter|replace('_', ' ') }} assets
+            {% else %}No assets yet
+            {% endif %}
+        </h3>
+        <p>
+            {% if status_filter == 'draft' %}Create a new upload to get started with drafts.
+            {% elif status_filter == 'pending_review' %}No assets are currently awaiting review.
+            {% elif status_filter == 'approved' %}No approved assets yet. Submit content for review to get started.
+            {% elif status_filter == 'rejected' %}No rejected assets. Keep up the good work!
+            {% elif status_filter == 'published' %}No published content yet. Submit and get approved to publish.
+            {% else %}Upload your first content to get started with the partner portal.
+            {% endif %}
+        </p>
+        <a href="{{ url_for('partner.upload') }}" class="btn btn-primary">
+            <span>&#8679;</span> Upload Content
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Submit asset for review
+    function submitForReview(assetUuid) {
+        if (!confirm('Submit this asset for review? You can still make changes while it is pending.')) {
+            return;
+        }
+
+        fetch('/api/v1/partner/assets/' + assetUuid + '/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                return response.json().then(data => {
+                    alert('Error: ' + (data.error || 'Failed to submit for review'));
+                });
+            }
+        })
+        .catch(error => {
+            alert('Error submitting for review: ' + error.message);
+        });
+    }
+
+    // View asset details
+    function viewAsset(assetUuid) {
+        // For now, show an alert - this could link to a detail page later
+        alert('Asset details view coming soon. UUID: ' + assetUuid);
+    }
+
+    // Add click animation to cards
+    document.querySelectorAll('.asset-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Don't trigger if clicking a button or link
+            if (e.target.closest('button') || e.target.closest('a')) {
+                return;
+            }
+            // Could navigate to detail page here
+        });
+    });
+</script>
+{% endblock %}

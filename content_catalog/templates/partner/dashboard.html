@@ -1,0 +1,339 @@
+{% extends "partner/base.html" %}
+
+{% block title %}Dashboard - Partner Portal{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Welcome Section */
+.welcome-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 32px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+.welcome-section h2 {
+    font-size: 28px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.welcome-section p {
+    color: var(--text-secondary);
+    font-size: 15px;
+}
+
+/* Quick Actions */
+.quick-actions {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.quick-actions h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 16px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 14px;
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    background: rgba(6, 182, 212, 0.1);
+    box-shadow: 0 10px 30px rgba(6, 182, 212, 0.2);
+}
+
+.action-btn span {
+    font-size: 28px;
+}
+
+/* Activity Feed */
+.activity-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.activity-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.activity-item {
+    padding: 16px;
+    border-left: 3px solid var(--primary);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+    margin-bottom: 12px;
+    transition: all var(--transition-fast);
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+.activity-item:last-child {
+    margin-bottom: 0;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.activity-text {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Pending Approvals Section */
+.pending-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.pending-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pending-count {
+    background: var(--warning);
+    color: var(--bg-dark);
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.pending-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 12px;
+    border: 1px solid var(--border-light);
+    transition: all var(--transition-fast);
+}
+
+.pending-item:hover {
+    border-color: var(--border-medium);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pending-item:last-child {
+    margin-bottom: 0;
+}
+
+.pending-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pending-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.pending-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Empty state for pending */
+.pending-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-muted);
+}
+
+.pending-empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="welcome-section animate-fade-in">
+    <h2>Welcome back{% if current_user %}, {{ current_user.name }}{% endif %}!</h2>
+    <p>Here's an overview of your content and submissions in the partner portal.</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">&#128193;</div>
+        <div class="stat-value">{{ total_assets }}</div>
+        <div class="stat-label">Total Assets</div>
+        <div class="stat-change neutral">Your uploads</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#9998;</div>
+        <div class="stat-value">{{ pending_submissions_count }}</div>
+        <div class="stat-label">Pending Review</div>
+        <div class="stat-change {% if pending_submissions_count > 0 %}warning{% else %}positive{% endif %}">
+            {% if pending_submissions_count > 0 %}Awaiting approval{% else %}All clear{% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#10003;</div>
+        <div class="stat-value">{{ published_count }}</div>
+        <div class="stat-label">Published</div>
+        <div class="stat-change positive">Live in catalog</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#128221;</div>
+        <div class="stat-value">{{ draft_count }}</div>
+        <div class="stat-label">Drafts</div>
+        <div class="stat-change neutral">In progress</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions animate-fade-in">
+    <h3>&#9889; Quick Actions</h3>
+    <div class="actions-grid">
+        <a href="{{ url_for('partner.upload') }}" class="action-btn">
+            <span>&#8679;</span>
+            Upload Content
+        </a>
+        <a href="{{ url_for('partner.assets') }}" class="action-btn">
+            <span>&#128193;</span>
+            View My Assets
+        </a>
+        <a href="{{ url_for('partner.submissions') }}" class="action-btn">
+            <span>&#9998;</span>
+            Track Submissions
+        </a>
+        <a href="{{ url_for('partner.analytics') }}" class="action-btn">
+            <span>&#128200;</span>
+            View Analytics
+        </a>
+    </div>
+</div>
+
+<!-- Pending Approvals -->
+{% if pending_assets %}
+<div class="pending-section animate-fade-in">
+    <h3>
+        &#9203; Pending Approvals
+        <span class="pending-count">{{ pending_assets|length }}</span>
+    </h3>
+    {% for asset in pending_assets[:5] %}
+    <div class="pending-item">
+        <div class="pending-info">
+            <span class="pending-title">{{ asset.title }}</span>
+            <span class="pending-meta">Submitted {{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'recently' }}</span>
+        </div>
+        <span class="badge badge-warning">Pending</span>
+    </div>
+    {% endfor %}
+    {% if pending_assets|length > 5 %}
+    <div style="text-align: center; margin-top: 16px;">
+        <a href="{{ url_for('partner.submissions') }}" class="btn btn-secondary btn-sm">
+            View all {{ pending_assets|length }} pending items
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Activity Feed -->
+<div class="activity-section animate-fade-in">
+    <h3>&#128200; Recent Activity</h3>
+    {% if recent_activity %}
+        {% for activity in recent_activity %}
+        <div class="activity-item">
+            <div class="activity-time">{{ activity.time }}</div>
+            <div class="activity-text">{{ activity.text }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="activity-item">
+            <div class="activity-time">Just now</div>
+            <div class="activity-text">&#10003; Dashboard loaded successfully</div>
+        </div>
+        <div class="activity-item">
+            <div class="activity-time">Welcome</div>
+            <div class="activity-text">&#127881; Get started by uploading your first content</div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Auto-refresh stats every 60 seconds
+    setTimeout(function() {
+        location.reload();
+    }, 60000);
+</script>
+{% endblock %}

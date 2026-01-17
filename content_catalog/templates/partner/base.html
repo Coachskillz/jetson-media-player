@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Partner Portal{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/partner.css') }}">
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="particles"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">PP</span>
+                <span class="logo-text">Partner Portal</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <span class="nav-section-title">Overview</span>
+                <a href="{{ url_for('partner.dashboard') }}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon">&#9632;</span>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <span class="nav-section-title">Content</span>
+                <a href="{{ url_for('partner.assets') }}" class="nav-link {% if active_page == 'assets' %}active{% endif %}">
+                    <span class="nav-icon">&#9733;</span>
+                    <span>My Assets</span>
+                </a>
+                <a href="{{ url_for('partner.upload') }}" class="nav-link {% if active_page == 'upload' %}active{% endif %}">
+                    <span class="nav-icon">&#8679;</span>
+                    <span>Upload Content</span>
+                </a>
+                <a href="{{ url_for('partner.submissions') }}" class="nav-link {% if active_page == 'submissions' %}active{% endif %}">
+                    <span class="nav-icon">&#9998;</span>
+                    <span>Submissions</span>
+                    {% if pending_submissions_count %}
+                    <span class="nav-badge">{{ pending_submissions_count }}</span>
+                    {% endif %}
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <span class="nav-section-title">Analytics</span>
+                <a href="{{ url_for('partner.analytics') }}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
+                    <span class="nav-icon">&#9650;</span>
+                    <span>Performance</span>
+                </a>
+                <a href="{{ url_for('partner.revenue') }}" class="nav-link {% if active_page == 'revenue' %}active{% endif %}">
+                    <span class="nav-icon">&#36;</span>
+                    <span>Revenue</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <span class="nav-section-title">Account</span>
+                <a href="{{ url_for('partner.profile') }}" class="nav-link {% if active_page == 'profile' %}active{% endif %}">
+                    <span class="nav-icon">&#9787;</span>
+                    <span>Profile</span>
+                </a>
+                <a href="{{ url_for('partner.settings') }}" class="nav-link {% if active_page == 'settings' %}active{% endif %}">
+                    <span class="nav-icon">&#9881;</span>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ current_user.name[0] if current_user else 'P' }}</div>
+                <div class="user-details">
+                    <span class="user-name">{{ current_user.name if current_user else 'Partner' }}</span>
+                    <span class="user-role">{{ current_user.role|title if current_user else 'Content Partner' }}</span>
+                    {% if current_user and current_user.organization %}
+                    <span class="org-name">{{ current_user.organization.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{{ url_for('partner.logout') }}" class="logout-btn" title="Logout">
+                <span>&#10140;</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <span>&#9776;</span>
+                </button>
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-actions">
+                    {% block header_actions %}{% endblock %}
+                </div>
+            </div>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">
+                            {% if category == 'success' %}<span class="flash-icon">&#10003;</span>
+                            {% elif category == 'error' %}<span class="flash-icon">&#10007;</span>
+                            {% elif category == 'warning' %}<span class="flash-icon">&#9888;</span>
+                            {% else %}<span class="flash-icon">&#9432;</span>{% endif %}
+                            <span class="flash-text">{{ message }}</span>
+                            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>Partner Portal v1.0 &bull; Skillz Media Content Catalog</p>
+        </footer>
+    </main>
+
+    <script>
+        // Create animated background particles
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 30;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = Math.random() * 4 + 2 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = Math.random() * 10 + 20 + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Sidebar toggle for mobile
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+
+        // Auto-dismiss flash messages after 5 seconds
+        document.querySelectorAll('.flash-message').forEach(function(msg) {
+            setTimeout(function() {
+                msg.style.opacity = '0';
+                msg.style.transform = 'translateX(100px)';
+                setTimeout(function() { msg.remove(); }, 300);
+            }, 5000);
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

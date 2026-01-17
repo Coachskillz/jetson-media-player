@@ -337,6 +337,14 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.info("Registered NCMEC blueprints")
     except ImportError as e:
         app.logger.warning(f"Could not import NCMEC routes: {e}")
+    # Locations routes
+    try:
+        from cms.routes.locations import locations_bp
+        app.register_blueprint(locations_bp, url_prefix='/api/locations')
+        app.logger.info('Registered locations blueprint at /api/locations')
+    except ImportError:
+        app.logger.debug("Locations blueprint not available yet")
+
 
 
 def _register_error_handlers(app: Flask) -> None:

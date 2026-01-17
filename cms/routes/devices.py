@@ -1,3 +1,4 @@
+import random
 """
 CMS Devices Routes
 
@@ -141,7 +142,8 @@ def register_device():
         hub_id=hub_id,
         network_id=hub.network_id if hub else None,
         name=name,
-        status='pending'
+        status='pending',
+        pairing_code=data.get('pairing_code')
     )
 
     try:

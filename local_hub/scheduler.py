@@ -7,9 +7,11 @@ web server, and SQLAlchemyJobStore for job persistence across restarts.
 
 Key jobs scheduled:
 - Content sync: Syncs content manifest from HQ (every 5 minutes)
+- Playlist sync: Syncs playlist data from HQ (every 5 minutes)
 - Alert forwarding: Forwards pending alerts to HQ (every 30 seconds)
 - Screen monitoring: Checks screen heartbeats for offline detection (every 30 seconds)
 - HQ heartbeat: Reports hub status to HQ (every 60 seconds)
+- Heartbeat batch: Forwards queued device heartbeats to HQ (every 60 seconds)
 
 Example:
     from scheduler import init_scheduler
@@ -356,9 +358,11 @@ def is_scheduler_running(scheduler: Optional[BackgroundScheduler] = None) -> boo
 
 # Job interval constants (in seconds)
 CONTENT_SYNC_INTERVAL_MINUTES = 5
+PLAYLIST_SYNC_INTERVAL_MINUTES = 5
 ALERT_FORWARD_INTERVAL_SECONDS = 30
 SCREEN_MONITOR_INTERVAL_SECONDS = 30
 HQ_HEARTBEAT_INTERVAL_SECONDS = 60
+HEARTBEAT_BATCH_INTERVAL_SECONDS = 60
 
 
 def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
@@ -367,9 +371,11 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
 
     This function registers the following jobs:
     - content_sync: Syncs content manifest from HQ (every 5 minutes)
+    - playlist_sync: Syncs playlist data from HQ (every 5 minutes)
     - alert_forward: Forwards pending alerts to HQ (every 30 seconds)
     - screen_monitor: Checks screen heartbeats for offline detection (every 30 seconds)
     - hq_heartbeat: Reports hub status to HQ (every 60 seconds)
+    - heartbeat_batch: Forwards queued device heartbeats to HQ (every 60 seconds)
 
     All jobs run within the Flask application context to ensure proper
     database access through Flask-SQLAlchemy.
@@ -386,6 +392,7 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
 
     # Import services here to avoid circular imports
     from services import HQClient, SyncService, AlertForwarder, ScreenMonitor
+    from services.heartbeat_queue import HeartbeatQueueService
     from models.hub_config import HubConfig
 
     # Job: Content Sync (every 5 minutes)
@@ -409,6 +416,28 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
                 logger.info(f"Content sync completed: {result}")
             except Exception as e:
                 logger.error(f"Content sync failed: {e}")
+
+    # Job: Playlist Sync (every 5 minutes)
+    def job_playlist_sync() -> None:
+        """Background job to sync playlists from HQ."""
+        with app.app_context():
+            try:
+                config = app.config['HUB_CONFIG']
+                hub_config = HubConfig.get_instance()
+
+                if hub_config is None or not hub_config.is_registered:
+                    logger.debug("Hub not registered, skipping playlist sync")
+                    return
+
+                hq_client = HQClient(config.hq_url)
+                hq_client.set_token(hub_config.hub_token)
+
+                sync_service = SyncService(hq_client, config)
+                result = sync_service.sync_playlists()
+
+                logger.info(f"Playlist sync completed: {result}")
+            except Exception as e:
+                logger.error(f"Playlist sync failed: {e}")
 
     # Job: Alert Forward (every 30 seconds)
     def job_alert_forward() -> None:
@@ -499,6 +528,31 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
             except Exception as e:
                 logger.error(f"HQ heartbeat failed: {e}")
 
+    # Job: Heartbeat Batch (every 60 seconds)
+    def job_heartbeat_batch() -> None:
+        """Background job to forward queued device heartbeats to HQ."""
+        with app.app_context():
+            try:
+                config = app.config['HUB_CONFIG']
+                hub_config = HubConfig.get_instance()
+
+                if hub_config is None or not hub_config.is_registered:
+                    logger.debug("Hub not registered, skipping heartbeat batch processing")
+                    return
+
+                hq_client = HQClient(config.hq_url)
+                hq_client.set_token(hub_config.hub_token)
+
+                service = HeartbeatQueueService(hq_client, config)
+                result = service.process_pending_heartbeats()
+
+                if result.get('processed', 0) > 0:
+                    logger.info(f"Heartbeat batch processing completed: {result}")
+                else:
+                    logger.debug("Heartbeat batch processing: no pending heartbeats")
+            except Exception as e:
+                logger.error(f"Heartbeat batch processing failed: {e}")
+
     # Register all jobs with the scheduler
     add_job(
         scheduler,
@@ -506,6 +560,14 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
         job_id='content_sync',
         trigger='interval',
         minutes=CONTENT_SYNC_INTERVAL_MINUTES,
+    )
+
+    add_job(
+        scheduler,
+        job_playlist_sync,
+        job_id='playlist_sync',
+        trigger='interval',
+        minutes=PLAYLIST_SYNC_INTERVAL_MINUTES,
     )
 
     add_job(
@@ -532,10 +594,20 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
         seconds=HQ_HEARTBEAT_INTERVAL_SECONDS,
     )
 
+    add_job(
+        scheduler,
+        job_heartbeat_batch,
+        job_id='heartbeat_batch',
+        trigger='interval',
+        seconds=HEARTBEAT_BATCH_INTERVAL_SECONDS,
+    )
+
     logger.info(
-        f"Registered 4 background jobs: "
+        f"Registered 6 background jobs: "
         f"content_sync ({CONTENT_SYNC_INTERVAL_MINUTES}min), "
+        f"playlist_sync ({PLAYLIST_SYNC_INTERVAL_MINUTES}min), "
         f"alert_forward ({ALERT_FORWARD_INTERVAL_SECONDS}s), "
         f"screen_monitor ({SCREEN_MONITOR_INTERVAL_SECONDS}s), "
-        f"hq_heartbeat ({HQ_HEARTBEAT_INTERVAL_SECONDS}s)"
+        f"hq_heartbeat ({HQ_HEARTBEAT_INTERVAL_SECONDS}s), "
+        f"heartbeat_batch ({HEARTBEAT_BATCH_INTERVAL_SECONDS}s)"
     )

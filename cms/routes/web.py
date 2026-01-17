@@ -9,11 +9,14 @@ Blueprint for web page rendering:
 - GET /playlists: Playlist management page
 """
 
-from flask import Blueprint, render_template, abort, redirect, url_for, request, flash
+from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify
 from flask_login import login_required
 
 from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment
+from cms.routes.locations import Location
 from cms.models.device_assignment import TRIGGER_TYPES
+from cms.models.synced_content import SyncedContent
+from cms.services.content_sync_service import ContentSyncService
 
 
 # Create web blueprint (no url_prefix since these are root-level pages)
@@ -63,10 +66,11 @@ def devices_page():
     Returns:
         Rendered devices.html template with device list
     """
-    devices = Device.query.order_by(Device.created_at.desc()).all()
+    devices = Device.query.filter(Device.status != 'pending').order_by(Device.created_at.desc()).all()
     hubs = Hub.query.order_by(Hub.name).all()
     networks = Network.query.order_by(Network.name).all()
     playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
+    locations = Location.query.all()
 
     return render_template(
         'devices.html',
@@ -74,7 +78,8 @@ def devices_page():
         devices=devices,
         hubs=hubs,
         networks=networks,
-        playlists=playlists
+        playlists=playlists,
+        locations=locations
     )
 
 
@@ -117,21 +122,59 @@ def content_page():
     """
     Content management page with 16:9 aspect ratio preview.
 
-    Lists all uploaded content with metadata and preview capabilities:
-    - Filename and original name
-    - File size and MIME type
-    - Dimensions and duration (for video)
-    - Network association
+    Lists synced content from Content Catalog and local uploads:
+    - Synced content with full metadata (status, partner, thumbnails)
+    - Local uploads marked as "Local Upload"
 
     Returns:
-        Rendered content.html template with content list
+        Rendered content.html template with content list and filter options
     """
+    # Query synced content from Content Catalog
+    synced_items = SyncedContent.query.order_by(SyncedContent.synced_at.desc()).all()
+
+    # Query local content
     content_items = Content.query.order_by(Content.created_at.desc()).all()
+
     networks = Network.query.order_by(Network.name).all()
 
-    # Enrich content with template-expected fields
+    # Fetch organizations for partner filter dropdown (from synced content)
+    organizations = ContentSyncService.get_organizations()
+
     content = []
+
+    # Add synced content with full metadata
+    for item in synced_items:
+        content.append({
+            'id': item.id,
+            'filename': item.filename,
+            'title': item.title,
+            'duration': item.duration or 0,
+            'file_size': item.file_size or 0,
+            'mime_type': item.format,
+            'network_ids': item.get_network_ids_list(),
+            'organization_id': item.organization_id,
+            'organization_name': item.organization_name,
+            'content_type': item.content_type,
+            'status': item.status,
+            'thumbnail_url': item.thumbnail_url,
+            'folder_id': None,
+            'folder_name': None,
+            'folder_color': None,
+            'folder_icon': None,
+        })
+
+    # Add local content (uploaded directly to CMS)
     for item in content_items:
+        # Convert single network_id to list for network filter compatibility
+        network_ids = [item.network_id] if item.network_id else []
+        # Determine content type from mime_type
+        content_type = 'video'
+        if item.mime_type:
+            if 'image' in item.mime_type:
+                content_type = 'image'
+            elif 'audio' in item.mime_type:
+                content_type = 'audio'
+
         content.append({
             'id': item.id,
             'filename': item.filename,
@@ -139,6 +182,12 @@ def content_page():
             'duration': item.duration or 0,
             'file_size': item.file_size,
             'mime_type': item.mime_type,
+            'network_ids': network_ids,  # For network filter
+            'organization_id': None,  # Local upload
+            'organization_name': None,  # Local upload
+            'content_type': content_type,
+            'status': None,  # Local uploads have no workflow status
+            'thumbnail_url': None,  # Local uploads have no thumbnails yet
             'folder_id': None,  # No folder support yet
             'folder_name': None,
             'folder_color': None,
@@ -150,6 +199,7 @@ def content_page():
         active_page='content',
         content=content,
         networks=networks,
+        organizations=organizations,  # Partner filter options
         folders=[]  # Empty folders list for now
     )
 
@@ -285,3 +335,30 @@ def web_login():
             flash('Invalid email or password', 'error')
     
     return render_template('auth/login.html')
+
+
+@web_bp.route('/api/admin/pairing/approve', methods=['POST'])
+@login_required
+def approve_pairing():
+    """Approve a device by its pairing code"""
+    data = request.get_json()
+    pairing_code = data.get('pairing_code')
+    location_id = data.get('location_id')
+    
+    if not pairing_code:
+        return jsonify({'error': 'Pairing code is required'}), 400
+    
+    device = Device.query.filter_by(pairing_code=pairing_code).first()
+    if not device:
+        return jsonify({'error': 'Device not found with that pairing code'}), 404
+    
+    device.status = 'active'
+    if location_id:
+        device.location_id = location_id
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Device paired successfully',
+        'device': device.to_dict()
+    })

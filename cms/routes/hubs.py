@@ -4,16 +4,22 @@ CMS Hubs Routes
 Blueprint for hub management API endpoints:
 - POST /register: Register a new hub
 - GET /: List all hubs
+- GET /<hub_id>: Get a specific hub
 - GET /<hub_id>/content-manifest: Get hub content manifest
+- GET /<hub_id>/playlists: Get hub playlist manifest
+- PUT /<hub_id>/approve: Approve a pending hub
+- POST /<hub_id>/heartbeats: Receive batched device heartbeats
 
 All endpoints are prefixed with /api/v1/hubs when registered with the app.
 """
 
 import re
+import secrets
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 
-from cms.models import db, Hub, Network, Content
+from cms.models import db, Hub, Network, Content, Playlist, Device
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 
@@ -31,12 +37,18 @@ def register_hub():
     Each hub has a unique code (2-4 uppercase letters) that is used in
     device IDs for devices connected through that hub.
 
+    Upon registration, the hub receives an API token for authenticating
+    future requests to the CMS (content sync, heartbeats, etc.).
+
     Request Body:
         {
             "code": "WM" (required, 2-4 uppercase letters),
             "name": "West Marine Hub" (required),
+            "network_id": "uuid-of-network" (required),
             "location": "123 Main St" (optional),
-            "network_id": "uuid-of-network" (required)
+            "ip_address": "192.168.1.100" (optional, IPv4 or IPv6),
+            "mac_address": "AA:BB:CC:DD:EE:FF" (optional),
+            "hostname": "hub-westmarine" (optional)
         }
 
     Returns:
@@ -46,6 +58,7 @@ def register_hub():
                 "code": "WM",
                 "name": "West Marine Hub",
                 "status": "pending",
+                "api_token": "hub_...",
                 "created_at": "2024-01-15T10:00:00Z"
             }
         400: Missing required field or invalid data
@@ -108,16 +121,51 @@ def register_hub():
             'error': 'location must be a string with max 500 characters'
         }), 400
 
-    # Create new hub
+    # Validate optional ip_address
+    ip_address = data.get('ip_address')
+    if ip_address:
+        if not isinstance(ip_address, str) or len(ip_address) > 45:
+            return jsonify({
+                'error': 'ip_address must be a string with max 45 characters'
+            }), 400
+
+    # Validate optional mac_address
+    mac_address = data.get('mac_address')
+    if mac_address:
+        if not isinstance(mac_address, str) or len(mac_address) > 17:
+            return jsonify({
+                'error': 'mac_address must be a string with max 17 characters'
+            }), 400
+        # Validate MAC address format (XX:XX:XX:XX:XX:XX)
+        mac_pattern = r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
+        if not re.match(mac_pattern, mac_address):
+            return jsonify({
+                'error': 'mac_address must be in format XX:XX:XX:XX:XX:XX'
+            }), 400
+
+    # Validate optional hostname
+    hostname = data.get('hostname')
+    if hostname:
+        if not isinstance(hostname, str) or len(hostname) > 255:
+            return jsonify({
+                'error': 'hostname must be a string with max 255 characters'
+            }), 400
+
+    # Generate API token for hub authentication
+    # Format: hub_{random_token} for easy identification
+    api_token = f"hub_{secrets.token_urlsafe(32)}"
+
+    # Create new hub with all fields
     hub = Hub(
         code=code,
         name=name,
         network_id=network_id,
-        status='pending'
+        status='pending',
+        ip_address=ip_address,
+        mac_address=mac_address.upper() if mac_address else None,
+        hostname=hostname,
+        api_token=api_token
     )
-
-    # Note: Hub model doesn't have location column based on current schema
-    # If location needs to be stored, the model should be updated
 
     try:
         db.session.add(hub)
@@ -129,6 +177,7 @@ def register_hub():
         }), 500
 
     # Log hub registration (hub-initiated action)
+    # Note: api_token is intentionally NOT logged for security
     log_action(
         action='hub.register',
         action_category='hubs',
@@ -141,6 +190,8 @@ def register_hub():
             'name': name,
             'network_id': network_id,
             'network_name': network.name,
+            'ip_address': ip_address,
+            'hostname': hostname,
         }
     )
 
@@ -274,4 +325,244 @@ def get_content_manifest(hub_id):
         'manifest_version': 1,
         'content': content_items,
         'count': len(content_items)
+    }), 200
+
+
+@hubs_bp.route('/<hub_id>/playlists', methods=['GET'])
+def get_hub_playlists(hub_id):
+    """
+    Get playlist manifest for a hub.
+
+    Returns a list of all playlists available for devices connected
+    to this hub. The manifest includes playlist metadata and items
+    needed for local caching and playback scheduling.
+
+    Args:
+        hub_id: Hub UUID or code
+
+    Returns:
+        200: Playlist manifest
+            {
+                "hub_id": "uuid",
+                "hub_code": "WM",
+                "network_id": "uuid",
+                "manifest_version": 1,
+                "playlists": [
+                    {
+                        "id": "uuid",
+                        "name": "Morning Playlist",
+                        "trigger_type": "time",
+                        "trigger_config": "...",
+                        "is_active": true,
+                        "items": [ ... ]
+                    }
+                ],
+                "count": 5
+            }
+        404: Hub not found
+            {
+                "error": "Hub not found"
+            }
+    """
+    # Try to find hub by UUID first, then by code
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        hub = Hub.query.filter_by(code=hub_id).first()
+
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    # Get all playlists for the hub's network
+    playlists = []
+    if hub.network_id:
+        playlist_list = Playlist.get_active_by_network(hub.network_id)
+        playlists = [playlist.to_dict_with_items() for playlist in playlist_list]
+
+    return jsonify({
+        'hub_id': hub.id,
+        'hub_code': hub.code,
+        'network_id': hub.network_id,
+        'manifest_version': 1,
+        'playlists': playlists,
+        'count': len(playlists)
+    }), 200
+
+
+@hubs_bp.route('/<hub_id>/approve', methods=['PUT'])
+@login_required
+def approve_hub(hub_id):
+    """
+    Approve a pending hub.
+
+    CMS admins use this endpoint to approve hubs that have registered
+    with the system. Only approved hubs can receive content and playlists.
+
+    Args:
+        hub_id: Hub UUID or code
+
+    Returns:
+        200: Hub approved successfully
+            { hub data with status: "active" }
+        400: Hub not in pending state
+            {
+                "error": "Hub is not in pending state"
+            }
+        404: Hub not found
+            {
+                "error": "Hub not found"
+            }
+    """
+    # Try to find hub by UUID first, then by code
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        hub = Hub.query.filter_by(code=hub_id).first()
+
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    if hub.status != 'pending':
+        return jsonify({'error': 'Hub is not in pending state'}), 400
+
+    hub.status = 'active'
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to approve hub: {str(e)}'
+        }), 500
+
+    # Log hub approval
+    log_action(
+        action='hub.approve',
+        action_category='hubs',
+        resource_type='hub',
+        resource_id=hub.id,
+        resource_name=hub.code,
+    )
+
+    return jsonify(hub.to_dict()), 200
+
+
+@hubs_bp.route('/<hub_id>/heartbeats', methods=['POST'])
+def receive_heartbeats(hub_id):
+    """
+    Receive batched device heartbeats from a hub.
+
+    Hubs collect device heartbeats and send them in batches to reduce
+    network traffic. This endpoint receives the batch, updates device
+    last_seen timestamps, and updates the hub's last_heartbeat.
+
+    Args:
+        hub_id: Hub UUID or code
+
+    Request Body:
+        {
+            "heartbeats": [
+                {
+                    "device_id": "SKZ-H-WM-0001" (required),
+                    "status": "active" (optional),
+                    "timestamp": "2024-01-15T10:00:00Z" (optional, defaults to now)
+                },
+                ...
+            ]
+        }
+
+    Returns:
+        200: Heartbeats processed successfully
+            {
+                "processed": 5,
+                "errors": [],
+                "hub_last_heartbeat": "2024-01-15T10:00:00Z"
+            }
+        400: Invalid request body
+            {
+                "error": "error message"
+            }
+        404: Hub not found
+            {
+                "error": "Hub not found"
+            }
+    """
+    # Try to find hub by UUID first, then by code
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        hub = Hub.query.filter_by(code=hub_id).first()
+
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    # Validate request body
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    heartbeats = data.get('heartbeats')
+    if heartbeats is None:
+        return jsonify({'error': 'heartbeats field is required'}), 400
+
+    if not isinstance(heartbeats, list):
+        return jsonify({'error': 'heartbeats must be an array'}), 400
+
+    # Process each heartbeat
+    processed = 0
+    errors = []
+
+    for i, heartbeat in enumerate(heartbeats):
+        if not isinstance(heartbeat, dict):
+            errors.append(f'Heartbeat at index {i} must be an object')
+            continue
+
+        device_id = heartbeat.get('device_id')
+        if not device_id:
+            errors.append(f'Heartbeat at index {i} is missing device_id')
+            continue
+
+        # Find the device
+        device = Device.query.filter_by(device_id=device_id).first()
+        if not device:
+            errors.append(f'Device {device_id} not found')
+            continue
+
+        # Parse timestamp if provided, otherwise use current time
+        timestamp_str = heartbeat.get('timestamp')
+        if timestamp_str:
+            try:
+                # Parse ISO format timestamp
+                heartbeat_time = datetime.fromisoformat(
+                    timestamp_str.replace('Z', '+00:00')
+                )
+            except (ValueError, AttributeError):
+                errors.append(f'Invalid timestamp for device {device_id}')
+                continue
+        else:
+            heartbeat_time = datetime.now(timezone.utc)
+
+        # Update device last_seen
+        device.last_seen = heartbeat_time
+
+        # Update device status if provided
+        status = heartbeat.get('status')
+        if status and isinstance(status, str) and status in ['active', 'offline', 'error']:
+            device.status = status
+
+        processed += 1
+
+    # Update hub's last_heartbeat timestamp
+    hub.last_heartbeat = datetime.now(timezone.utc)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': f'Failed to process heartbeats: {str(e)}'
+        }), 500
+
+    return jsonify({
+        'processed': processed,
+        'errors': errors,
+        'hub_last_heartbeat': hub.last_heartbeat.isoformat()
     }), 200

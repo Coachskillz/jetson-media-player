@@ -698,6 +698,197 @@ class HQClient:
 
         return screen_list
 
+    # -------------------------------------------------------------------------
+    # Playlist Sync
+    # -------------------------------------------------------------------------
+
+    def get_playlists(self, hub_id: str) -> Dict[str, Any]:
+        """
+        Fetch playlist manifest from HQ for this hub.
+
+        This method retrieves the complete playlist manifest for the hub,
+        including all playlists assigned to the hub's network. The response
+        contains playlist metadata and items that should be cached locally.
+
+        Args:
+            hub_id: The hub's unique identifier from registration
+
+        Returns:
+            Playlist manifest containing:
+            - playlists: List of playlist objects with items
+            - version: Manifest version for change detection
+            - generated_at: ISO timestamp when manifest was generated
+
+        Raises:
+            HQConnectionError: When HQ is unreachable
+            HQTimeoutError: When request times out
+            HQAuthenticationError: When authentication fails
+            HQClientError: For other request errors
+
+        Example:
+            client = HQClient('https://hub.skillzmedia.com', token='...')
+            manifest = client.get_playlists('hub_123')
+            for playlist in manifest.get('playlists', []):
+                print(f"Playlist: {playlist['name']}")
+        """
+        if not self.is_authenticated:
+            logger.error("Cannot fetch playlists: client not authenticated")
+            raise HQAuthenticationError(
+                message="Client not authenticated for playlist sync",
+                status_code=401,
+            )
+
+        endpoint = f'/api/v1/hubs/{hub_id}/playlists'
+        url = self._build_url(endpoint)
+
+        logger.debug(f"Fetching playlist manifest for hub {hub_id}")
+
+        try:
+            response = self.session.get(
+                url,
+                timeout=self.timeout,
+            )
+            result = self._handle_response(response, endpoint)
+
+            playlist_count = len(result.get('playlists', []))
+            logger.info(f"Retrieved {playlist_count} playlists for hub {hub_id}")
+
+            return result
+
+        except Timeout as e:
+            logger.error(f"Playlist fetch timeout: {e}")
+            raise HQTimeoutError(
+                message="Playlist fetch request timed out",
+                details={'timeout': self.timeout, 'hub_id': hub_id},
+            )
+
+        except RequestsConnectionError as e:
+            logger.error(f"Playlist fetch connection failed: {e}")
+            raise HQConnectionError(
+                message="Cannot connect to HQ for playlist fetch",
+                details={'error': str(e), 'hub_id': hub_id},
+            )
+
+        except RequestException as e:
+            logger.error(f"Playlist fetch request error: {e}")
+            raise HQClientError(
+                message="Playlist fetch request failed",
+                details={'error': str(e), 'hub_id': hub_id},
+            )
+
+    def send_batched_heartbeats(
+        self,
+        hub_id: str,
+        heartbeats: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Send batched device heartbeats to HQ.
+
+        This method collects device heartbeats from connected devices and sends
+        them in a single batch to HQ. This reduces the number of HTTP requests
+        and allows the hub to act as a relay between devices and the CMS.
+
+        When the CMS is unreachable, heartbeats should be queued locally using
+        HeartbeatQueue and sent when connectivity is restored.
+
+        Args:
+            hub_id: The hub's unique identifier from registration
+            heartbeats: List of device heartbeat dictionaries, each containing:
+                - device_id: Device's unique identifier
+                - hardware_id: Hardware identifier (e.g., MAC address)
+                - status: 'online', 'offline', or 'unknown'
+                - timestamp: ISO timestamp of heartbeat
+                - metrics: Optional dict with device metrics (cpu, memory, etc.)
+
+        Returns:
+            Response from HQ, may contain:
+            - processed: Number of heartbeats processed
+            - errors: List of any processing errors
+            - commands: Optional commands for specific devices
+
+        Raises:
+            HQConnectionError: When HQ is unreachable
+            HQTimeoutError: When request times out
+            HQAuthenticationError: When authentication fails
+            HQClientError: For other request errors
+
+        Example:
+            client = HQClient('https://hub.skillzmedia.com', token='...')
+            heartbeats = [
+                {
+                    'device_id': 'device_001',
+                    'hardware_id': 'aa:bb:cc:dd:ee:ff',
+                    'status': 'online',
+                    'timestamp': '2024-01-15T10:30:00Z',
+                    'metrics': {'cpu_percent': 45.2, 'memory_percent': 62.1},
+                },
+                {
+                    'device_id': 'device_002',
+                    'hardware_id': '11:22:33:44:55:66',
+                    'status': 'online',
+                    'timestamp': '2024-01-15T10:30:00Z',
+                },
+            ]
+            result = client.send_batched_heartbeats('hub_123', heartbeats)
+            # result = {'processed': 2, 'errors': []}
+        """
+        if not self.is_authenticated:
+            logger.error("Cannot send batched heartbeats: client not authenticated")
+            raise HQAuthenticationError(
+                message="Client not authenticated for batched heartbeats",
+                status_code=401,
+            )
+
+        endpoint = f'/api/v1/hubs/{hub_id}/heartbeats'
+        url = self._build_url(endpoint)
+
+        # Build batched heartbeat payload
+        payload: Dict[str, Any] = {
+            'hub_id': hub_id,
+            'heartbeats': heartbeats,
+            'batch_size': len(heartbeats),
+        }
+
+        logger.debug(f"Sending batched heartbeats for hub {hub_id}: {len(heartbeats)} devices")
+
+        try:
+            response = self.session.post(
+                url,
+                json=payload,
+                timeout=self.timeout,
+            )
+            result = self._handle_response(response, endpoint)
+
+            processed = result.get('processed', len(heartbeats))
+            errors = result.get('errors', [])
+            if errors:
+                logger.warning(f"Batched heartbeat had {len(errors)} errors: {errors}")
+            else:
+                logger.debug(f"Batched heartbeat sent successfully: {processed} processed")
+
+            return result
+
+        except Timeout as e:
+            logger.warning(f"Batched heartbeat timeout: {e}")
+            raise HQTimeoutError(
+                message="Batched heartbeat request timed out",
+                details={'timeout': self.timeout, 'hub_id': hub_id, 'batch_size': len(heartbeats)},
+            )
+
+        except RequestsConnectionError as e:
+            logger.warning(f"Batched heartbeat connection failed: {e}")
+            raise HQConnectionError(
+                message="Cannot connect to HQ for batched heartbeats",
+                details={'error': str(e), 'hub_id': hub_id, 'batch_size': len(heartbeats)},
+            )
+
+        except RequestException as e:
+            logger.error(f"Batched heartbeat request error: {e}")
+            raise HQClientError(
+                message="Batched heartbeat request failed",
+                details={'error': str(e), 'hub_id': hub_id, 'batch_size': len(heartbeats)},
+            )
+
     def __repr__(self) -> str:
         """String representation."""
         auth_status = 'authenticated' if self.is_authenticated else 'unauthenticated'

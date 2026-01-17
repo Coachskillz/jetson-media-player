@@ -124,11 +124,23 @@ class ScreenMonitorError(ServiceError):
     pass
 
 
+class HeartbeatQueueError(ServiceError):
+    """
+    Exception raised when heartbeat queue processing fails.
+
+    Note: Failed heartbeats should never be lost - they must
+    be queued in HeartbeatQueue for retry.
+    """
+
+    pass
+
+
 # Import services as they are created
 from services.hq_client import HQClient
 from services.sync_service import SyncService
 from services.alert_forwarder import AlertForwarder
 from services.screen_monitor import ScreenMonitor
+from services.heartbeat_queue import HeartbeatQueueService
 
 __all__ = [
     # Exception classes
@@ -140,9 +152,11 @@ __all__ = [
     'SyncError',
     'AlertForwardError',
     'ScreenMonitorError',
+    'HeartbeatQueueError',
     # Service classes
     'HQClient',
     'SyncService',
     'AlertForwarder',
     'ScreenMonitor',
+    'HeartbeatQueueService',
 ]

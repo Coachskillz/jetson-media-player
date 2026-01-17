@@ -1,0 +1,743 @@
+{% extends "partner/base.html" %}
+
+{% block title %}Upload Content - Partner Portal{% endblock %}
+
+{% block page_title %}Upload Content{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Upload Page Layout */
+.upload-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+}
+
+@media (max-width: 1024px) {
+    .upload-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Upload Section */
+.upload-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.upload-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Upload Area */
+.upload-area {
+    border: 3px dashed var(--border-medium);
+    border-radius: var(--border-radius);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: rgba(255, 255, 255, 0.02);
+    position: relative;
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(6, 182, 212, 0.05);
+    transform: scale(1.01);
+}
+
+.upload-area.dragging {
+    border-color: var(--primary);
+    background: rgba(6, 182, 212, 0.1);
+    transform: scale(1.02);
+}
+
+.upload-area.selected {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.upload-area-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.upload-area-text {
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.upload-area-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.file-input-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-input-wrapper input[type="file"] {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group label.required::after {
+    content: '*';
+    color: var(--error);
+    margin-left: 4px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group select option {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+.form-group .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+/* Tags Input */
+.tags-input-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    min-height: 48px;
+    align-items: center;
+    cursor: text;
+}
+
+.tags-input-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary);
+    color: var(--bg-dark);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tag-item button {
+    background: none;
+    border: none;
+    color: var(--bg-dark);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.tag-item button:hover {
+    opacity: 1;
+}
+
+.tags-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 14px;
+    flex: 1;
+    min-width: 100px;
+    padding: 4px 0;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin-top: 20px;
+    display: none;
+}
+
+.progress-container.visible {
+    display: block;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transition: width 0.3s;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    text-align: center;
+}
+
+/* Upload Status */
+.upload-status {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+}
+
+.upload-status.visible {
+    display: block;
+}
+
+.upload-status.info {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.upload-status.success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.upload-status.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Guidelines Panel */
+.guidelines-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+}
+
+.guidelines-section h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.guidelines-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.guidelines-list li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.guidelines-list li:last-child {
+    border-bottom: none;
+}
+
+.guidelines-list li span.icon {
+    color: var(--primary);
+    font-size: 16px;
+}
+
+.supported-formats {
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius-sm);
+}
+
+.supported-formats h4 {
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.format-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.format-tag {
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+/* Submit Section */
+.submit-section {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-light);
+}
+
+.submit-section .btn {
+    flex: 1;
+}
+
+/* Category Cards */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.category-option {
+    padding: 16px 12px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition-fast);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.category-option:hover {
+    border-color: var(--border-medium);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.category-option.selected {
+    border-color: var(--primary);
+    background: rgba(6, 182, 212, 0.1);
+}
+
+.category-option input {
+    display: none;
+}
+
+.category-option .icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.category-option .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-layout">
+    <div class="main-section">
+        <!-- Upload Form -->
+        <div class="upload-section animate-fade-in">
+            <h3>&#8679; Upload New Content</h3>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <!-- File Upload Area -->
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-area-icon">&#128193;</div>
+                    <p class="upload-area-text" id="uploadText">Drop files here or click to browse</p>
+                    <p class="upload-area-hint">
+                        Supported formats: MP4, AVI, MOV, MKV, WEBM, JPG, PNG, GIF<br>
+                        Maximum file size: 500MB
+                    </p>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm,.jpg,.jpeg,.png,.gif,.webp">
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">Uploading...</p>
+                </div>
+
+                <!-- Upload Status -->
+                <div class="upload-status" id="uploadStatus"></div>
+
+                <!-- Metadata Fields -->
+                <div class="form-group">
+                    <label for="title" class="required">Title</label>
+                    <input type="text" id="title" name="title" placeholder="Enter a descriptive title for your content" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" placeholder="Describe your content (optional)"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="category-grid">
+                        <label class="category-option" onclick="selectCategory(this)">
+                            <input type="radio" name="category" value="advertisement">
+                            <div class="icon">&#128226;</div>
+                            <div class="label">Advertisement</div>
+                        </label>
+                        <label class="category-option" onclick="selectCategory(this)">
+                            <input type="radio" name="category" value="promotional">
+                            <div class="icon">&#127775;</div>
+                            <div class="label">Promotional</div>
+                        </label>
+                        <label class="category-option" onclick="selectCategory(this)">
+                            <input type="radio" name="category" value="informational">
+                            <div class="icon">&#9432;</div>
+                            <div class="label">Informational</div>
+                        </label>
+                        <label class="category-option" onclick="selectCategory(this)">
+                            <input type="radio" name="category" value="entertainment">
+                            <div class="icon">&#127916;</div>
+                            <div class="label">Entertainment</div>
+                        </label>
+                        <label class="category-option" onclick="selectCategory(this)">
+                            <input type="radio" name="category" value="educational">
+                            <div class="icon">&#128218;</div>
+                            <div class="label">Educational</div>
+                        </label>
+                        <label class="category-option" onclick="selectCategory(this)">
+                            <input type="radio" name="category" value="other">
+                            <div class="icon">&#128196;</div>
+                            <div class="label">Other</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="tagsInput">Tags</label>
+                    <div class="tags-input-wrapper" id="tagsWrapper" onclick="document.getElementById('tagsInput').focus()">
+                        <input type="text" id="tagsInput" class="tags-input" placeholder="Type a tag and press Enter">
+                        <input type="hidden" id="tags" name="tags" value="">
+                    </div>
+                    <p class="hint">Press Enter to add tags. Tags help with content discovery.</p>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="submit-section">
+                    <button type="button" class="btn btn-secondary" id="saveDraftBtn" onclick="submitForm('draft')">
+                        Save as Draft
+                    </button>
+                    <button type="button" class="btn btn-primary" id="submitBtn" onclick="submitForm('submit')">
+                        Submit for Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Guidelines Panel -->
+    <div class="guidelines-section animate-fade-in">
+        <h3>&#9432; Upload Guidelines</h3>
+
+        <ul class="guidelines-list">
+            <li>
+                <span class="icon">&#10003;</span>
+                <span>Ensure content is high quality and professionally produced</span>
+            </li>
+            <li>
+                <span class="icon">&#10003;</span>
+                <span>Video resolution should be at least 1080p for best results</span>
+            </li>
+            <li>
+                <span class="icon">&#10003;</span>
+                <span>Content must not contain copyrighted material</span>
+            </li>
+            <li>
+                <span class="icon">&#10003;</span>
+                <span>Add descriptive titles and tags for better discoverability</span>
+            </li>
+            <li>
+                <span class="icon">&#10003;</span>
+                <span>Submissions will be reviewed within 24-48 hours</span>
+            </li>
+        </ul>
+
+        <div class="supported-formats">
+            <h4>&#128193; Supported Formats</h4>
+            <div class="format-tags">
+                <span class="format-tag">MP4</span>
+                <span class="format-tag">AVI</span>
+                <span class="format-tag">MOV</span>
+                <span class="format-tag">MKV</span>
+                <span class="format-tag">WEBM</span>
+                <span class="format-tag">JPG</span>
+                <span class="format-tag">PNG</span>
+                <span class="format-tag">GIF</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Tags handling
+    const tagsWrapper = document.getElementById('tagsWrapper');
+    const tagsInput = document.getElementById('tagsInput');
+    const tagsHidden = document.getElementById('tags');
+    let tags = [];
+
+    tagsInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = this.value.trim();
+            if (value && !tags.includes(value)) {
+                tags.push(value);
+                renderTags();
+                this.value = '';
+            }
+        }
+        if (e.key === 'Backspace' && !this.value && tags.length > 0) {
+            tags.pop();
+            renderTags();
+        }
+    });
+
+    function renderTags() {
+        // Remove existing tag items
+        document.querySelectorAll('.tag-item').forEach(el => el.remove());
+
+        // Add tags before input
+        tags.forEach((tag, index) => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'tag-item';
+            tagEl.innerHTML = `${tag}<button type="button" onclick="removeTag(${index})">&times;</button>`;
+            tagsInput.parentElement.insertBefore(tagEl, tagsInput);
+        });
+
+        // Update hidden input
+        tagsHidden.value = tags.join(',');
+    }
+
+    function removeTag(index) {
+        tags.splice(index, 1);
+        renderTags();
+    }
+
+    // Category selection
+    function selectCategory(element) {
+        document.querySelectorAll('.category-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        element.classList.add('selected');
+        element.querySelector('input').checked = true;
+    }
+
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const titleInput = document.getElementById('title');
+    const uploadText = document.getElementById('uploadText');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            uploadArea.classList.add('selected');
+            uploadText.innerHTML = `&#10003; ${file.name}<br><small>(${(file.size / 1024 / 1024).toFixed(1)} MB)</small>`;
+
+            // Auto-fill title if empty
+            if (!titleInput.value) {
+                titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+            }
+        }
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragging');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragging');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragging');
+
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            const event = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(event);
+        }
+    });
+
+    // Form submission
+    function submitForm(action) {
+        if (!fileInput.files.length) {
+            showStatus('Please select a file first', 'error');
+            return;
+        }
+
+        if (!titleInput.value.trim()) {
+            showStatus('Please enter a title', 'error');
+            return;
+        }
+
+        const formData = new FormData(uploadForm);
+        formData.append('action', action);
+
+        // Disable buttons
+        document.getElementById('saveDraftBtn').disabled = true;
+        document.getElementById('submitBtn').disabled = true;
+
+        // Show progress
+        progressContainer.classList.add('visible');
+        showStatus('Uploading content...', 'info');
+
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                progressFill.style.width = percent + '%';
+                progressText.textContent = `Uploading... ${percent}%`;
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200 || xhr.status === 201) {
+                const data = JSON.parse(xhr.responseText);
+                showStatus(
+                    action === 'draft'
+                        ? 'Content saved as draft successfully!'
+                        : 'Content submitted for review successfully!',
+                    'success'
+                );
+                progressText.textContent = 'Upload complete!';
+
+                // Redirect after success
+                setTimeout(() => {
+                    window.location.href = action === 'draft'
+                        ? '{{ url_for("partner.assets") }}'
+                        : '{{ url_for("partner.submissions") }}';
+                }, 2000);
+            } else {
+                let errorMsg = 'Upload failed';
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    errorMsg = data.error || data.message || errorMsg;
+                } catch (e) {}
+                showStatus(errorMsg, 'error');
+                enableButtons();
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            showStatus('Upload failed. Please try again.', 'error');
+            enableButtons();
+        });
+
+        xhr.open('POST', '/partner/api/upload');
+        xhr.send(formData);
+    }
+
+    function showStatus(message, type) {
+        uploadStatus.textContent = message;
+        uploadStatus.className = 'upload-status visible ' + type;
+    }
+
+    function enableButtons() {
+        document.getElementById('saveDraftBtn').disabled = false;
+        document.getElementById('submitBtn').disabled = false;
+        progressContainer.classList.remove('visible');
+    }
+</script>
+{% endblock %}

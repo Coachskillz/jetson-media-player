@@ -43,6 +43,9 @@ class Config:
     DEVICE_ID_PREFIX_DIRECT = 'SKZ-D'
     DEVICE_ID_PREFIX_HUB = 'SKZ-H'
 
+    # Content Catalog Settings
+    CONTENT_CATALOG_URL = os.environ.get('CONTENT_CATALOG_URL', 'https://catalog.skillzmedia.com')
+
     @classmethod
     def init_app(cls, app):
         """Initialize application with this configuration."""

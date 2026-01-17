@@ -8,6 +8,9 @@ Blueprint for content management API endpoints:
 - GET /<content_id>/download: Download content file
 - PUT /<content_id>/status: Update content approval status
 - DELETE /<content_id>: Delete content
+- POST /sync: Trigger content sync from Content Catalog
+- GET /sync: Get content sync status
+- GET /synced: List synced content with filters
 
 All endpoints are prefixed with /api/v1/content when registered with the app.
 """
@@ -22,6 +25,11 @@ from werkzeug.utils import secure_filename
 from cms.models import db, Content, Network, ContentStatus
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
+from cms.services.content_sync_service import (
+    ContentSyncService,
+    ContentSyncError,
+    ContentCatalogUnavailableError,
+)
 
 
 # Create content blueprint
@@ -536,10 +544,8 @@ def update_content_status(content_id):
             'error': f"Invalid status: {status}. Valid values: {', '.join(valid_statuses)}"
         }), 400
 
-    # Track change for audit log
-    old_status = content.status
-
     # Update status
+    old_status = content.status
     content.status = status
 
     try:
@@ -560,9 +566,93 @@ def update_content_status(content_id):
         details={
             'old_status': old_status,
             'new_status': status,
-            'filename': content.filename,
-            'original_name': content.original_name,
         }
     )
 
     return jsonify(content.to_dict()), 200
+
+
+# =============================================================================
+# Content Sync Endpoints
+# =============================================================================
+
+@content_bp.route('/sync', methods=['POST'])
+@login_required
+def sync_content():
+    """
+    Trigger content sync from Content Catalog.
+
+    Fetches all approved/published content from the Content Catalog service
+    and caches it locally in the SyncedContent table. This enables the CMS
+    to display content without direct upload capability.
+
+    Query Parameters:
+        network_id: Filter sync to specific network (optional)
+        organization_id: Filter sync to specific organization (optional)
+        category: Filter sync to specific category (optional)
+
+    Returns:
+        200: Sync completed successfully
+            {
+                "message": "Content sync completed",
+                "synced_count": 42,
+                "created_count": 10,
+                "updated_count": 32,
+                "total_in_catalog": 42,
+                "synced_at": "2024-01-15T10:00:00Z",
+                "errors": []
+            }
+        503: Content Catalog service unavailable
+            {
+                "error": "Content Catalog service unavailable",
+                "message": "Using cached content",
+                "catalog_url": "http://localhost:5003"
+            }
+        500: Sync failed
+            {
+                "error": "Content sync failed",
+                "message": "error details"
+            }
+    """
+    # Parse optional filter parameters
+    network_id = request.args.get('network_id')
+    organization_id = request.args.get('organization_id')
+    category = request.args.get('category')
+
+    # Convert organization_id to int if provided
+    if organization_id:
+        try:
+            organization_id = int(organization_id)
+        except ValueError:
+            return jsonify({
+                'error': 'Invalid organization_id: must be an integer'
+            }), 400
+
+    try:
+        sync_service = ContentSyncService()
+        result = sync_service.sync_content(
+            network_id=network_id,
+            organization_id=organization_id,
+            category=category
+        )
+
+        return jsonify(result), 200
+
+    except ContentCatalogUnavailableError as e:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': str(e),
+            'catalog_url': current_app.config.get('CONTENT_CATALOG_URL')
+        }), 503
+
+    except ContentSyncError as e:
+        return jsonify({
+            'error': 'Content sync failed',
+            'message': str(e)
+        }), 500
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Content sync failed',
+            'message': str(e)
+        }), 500

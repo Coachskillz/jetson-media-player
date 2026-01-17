@@ -20,6 +20,201 @@
     height: fit-content;
 }
 
+/* Networks Section */
+.networks-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.networks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.networks-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.networks-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.network-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    color: #64748b;
+}
+
+.network-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.network-btn.active {
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: #667eea;
+}
+
+.network-btn .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Partners Section */
+.partners-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.partners-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.partners-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.partners-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.partner-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    color: #64748b;
+}
+
+.partner-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.partner-btn.active {
+    border-color: #10b981;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: #10b981;
+}
+
+.partner-btn .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Content Type Section */
+.content-type-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.content-type-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.content-type-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.content-type-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.content-type-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    color: #64748b;
+}
+
+.content-type-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.content-type-btn.active {
+    border-color: #f59e0b;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: #f59e0b;
+}
+
+.content-type-btn .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 /* Folders Section */
 .folders-section {
     background: rgba(255, 255, 255, 0.95);
@@ -224,67 +419,6 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Upload Box */
-.upload-box {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.upload-box h3 {
-    font-size: 18px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-.upload-area {
-    border: 3px dashed #cbd5e1;
-    border-radius: 16px;
-    padding: 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: #fafbfc;
-    position: relative;
-}
-
-.upload-area:hover {
-    border-color: #667eea;
-    background: #f8f9ff;
-    transform: scale(1.01);
-}
-
-.upload-area.selected {
-    border-color: #10b981;
-    background: #d1fae5;
-}
-
-.upload-area.dragging {
-    border-color: #667eea;
-    background: #eef2ff;
-    transform: scale(1.02);
-}
-
-.file-input-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-}
-
-input[type="file"] {
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-}
-
 .form-group {
     margin: 20px 0;
 }
@@ -377,6 +511,252 @@ input[type="file"] {
     margin-top: 10px;
 }
 
+/* Content Card Thumbnail */
+.content-thumbnail {
+    width: 100%;
+    height: 140px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.content-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.content-thumbnail .no-thumbnail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 36px;
+}
+
+.content-thumbnail .no-thumbnail span {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* Status Badge */
+.status-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.approved {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.status-badge.published {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.status-badge.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-badge.pending_review {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-badge.rejected {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-badge.draft {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Partner Badge */
+.partner-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #f0fdf4;
+    color: #16a34a;
+    margin-top: 8px;
+}
+
+.partner-badge.no-partner {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Content Card Meta Row */
+.content-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+/* Sync Section */
+.sync-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.sync-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sync-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.sync-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.sync-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.sync-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.sync-btn:disabled {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.sync-btn.syncing {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.sync-btn .sync-icon {
+    transition: transform 0.5s ease;
+}
+
+.sync-btn.syncing .sync-icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sync-timestamp {
+    font-size: 13px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sync-timestamp .timestamp-label {
+    font-weight: 500;
+}
+
+.sync-timestamp .timestamp-value {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.sync-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.sync-stat {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sync-stat .stat-label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sync-stat .stat-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.sync-stat.success {
+    background: #dcfce7;
+}
+
+.sync-stat.success .stat-value {
+    color: #16a34a;
+}
+
+.sync-stat.warning {
+    background: #fef3c7;
+}
+
+.sync-stat.warning .stat-value {
+    color: #d97706;
+}
+
+.sync-stat.error {
+    background: #fee2e2;
+}
+
+.sync-stat.error .stat-value {
+    color: #dc2626;
+}
+
 /* Player Box */
 .player-box {
     background: rgba(255, 255, 255, 0.95);
@@ -465,37 +845,102 @@ input[type="file"] {
     margin-top: 5px;
 }
 
-#uploadStatus {
-    margin-top: 15px;
-    padding: 12px;
-    border-radius: 10px;
-    display: none;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #e2e8f0;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 12px;
-    display: none;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transition: width 0.3s;
-    width: 0%;
-}
 {% endblock %}
 
 {% block content %}
 <div class="layout">
     <div class="main-content">
         <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📁 Content Library</h2>
+
+        <!-- Sync Section -->
+        <div class="sync-section">
+            <div class="sync-header">
+                <h3>🔄 Content Catalog Sync</h3>
+                <div class="sync-controls">
+                    <div class="sync-timestamp" id="syncTimestamp">
+                        <span class="timestamp-label">Last synced:</span>
+                        <span class="timestamp-value" id="lastSyncTime">Loading...</span>
+                    </div>
+                    <button class="sync-btn" id="syncBtn" onclick="syncContent()">
+                        <span class="sync-icon">🔄</span>
+                        <span class="sync-text">Sync Now</span>
+                    </button>
+                </div>
+            </div>
+            <div class="sync-status" id="syncStatus">
+                <div class="sync-stat" id="syncStatTotal">
+                    <span class="stat-label">Total Synced:</span>
+                    <span class="stat-value" id="totalSynced">-</span>
+                </div>
+                <div class="sync-stat" id="syncStatCatalog">
+                    <span class="stat-label">Catalog Status:</span>
+                    <span class="stat-value" id="catalogStatus">Checking...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Filter -->
+        <div class="networks-section">
+            <div class="networks-header">
+                <h3>🌐 Networks</h3>
+            </div>
+            <div class="networks-grid">
+                <button class="network-btn active" onclick="filterNetwork(null)">
+                    🌍 All Networks
+                    <span class="count" id="network-count-all">{{ content|length }}</span>
+                </button>
+                {% for network in networks %}
+                <button class="network-btn" data-network-id="{{ network.id }}" onclick="filterNetwork('{{ network.id }}')">
+                    📡 {{ network.name }}
+                    <span class="count" id="network-count-{{ network.id }}">0</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Partner Filter -->
+        <div class="partners-section">
+            <div class="partners-header">
+                <h3>🏢 Partners</h3>
+            </div>
+            <div class="partners-grid">
+                <button class="partner-btn active" onclick="filterPartner(null)">
+                    🏢 All Partners
+                    <span class="count" id="partner-count-all">{{ content|length }}</span>
+                </button>
+                {% for org in organizations %}
+                <button class="partner-btn" data-organization-id="{{ org.id }}" onclick="filterPartner('{{ org.id }}')">
+                    🏭 {{ org.name }}
+                    <span class="count" id="partner-count-{{ org.id }}">0</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Content Type Filter -->
+        <div class="content-type-section">
+            <div class="content-type-header">
+                <h3>📁 Content Type</h3>
+            </div>
+            <div class="content-type-grid">
+                <button class="content-type-btn active" onclick="filterContentType(null)">
+                    📋 All Types
+                    <span class="count" id="type-count-all">{{ content|length }}</span>
+                </button>
+                <button class="content-type-btn" data-content-type="video" onclick="filterContentType('video')">
+                    🎬 Video
+                    <span class="count" id="type-count-video">0</span>
+                </button>
+                <button class="content-type-btn" data-content-type="image" onclick="filterContentType('image')">
+                    🖼️ Image
+                    <span class="count" id="type-count-image">0</span>
+                </button>
+                <button class="content-type-btn" data-content-type="audio" onclick="filterContentType('audio')">
+                    🎵 Audio
+                    <span class="count" id="type-count-audio">0</span>
+                </button>
+            </div>
+        </div>
 
         <!-- Folders -->
         <div class="folders-section">
@@ -520,48 +965,6 @@ input[type="file"] {
             </div>
         </div>
 
-        <!-- Upload Box -->
-        <div class="upload-box">
-            <h3>📤 Upload New Content</h3>
-            <form id="uploadForm" enctype="multipart/form-data">
-                <div class="upload-area" id="uploadArea">
-                    <p id="uploadText" style="font-size: 16px; margin-bottom: 8px; color: #475569; font-weight: 600;">
-                        📤 Drop video here or click to browse
-                    </p>
-                    <p style="font-size: 13px; color: #94a3b8;">
-                        MP4, AVI, MOV, MKV, WEBM (Max 500MB)<br>
-                        Duration will be detected automatically
-                    </p>
-                    <div class="file-input-wrapper">
-                        <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="title" name="title" placeholder="Video title" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Folder</label>
-                    <select id="folderSelect" name="folder_id">
-                        <option value="">No Folder</option>
-                        {% for folder in folders %}
-                        <option value="{{ folder.id }}">{{ folder.icon }} {{ folder.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="uploadBtn">Upload Content</button>
-
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-
-                <div id="uploadStatus"></div>
-            </form>
-        </div>
-
         <!-- Content Grid -->
         <div class="content-section">
             <h3 id="contentHeader">All Content ({{ content|length }})</h3>
@@ -569,17 +972,46 @@ input[type="file"] {
             {% if content %}
             <div class="content-grid" id="contentGrid">
                 {% for item in content %}
-                <div class="content-card" data-id="{{ item.id }}" data-folder="{{ item.folder_id or '' }}"
+                <div class="content-card" data-id="{{ item.id }}" data-folder="{{ item.folder_id or '' }}" data-networks="{{ item.network_ids|default([])|tojson }}" data-organization="{{ item.organization_id or '' }}" data-content-type="{{ item.content_type or 'video' }}" data-status="{{ item.status or '' }}"
                      onclick="previewContent({{ item.id }}, '{{ item.filename }}', '{{ item.title }}', {{ item.duration }}, {{ item.file_size }})">
+                    <!-- Thumbnail with Status Badge -->
+                    <div class="content-thumbnail">
+                        {% if item.thumbnail_url %}
+                        <img src="{{ item.thumbnail_url }}" alt="{{ item.title }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="no-thumbnail" style="display: none;">
+                            {% if item.content_type == 'video' or not item.content_type %}🎬{% elif item.content_type == 'image' %}🖼️{% elif item.content_type == 'audio' %}🎵{% else %}📄{% endif %}
+                            <span>No preview</span>
+                        </div>
+                        {% else %}
+                        <div class="no-thumbnail">
+                            {% if item.content_type == 'video' or not item.content_type %}🎬{% elif item.content_type == 'image' %}🖼️{% elif item.content_type == 'audio' %}🎵{% else %}📄{% endif %}
+                            <span>No preview</span>
+                        </div>
+                        {% endif %}
+                        {% if item.status %}
+                        <span class="status-badge {{ item.status }}">{{ item.status|replace('_', ' ') }}</span>
+                        {% endif %}
+                    </div>
                     <div class="content-title">{{ item.title }}</div>
                     <div class="content-info">📄 {{ item.filename }}</div>
                     <div class="content-info">⏱️ {{ item.duration }}s (auto-detected)</div>
                     <div class="content-info">💾 {{ (item.file_size / 1024 / 1024)|round(1) }} MB</div>
-                    {% if item.folder_name %}
-                    <div class="folder-badge" style="background: {{ item.folder_color }}20; color: {{ item.folder_color }};">
-                        {{ item.folder_icon }} {{ item.folder_name }}
+                    <div class="content-meta-row">
+                        {% if item.folder_name %}
+                        <div class="folder-badge" style="background: {{ item.folder_color }}20; color: {{ item.folder_color }};">
+                            {{ item.folder_icon }} {{ item.folder_name }}
+                        </div>
+                        {% endif %}
+                        {% if item.organization_name %}
+                        <div class="partner-badge">
+                            🏢 {{ item.organization_name }}
+                        </div>
+                        {% else %}
+                        <div class="partner-badge no-partner">
+                            📤 Local Upload
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                     <span class="badge">ID: {{ item.id }}</span>
                 </div>
                 {% endfor %}
@@ -587,8 +1019,8 @@ input[type="file"] {
             {% else %}
             <div class="empty-state">
                 <div class="empty-state-icon">🎬</div>
-                <h3>No content uploaded yet</h3>
-                <p>Upload your first video above to get started!</p>
+                <h3>No content available</h3>
+                <p>Content will appear here when added to the catalog.</p>
             </div>
             {% endif %}
         </div>
@@ -686,8 +1118,211 @@ input[type="file"] {
 <script>
     let currentPreviewId = null;
     let currentFolder = null;
+    let currentNetwork = null;
+    let currentPartner = null;
+    let currentContentType = null;
     let selectedIcon = '📁';
     let selectedColor = '#667eea';
+    let isSyncing = false;
+
+    // ==========================================================================
+    // Content Sync Functions
+    // ==========================================================================
+
+    // Format timestamp for display
+    function formatSyncTimestamp(isoString) {
+        if (!isoString) {
+            return 'Never';
+        }
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = now - date;
+
+        // If less than a minute ago
+        if (diff < 60000) {
+            return 'Just now';
+        }
+
+        // If less than an hour ago
+        if (diff < 3600000) {
+            const minutes = Math.floor(diff / 60000);
+            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        }
+
+        // If less than a day ago
+        if (diff < 86400000) {
+            const hours = Math.floor(diff / 3600000);
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        }
+
+        // Otherwise show date and time
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Load sync status on page load
+    async function loadSyncStatus() {
+        try {
+            const response = await fetch('/api/v1/content/sync');
+            if (response.ok) {
+                const data = await response.json();
+
+                // Update last sync time
+                const lastSyncEl = document.getElementById('lastSyncTime');
+                if (lastSyncEl) {
+                    lastSyncEl.textContent = formatSyncTimestamp(data.last_synced);
+                }
+
+                // Update total synced count
+                const totalSyncedEl = document.getElementById('totalSynced');
+                if (totalSyncedEl) {
+                    totalSyncedEl.textContent = data.total_synced || 0;
+                }
+
+                // Update catalog status
+                const catalogStatusEl = document.getElementById('catalogStatus');
+                const syncStatCatalogEl = document.getElementById('syncStatCatalog');
+                if (catalogStatusEl && data.content_catalog) {
+                    if (data.content_catalog.available) {
+                        catalogStatusEl.textContent = 'Connected';
+                        syncStatCatalogEl.classList.remove('error', 'warning');
+                        syncStatCatalogEl.classList.add('success');
+                    } else {
+                        catalogStatusEl.textContent = 'Unavailable';
+                        syncStatCatalogEl.classList.remove('success', 'warning');
+                        syncStatCatalogEl.classList.add('error');
+                    }
+                }
+            }
+        } catch (error) {
+            const catalogStatusEl = document.getElementById('catalogStatus');
+            const syncStatCatalogEl = document.getElementById('syncStatCatalog');
+            if (catalogStatusEl) {
+                catalogStatusEl.textContent = 'Error';
+                syncStatCatalogEl.classList.remove('success', 'warning');
+                syncStatCatalogEl.classList.add('error');
+            }
+        }
+    }
+
+    // Sync content from Content Catalog
+    async function syncContent() {
+        if (isSyncing) return;
+
+        const syncBtn = document.getElementById('syncBtn');
+        const syncText = syncBtn.querySelector('.sync-text');
+
+        // Update UI to show syncing state
+        isSyncing = true;
+        syncBtn.classList.add('syncing');
+        syncBtn.disabled = true;
+        syncText.textContent = 'Syncing...';
+
+        try {
+            const response = await fetch('/api/v1/content/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Update last sync time
+                const lastSyncEl = document.getElementById('lastSyncTime');
+                if (lastSyncEl) {
+                    lastSyncEl.textContent = formatSyncTimestamp(data.synced_at);
+                }
+
+                // Update total synced
+                const totalSyncedEl = document.getElementById('totalSynced');
+                if (totalSyncedEl) {
+                    totalSyncedEl.textContent = data.synced_count || 0;
+                }
+
+                // Show success message
+                alert(`✅ Sync completed!\n\nSynced: ${data.synced_count} items\nCreated: ${data.created_count} new\nUpdated: ${data.updated_count} existing`);
+
+                // Reload page to show new content
+                if (data.created_count > 0 || data.updated_count > 0) {
+                    location.reload();
+                }
+            } else {
+                // Handle error
+                alert(`❌ Sync failed: ${data.error || 'Unknown error'}\n\n${data.message || ''}`);
+            }
+        } catch (error) {
+            alert(`❌ Sync failed: ${error.message}`);
+        } finally {
+            // Reset UI
+            isSyncing = false;
+            syncBtn.classList.remove('syncing');
+            syncBtn.disabled = false;
+            syncText.textContent = 'Sync Now';
+        }
+    }
+
+    // Load sync status on page load
+    document.addEventListener('DOMContentLoaded', loadSyncStatus);
+
+    // ==========================================================================
+    // Filter Functions
+    // ==========================================================================
+
+    // Update network counts
+    function updateNetworkCounts() {
+        const cards = document.querySelectorAll('.content-card');
+        const counts = {};
+        let totalCount = 0;
+
+        cards.forEach(card => {
+            // Check if card is visible (not filtered by folder)
+            if (card.style.display !== 'none') {
+                totalCount++;
+                const networkIds = card.dataset.networks;
+                if (networkIds) {
+                    try {
+                        const networks = JSON.parse(networkIds);
+                        networks.forEach(networkId => {
+                            counts[networkId] = (counts[networkId] || 0) + 1;
+                        });
+                    } catch (e) {
+                        // Single network ID as string
+                        if (networkIds) {
+                            counts[networkIds] = (counts[networkIds] || 0) + 1;
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update network count badges
+        document.querySelectorAll('.network-btn[data-network-id]').forEach(btn => {
+            const networkId = btn.dataset.networkId;
+            const countEl = document.getElementById(`network-count-${networkId}`);
+            if (countEl) {
+                countEl.textContent = counts[networkId] || 0;
+            }
+        });
+
+        const allCountEl = document.getElementById('network-count-all');
+        if (allCountEl) {
+            allCountEl.textContent = totalCount;
+        }
+    }
+
+    // Filter by network
+    function filterNetwork(networkId) {
+        currentNetwork = networkId;
+        const buttons = document.querySelectorAll('.network-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.network-btn').classList.add('active');
+
+        applyFilters();
+    }
+
+    updateNetworkCounts();
 
     // Update folder counts
     function updateFolderCounts() {
@@ -711,18 +1346,107 @@ input[type="file"] {
 
     updateFolderCounts();
 
-    // Filter by folder
-    function filterFolder(folderId) {
-        currentFolder = folderId;
+    // Update partner counts
+    function updatePartnerCounts() {
         const cards = document.querySelectorAll('.content-card');
-        const buttons = document.querySelectorAll('.folder-btn');
+        const counts = {};
+        let totalCount = 0;
 
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.folder-btn').classList.add('active');
-
-        let visibleCount = 0;
         cards.forEach(card => {
-            if (folderId === null || card.dataset.folder == folderId) {
+            // Check if card is visible (not filtered by other filters)
+            if (card.style.display !== 'none') {
+                totalCount++;
+                const orgId = card.dataset.organization;
+                if (orgId) {
+                    counts[orgId] = (counts[orgId] || 0) + 1;
+                }
+            }
+        });
+
+        // Update partner count badges
+        document.querySelectorAll('.partner-btn[data-organization-id]').forEach(btn => {
+            const orgId = btn.dataset.organizationId;
+            const countEl = document.getElementById(`partner-count-${orgId}`);
+            if (countEl) {
+                countEl.textContent = counts[orgId] || 0;
+            }
+        });
+
+        const allCountEl = document.getElementById('partner-count-all');
+        if (allCountEl) {
+            allCountEl.textContent = totalCount;
+        }
+    }
+
+    updatePartnerCounts();
+
+    // Update content type counts
+    function updateContentTypeCounts() {
+        const cards = document.querySelectorAll('.content-card');
+        const counts = { video: 0, image: 0, audio: 0 };
+        let totalCount = 0;
+
+        cards.forEach(card => {
+            // Check if card is visible (not filtered by other filters)
+            if (card.style.display !== 'none') {
+                totalCount++;
+                const contentType = card.dataset.contentType || 'video';
+                if (counts.hasOwnProperty(contentType)) {
+                    counts[contentType]++;
+                }
+            }
+        });
+
+        // Update content type count badges
+        document.getElementById('type-count-video').textContent = counts.video;
+        document.getElementById('type-count-image').textContent = counts.image;
+        document.getElementById('type-count-audio').textContent = counts.audio;
+
+        const allCountEl = document.getElementById('type-count-all');
+        if (allCountEl) {
+            allCountEl.textContent = totalCount;
+        }
+    }
+
+    updateContentTypeCounts();
+
+    // Helper function to check if card matches all current filters
+    function cardMatchesFilters(card) {
+        // Check folder filter
+        const folderMatch = currentFolder === null || card.dataset.folder == currentFolder;
+
+        // Check network filter
+        let networkMatch = false;
+        if (currentNetwork === null) {
+            networkMatch = true;
+        } else {
+            const networkIds = card.dataset.networks;
+            if (networkIds) {
+                try {
+                    const networks = JSON.parse(networkIds);
+                    networkMatch = networks.includes(currentNetwork);
+                } catch (e) {
+                    networkMatch = networkIds === currentNetwork;
+                }
+            }
+        }
+
+        // Check partner filter
+        const partnerMatch = currentPartner === null || card.dataset.organization == currentPartner;
+
+        // Check content type filter
+        const contentTypeMatch = currentContentType === null || (card.dataset.contentType || 'video') === currentContentType;
+
+        return folderMatch && networkMatch && partnerMatch && contentTypeMatch;
+    }
+
+    // Apply all filters and update counts
+    function applyFilters() {
+        const cards = document.querySelectorAll('.content-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            if (cardMatchesFilters(card)) {
                 card.style.display = 'block';
                 visibleCount++;
             } else {
@@ -730,8 +1454,44 @@ input[type="file"] {
             }
         });
 
-        const folderName = folderId === null ? 'All Content' : event.target.textContent.split('\n')[0].trim();
-        document.getElementById('contentHeader').textContent = `${folderName} (${visibleCount})`;
+        document.getElementById('contentHeader').textContent = `Content (${visibleCount})`;
+        updateNetworkCounts();
+        updateFolderCounts();
+        updatePartnerCounts();
+        updateContentTypeCounts();
+    }
+
+    // Filter by partner (organization)
+    function filterPartner(orgId) {
+        currentPartner = orgId;
+        const buttons = document.querySelectorAll('.partner-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.partner-btn').classList.add('active');
+
+        applyFilters();
+    }
+
+    // Filter by content type
+    function filterContentType(contentType) {
+        currentContentType = contentType;
+        const buttons = document.querySelectorAll('.content-type-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.content-type-btn').classList.add('active');
+
+        applyFilters();
+    }
+
+    // Filter by folder
+    function filterFolder(folderId) {
+        currentFolder = folderId;
+        const buttons = document.querySelectorAll('.folder-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.folder-btn').classList.add('active');
+
+        applyFilters();
     }
 
     // Create Folder Modal
@@ -811,118 +1571,6 @@ input[type="file"] {
             alert('❌ Error: ' + error.message);
         }
     }
-
-    // File upload handling
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
-    const uploadForm = document.getElementById('uploadForm');
-    const uploadStatus = document.getElementById('uploadStatus');
-    const titleInput = document.getElementById('title');
-    const uploadText = document.getElementById('uploadText');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-
-    fileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            const file = this.files[0];
-            uploadArea.classList.add('selected');
-            uploadText.textContent = `✅ ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
-
-            if (!titleInput.value) {
-                titleInput.value = file.name.replace(/\.[^/.]+$/, "");
-            }
-        }
-    });
-
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragging');
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragging');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragging');
-
-        if (e.dataTransfer.files.length > 0) {
-            fileInput.files = e.dataTransfer.files;
-            const event = new Event('change', { bubbles: true });
-            fileInput.dispatchEvent(event);
-        }
-    });
-
-    uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        if (!fileInput.files.length) {
-            uploadStatus.style.display = 'block';
-            uploadStatus.style.background = '#fee2e2';
-            uploadStatus.style.color = '#991b1b';
-            uploadStatus.textContent = '❌ Please select a file first';
-            return;
-        }
-
-        const formData = new FormData(uploadForm);
-
-        uploadStatus.style.display = 'block';
-        uploadStatus.style.background = '#e0e7ff';
-        uploadStatus.style.color = '#3730a3';
-        uploadStatus.textContent = '⏳ Uploading and detecting duration...';
-        uploadBtn.disabled = true;
-        progressBar.style.display = 'block';
-
-        try {
-            const xhr = new XMLHttpRequest();
-
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    progressFill.style.width = percentComplete + '%';
-                    uploadStatus.textContent = `⏳ Uploading... ${Math.round(percentComplete)}%`;
-                }
-            });
-
-            xhr.addEventListener('load', () => {
-                if (xhr.status === 200) {
-                    const data = JSON.parse(xhr.responseText);
-                    uploadStatus.style.background = '#d1fae5';
-                    uploadStatus.style.color = '#065f46';
-                    uploadStatus.textContent = `✅ Upload successful! Duration: ${data.duration}s (auto-detected)`;
-                    progressBar.style.display = 'none';
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    const data = JSON.parse(xhr.responseText);
-                    uploadStatus.style.background = '#fee2e2';
-                    uploadStatus.style.color = '#991b1b';
-                    uploadStatus.textContent = `❌ Error: ${data.error}`;
-                    uploadBtn.disabled = false;
-                    progressBar.style.display = 'none';
-                }
-            });
-
-            xhr.addEventListener('error', () => {
-                uploadStatus.style.background = '#fee2e2';
-                uploadStatus.style.color = '#991b1b';
-                uploadStatus.textContent = '❌ Upload failed';
-                uploadBtn.disabled = false;
-                progressBar.style.display = 'none';
-            });
-
-            xhr.open('POST', '/api/upload');
-            xhr.send(formData);
-
-        } catch (error) {
-            uploadStatus.style.background = '#fee2e2';
-            uploadStatus.style.color = '#991b1b';
-            uploadStatus.textContent = `❌ Upload failed: ${error.message}`;
-            uploadBtn.disabled = false;
-            progressBar.style.display = 'none';
-        }
-    });
 
     // Video preview
     function previewContent(id, filename, title, duration, fileSize) {

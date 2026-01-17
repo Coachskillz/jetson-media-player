@@ -17,6 +17,7 @@ SQLAlchemy models for the Content Management System including:
 - Layer Content (content within layout layers)
 - Layer Playlist Assignments (playlist assignments to layers)
 - Device Layouts (device-specific layout configurations)
+- Synced Content (cached content from Content Catalog)
 """
 
 from flask_sqlalchemy import SQLAlchemy
@@ -50,6 +51,7 @@ from cms.models.user_session import UserSession
 from cms.models.user_invitation import UserInvitation
 from cms.models.audit_log import AuditLog
 from cms.models.layout import ScreenLayout, ScreenLayer, LayerContent, LayerPlaylistAssignment, DeviceLayout
+from cms.models.synced_content import SyncedContent
 
 __all__ = [
     'db',
@@ -73,6 +75,7 @@ __all__ = [
     'LayerContent',
     'LayerPlaylistAssignment',
     'DeviceLayout',
+    'SyncedContent',
 ]
 # NCMEC Alert models
 from cms.models.ncmec_alert import NCMECAlert, NCMECNotificationConfig

@@ -41,5 +41,8 @@ from models.screen import Screen
 from models.content import Content
 from models.pending_alert import PendingAlert
 from models.sync_status import SyncStatus
+from models.playlist import Playlist
+from models.device import Device
+from models.heartbeat_queue import HeartbeatQueue
 
-__all__ = ['db', 'Base', 'HubConfig', 'Screen', 'Content', 'PendingAlert', 'SyncStatus']
+__all__ = ['db', 'Base', 'HubConfig', 'Screen', 'Content', 'PendingAlert', 'SyncStatus', 'Playlist', 'Device', 'HeartbeatQueue']

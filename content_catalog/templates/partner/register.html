@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Partner Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset & Variables */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #06B6D4;
+            --primary-hover: #22D3EE;
+            --primary-dark: #0891B2;
+            --primary-glow: rgba(6, 182, 212, 0.3);
+            --secondary: #8B5CF6;
+            --bg-dark: #050508;
+            --bg-card: rgba(20, 20, 30, 0.8);
+            --bg-input: rgba(15, 15, 25, 0.9);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --border-radius: 12px;
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.15);
+            --success: #10B981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            line-height: 1.5;
+            padding: 40px 0;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+            25% { transform: translateY(-40px) translateX(20px) scale(1.1); }
+            50% { transform: translateY(-20px) translateX(-20px) scale(0.9); }
+            75% { transform: translateY(-60px) translateX(10px) scale(1.05); }
+        }
+
+        /* Register Container */
+        .register-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        /* Register Card */
+        .register-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--border-light);
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Logo */
+        .register-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--bg-dark);
+            margin-bottom: 16px;
+        }
+
+        .register-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .register-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Invitation Info */
+        .invitation-info {
+            background: var(--success-bg);
+            border: 1px solid var(--success);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .invitation-info-title {
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .invitation-info-details {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .invitation-info-details span {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .invitation-info-details strong {
+            color: var(--text-primary);
+        }
+
+        /* Form Styles */
+        .register-form {
+            margin-top: 24px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* Error Message */
+        .error-message {
+            background: var(--error-bg);
+            border: 1px solid var(--error);
+            border-radius: var(--border-radius);
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            color: var(--error);
+            font-size: 14px;
+        }
+
+        .error-message.hidden {
+            display: none;
+        }
+
+        /* Password Requirements */
+        .password-requirements {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+            padding: 12px 16px;
+            margin-top: 8px;
+        }
+
+        .password-requirements-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .requirement {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .requirement.valid {
+            color: var(--success);
+        }
+
+        .requirement-icon {
+            font-size: 14px;
+        }
+
+        /* Submit Button */
+        .btn-register {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: var(--border-radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--bg-dark);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 16px var(--primary-glow);
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--primary-glow);
+        }
+
+        .btn-register:active {
+            transform: translateY(0);
+        }
+
+        .btn-register:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Footer Links */
+        .register-footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .register-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .register-footer a:hover {
+            color: var(--primary-hover);
+        }
+
+        /* No Invitation State */
+        .no-invitation {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .no-invitation-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .no-invitation-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .no-invitation-text {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .register-card {
+                padding: 32px 24px;
+            }
+
+            .logo-icon {
+                width: 56px;
+                height: 56px;
+                font-size: 20px;
+            }
+
+            .register-title {
+                font-size: 20px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="particles"></div>
+
+    <!-- Register Container -->
+    <div class="register-container">
+        <div class="register-card">
+            <!-- Logo -->
+            <div class="register-logo">
+                <div class="logo-icon">PP</div>
+                <h1 class="register-title">Partner Portal</h1>
+                <p class="register-subtitle">Create Your Account</p>
+            </div>
+
+            {% if error %}
+            <!-- Error State -->
+            <div class="error-message">{{ error }}</div>
+            <div class="register-footer">
+                <a href="{{ url_for('partner.login') }}">Back to Login</a>
+            </div>
+            {% elif invitation %}
+            <!-- Invitation Info -->
+            <div class="invitation-info">
+                <div class="invitation-info-title">Invitation Details</div>
+                <div class="invitation-info-details">
+                    <span>Email: <strong>{{ invitation.email }}</strong></span>
+                    <span>Role: <strong>{{ invitation.role|title }}</strong></span>
+                    {% if invitation.organization %}
+                    <span>Organization: <strong>{{ invitation.organization.name }}</strong></span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dynamic Error Message -->
+            <div class="error-message hidden" id="errorMessage"></div>
+
+            <!-- Registration Form -->
+            <form class="register-form" id="registerForm">
+                <input type="hidden" name="token" value="{{ token }}">
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input
+                        type="email"
+                        class="form-input"
+                        id="email"
+                        name="email"
+                        value="{{ invitation.email }}"
+                        disabled
+                        autocomplete="email"
+                    >
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="firstName">First Name</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="firstName"
+                            name="firstName"
+                            placeholder="John"
+                            required
+                            autocomplete="given-name"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="lastName">Last Name</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="lastName"
+                            name="lastName"
+                            placeholder="Doe"
+                            required
+                            autocomplete="family-name"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input
+                        type="password"
+                        class="form-input"
+                        id="password"
+                        name="password"
+                        placeholder="Create a secure password"
+                        required
+                        autocomplete="new-password"
+                    >
+                    <div class="password-requirements">
+                        <div class="password-requirements-title">Password Requirements</div>
+                        <div class="requirement" id="reqLength">
+                            <span class="requirement-icon">&#9675;</span>
+                            <span>At least 8 characters</span>
+                        </div>
+                        <div class="requirement" id="reqUppercase">
+                            <span class="requirement-icon">&#9675;</span>
+                            <span>One uppercase letter</span>
+                        </div>
+                        <div class="requirement" id="reqLowercase">
+                            <span class="requirement-icon">&#9675;</span>
+                            <span>One lowercase letter</span>
+                        </div>
+                        <div class="requirement" id="reqNumber">
+                            <span class="requirement-icon">&#9675;</span>
+                            <span>One number</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <input
+                        type="password"
+                        class="form-input"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        placeholder="Confirm your password"
+                        required
+                        autocomplete="new-password"
+                    >
+                </div>
+
+                <button type="submit" class="btn-register" id="registerButton">
+                    Create Account
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <div class="register-footer">
+                <a href="{{ url_for('partner.login') }}">Already have an account? Sign in</a>
+            </div>
+            {% else %}
+            <!-- No Invitation State -->
+            <div class="no-invitation">
+                <div class="no-invitation-icon">&#9993;</div>
+                <h2 class="no-invitation-title">Invitation Required</h2>
+                <p class="no-invitation-text">
+                    To create a partner account, you need an invitation from an administrator.
+                    Please check your email for an invitation link or contact support.
+                </p>
+                <a href="{{ url_for('partner.login') }}" class="btn-register" style="display: inline-block; width: auto; padding: 12px 32px;">
+                    Back to Login
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Create animated background particles
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 30;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = Math.random() * 4 + 2 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = Math.random() * 10 + 20 + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        {% if invitation %}
+        // Password validation
+        const passwordInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirmPassword');
+        const requirements = {
+            length: document.getElementById('reqLength'),
+            uppercase: document.getElementById('reqUppercase'),
+            lowercase: document.getElementById('reqLowercase'),
+            number: document.getElementById('reqNumber')
+        };
+
+        function updateRequirement(element, isValid) {
+            if (isValid) {
+                element.classList.add('valid');
+                element.querySelector('.requirement-icon').innerHTML = '&#10003;';
+            } else {
+                element.classList.remove('valid');
+                element.querySelector('.requirement-icon').innerHTML = '&#9675;';
+            }
+        }
+
+        function validatePassword(password) {
+            const validations = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password)
+            };
+
+            updateRequirement(requirements.length, validations.length);
+            updateRequirement(requirements.uppercase, validations.uppercase);
+            updateRequirement(requirements.lowercase, validations.lowercase);
+            updateRequirement(requirements.number, validations.number);
+
+            return Object.values(validations).every(v => v);
+        }
+
+        passwordInput.addEventListener('input', function() {
+            validatePassword(this.value);
+        });
+
+        // Form submission handler
+        const registerForm = document.getElementById('registerForm');
+        const registerButton = document.getElementById('registerButton');
+        const errorMessage = document.getElementById('errorMessage');
+
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const password = passwordInput.value;
+            const confirmPassword = confirmInput.value;
+
+            // Validate password requirements
+            if (!validatePassword(password)) {
+                errorMessage.textContent = 'Please meet all password requirements.';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            // Check password match
+            if (password !== confirmPassword) {
+                errorMessage.textContent = 'Passwords do not match.';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            // Disable button during submission
+            registerButton.disabled = true;
+            registerButton.textContent = 'Creating account...';
+            errorMessage.classList.add('hidden');
+
+            const formData = {
+                token: '{{ token }}',
+                first_name: document.getElementById('firstName').value,
+                last_name: document.getElementById('lastName').value,
+                password: password
+            };
+
+            try {
+                const response = await fetch('/api/v1/invitations/accept', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Redirect to login page with success message
+                    window.location.href = '/partner/login?registered=true';
+                } else {
+                    // Show error message
+                    errorMessage.textContent = data.message || 'Registration failed. Please try again.';
+                    errorMessage.classList.remove('hidden');
+                    registerButton.disabled = false;
+                    registerButton.textContent = 'Create Account';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Unable to connect to server. Please try again.';
+                errorMessage.classList.remove('hidden');
+                registerButton.disabled = false;
+                registerButton.textContent = 'Create Account';
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>

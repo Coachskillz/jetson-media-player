@@ -961,6 +961,299 @@ class SyncService:
         return status
 
     # -------------------------------------------------------------------------
+    # Playlist Sync
+    # -------------------------------------------------------------------------
+
+    def fetch_playlist_manifest(self, hub_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch playlist manifest from HQ.
+
+        The manifest contains metadata for all playlists that should
+        be cached locally for serving to devices.
+
+        Args:
+            hub_id: Hub identifier for HQ API call
+
+        Returns:
+            List of playlist dictionaries from HQ
+
+        Raises:
+            SyncError: If manifest cannot be fetched
+        """
+        try:
+            logger.info(f"Fetching playlist manifest from HQ for hub {hub_id}")
+            response = self.hq_client.get_playlists(hub_id)
+
+            # Handle both direct list and wrapped response
+            if isinstance(response, list):
+                playlists = response
+            else:
+                playlists = response.get('playlists', [])
+
+            logger.info(f"Received manifest with {len(playlists)} playlists")
+            return playlists
+
+        except Exception as e:
+            logger.error(f"Failed to fetch playlist manifest: {e}")
+            raise SyncError(
+                message="Failed to fetch playlist manifest from HQ",
+                details={'error': str(e), 'hub_id': hub_id},
+            )
+
+    def compare_playlists(
+        self,
+        hq_playlists: List[Dict[str, Any]],
+        local_playlist_ids: set,
+    ) -> Tuple[List[Dict], List[Dict], List[str]]:
+        """
+        Compare HQ playlists with local playlists to determine sync actions.
+
+        Args:
+            hq_playlists: Playlist manifest from HQ
+            local_playlist_ids: Set of local playlist_id strings
+
+        Returns:
+            Tuple of (to_create, to_update, to_delete):
+            - to_create: New playlists to create
+            - to_update: Existing playlists to update
+            - to_delete: Local playlist_ids no longer in HQ manifest
+        """
+        # Track playlist IDs in HQ manifest
+        hq_playlist_ids = set()
+
+        to_create = []
+        to_update = []
+
+        for playlist in hq_playlists:
+            playlist_id = playlist.get('playlist_id') or playlist.get('id')
+            if not playlist_id:
+                continue
+
+            # Normalize the playlist_id if needed
+            playlist_id = str(playlist_id)
+            hq_playlist_ids.add(playlist_id)
+
+            if playlist_id in local_playlist_ids:
+                # Existing playlist - needs update
+                to_update.append(playlist)
+                logger.debug(f"Playlist to update: {playlist_id}")
+            else:
+                # New playlist - needs creation
+                to_create.append(playlist)
+                logger.debug(f"New playlist to create: {playlist_id}")
+
+        # Find orphaned playlists (in local but not in HQ manifest)
+        to_delete = []
+        for playlist_id in local_playlist_ids:
+            if playlist_id not in hq_playlist_ids:
+                to_delete.append(playlist_id)
+                logger.debug(f"Orphaned playlist to delete: {playlist_id}")
+
+        logger.info(
+            f"Playlist comparison: {len(to_create)} new, "
+            f"{len(to_update)} to update, {len(to_delete)} orphaned"
+        )
+
+        return to_create, to_update, to_delete
+
+    def sync_playlists(self, app_context: Optional[Any] = None) -> Dict[str, Any]:
+        """
+        Perform full playlist synchronization with HQ.
+
+        This method:
+        1. Fetches playlist manifest from HQ
+        2. Compares with local playlists to find changes
+        3. Creates new playlists
+        4. Updates existing playlists
+        5. Deletes orphaned playlists
+        6. Updates sync status record
+
+        Args:
+            app_context: Optional Flask app context for database operations
+
+        Returns:
+            Sync result dictionary with counts and errors:
+            - created: Number of playlists created
+            - updated: Number of playlists updated
+            - deleted: Number of playlists deleted
+            - errors: List of error messages
+            - started_at: ISO timestamp when sync started
+            - completed_at: ISO timestamp when sync completed
+            - success: Boolean indicating if sync completed without errors
+
+        Raises:
+            SyncError: If sync fails critically
+        """
+        from models.playlist import Playlist
+        from models.sync_status import SyncStatus
+        from models.hub_config import HubConfig
+
+        result = {
+            'created': 0,
+            'updated': 0,
+            'deleted': 0,
+            'errors': [],
+            'started_at': datetime.utcnow().isoformat(),
+            'completed_at': None,
+            'success': False,
+        }
+
+        sync_status = None
+
+        try:
+            # Get hub config for hub_id
+            hub_config = HubConfig.get_instance()
+            if not hub_config or not hub_config.is_registered:
+                logger.warning("Hub not registered, skipping playlist sync")
+                result['completed_at'] = datetime.utcnow().isoformat()
+                result['errors'].append("Hub not registered")
+                return result
+
+            hub_id = hub_config.hub_id
+
+            # Get or create sync status record
+            sync_status = SyncStatus.get_playlist_status()
+
+            # Fetch manifest from HQ
+            hq_playlists = self.fetch_playlist_manifest(hub_id)
+
+            # Handle empty manifest gracefully - don't delete existing playlists
+            if not hq_playlists:
+                logger.info("Empty playlist manifest from HQ, preserving local playlists")
+                result['completed_at'] = datetime.utcnow().isoformat()
+                result['success'] = True
+                sync_status.mark_sync_success(
+                    version=datetime.utcnow().isoformat(),
+                )
+                return result
+
+            # Get local playlist IDs
+            local_playlist_ids = Playlist.get_all_playlist_ids()
+
+            # Compare manifests
+            to_create, to_update, to_delete = self.compare_playlists(
+                hq_playlists, local_playlist_ids
+            )
+
+            # Process new playlists
+            for playlist_data in to_create:
+                try:
+                    playlist_id = playlist_data.get('playlist_id') or playlist_data.get('id')
+                    playlist_id = str(playlist_id)
+
+                    playlist, created = Playlist.create_or_update(
+                        playlist_id=playlist_id,
+                        name=playlist_data.get('name', 'Unnamed Playlist'),
+                        description=playlist_data.get('description'),
+                        network_id=playlist_data.get('network_id'),
+                        trigger_type=playlist_data.get('trigger_type', 'manual'),
+                        trigger_config=playlist_data.get('trigger_config'),
+                        items=playlist_data.get('items', []),
+                        is_active=playlist_data.get('is_active', True),
+                    )
+
+                    result['created'] += 1
+                    logger.debug(f"Created playlist: {playlist_id}")
+
+                except Exception as e:
+                    playlist_id = playlist_data.get('playlist_id') or playlist_data.get('id', 'unknown')
+                    error_msg = f"Failed to create playlist {playlist_id}: {e}"
+                    logger.error(error_msg)
+                    result['errors'].append(error_msg)
+
+            # Process playlist updates
+            for playlist_data in to_update:
+                try:
+                    playlist_id = playlist_data.get('playlist_id') or playlist_data.get('id')
+                    playlist_id = str(playlist_id)
+
+                    playlist, created = Playlist.create_or_update(
+                        playlist_id=playlist_id,
+                        name=playlist_data.get('name', 'Unnamed Playlist'),
+                        description=playlist_data.get('description'),
+                        network_id=playlist_data.get('network_id'),
+                        trigger_type=playlist_data.get('trigger_type', 'manual'),
+                        trigger_config=playlist_data.get('trigger_config'),
+                        items=playlist_data.get('items', []),
+                        is_active=playlist_data.get('is_active', True),
+                    )
+
+                    result['updated'] += 1
+                    logger.debug(f"Updated playlist: {playlist_id}")
+
+                except Exception as e:
+                    playlist_id = playlist_data.get('playlist_id') or playlist_data.get('id', 'unknown')
+                    error_msg = f"Failed to update playlist {playlist_id}: {e}"
+                    logger.error(error_msg)
+                    result['errors'].append(error_msg)
+
+            # Process deletions
+            for playlist_id in to_delete:
+                try:
+                    deleted = Playlist.delete_by_playlist_id(playlist_id)
+                    if deleted:
+                        result['deleted'] += 1
+                        logger.debug(f"Deleted playlist: {playlist_id}")
+
+                except Exception as e:
+                    error_msg = f"Failed to delete playlist {playlist_id}: {e}"
+                    logger.error(error_msg)
+                    result['errors'].append(error_msg)
+
+            # Update sync status
+            result['completed_at'] = datetime.utcnow().isoformat()
+            result['success'] = len(result['errors']) == 0
+
+            if result['success']:
+                sync_status.mark_sync_success(
+                    version=datetime.utcnow().isoformat(),
+                )
+            else:
+                sync_status.mark_sync_failure(
+                    error_message=f"{len(result['errors'])} errors during sync"
+                )
+
+            logger.info(
+                f"Playlist sync completed: {result['created']} created, "
+                f"{result['updated']} updated, {result['deleted']} deleted, "
+                f"{len(result['errors'])} errors"
+            )
+
+            return result
+
+        except Exception as e:
+            result['completed_at'] = datetime.utcnow().isoformat()
+            result['success'] = False
+            result['errors'].append(str(e))
+
+            if sync_status:
+                sync_status.mark_sync_failure(error_message=str(e))
+
+            logger.error(f"Playlist sync failed: {e}")
+            raise SyncError(
+                message="Playlist sync failed",
+                details={'error': str(e), 'result': result},
+            )
+
+    def get_playlist_sync_status(self) -> Dict[str, Any]:
+        """
+        Get current status of playlist synchronization.
+
+        Returns:
+            Dictionary with sync status information
+        """
+        from models.sync_status import SyncStatus
+        from models.playlist import Playlist
+
+        sync_status = SyncStatus.get_playlist_status()
+
+        status = sync_status.to_dict()
+        status['playlist_count'] = Playlist.query.count()
+        status['active_playlist_count'] = len(Playlist.get_active())
+
+        return status
+
+    # -------------------------------------------------------------------------
     # Utility Methods
     # -------------------------------------------------------------------------
 
