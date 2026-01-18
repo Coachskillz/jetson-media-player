@@ -57,22 +57,45 @@ class ContentAsset(db.Model):
 
     __tablename__ = 'content_assets'
 
-    # Status constants for workflow
+    # Status constants for workflow (extended for Thea spec)
     STATUS_DRAFT = 'draft'
-    STATUS_PENDING_REVIEW = 'pending_review'
+    STATUS_PENDING_REVIEW = 'pending_review'  # Legacy alias for SUBMITTED
+    STATUS_SUBMITTED = 'submitted'  # Thea spec
     STATUS_APPROVED = 'approved'
     STATUS_REJECTED = 'rejected'
     STATUS_PUBLISHED = 'published'
     STATUS_ARCHIVED = 'archived'
+    STATUS_PROMOTED = 'promoted'  # Thea spec: promoted to CMS
+    STATUS_REVOKED = 'revoked'  # Thea spec: access revoked
+    STATUS_EXPIRED = 'expired'  # Thea spec: past expiration date
 
     VALID_STATUSES = [
         STATUS_DRAFT,
         STATUS_PENDING_REVIEW,
+        STATUS_SUBMITTED,
         STATUS_APPROVED,
         STATUS_REJECTED,
         STATUS_PUBLISHED,
-        STATUS_ARCHIVED
+        STATUS_ARCHIVED,
+        STATUS_PROMOTED,
+        STATUS_REVOKED,
+        STATUS_EXPIRED
     ]
+
+    # Owner organization types (Thea spec)
+    ORG_TYPE_SKILLZ = 'SKILLZ'
+    ORG_TYPE_RETAILER = 'RETAILER'
+    ORG_TYPE_BRAND = 'BRAND'
+    ORG_TYPE_AGENCY = 'AGENCY'
+
+    VALID_ORG_TYPES = [ORG_TYPE_SKILLZ, ORG_TYPE_RETAILER, ORG_TYPE_BRAND, ORG_TYPE_AGENCY]
+
+    # Asset types
+    ASSET_TYPE_VIDEO = 'video'
+    ASSET_TYPE_IMAGE = 'image'
+    ASSET_TYPE_PDF = 'pdf'
+
+    VALID_ASSET_TYPES = [ASSET_TYPE_VIDEO, ASSET_TYPE_IMAGE, ASSET_TYPE_PDF]
 
     # Primary key (internal use)
     id = db.Column(db.Integer, primary_key=True)
@@ -88,14 +111,43 @@ class ContentAsset(db.Model):
     filename = db.Column(db.String(500), nullable=False)
     file_path = db.Column(db.String(1000), nullable=False)
     file_size = db.Column(db.Integer, nullable=True)
-    duration = db.Column(db.Float, nullable=True)
+    duration = db.Column(db.Float, nullable=True)  # Legacy - use duration_ms
     resolution = db.Column(db.String(50), nullable=True)
     format = db.Column(db.String(50), nullable=True)
     thumbnail_path = db.Column(db.String(1000), nullable=True)
-    checksum = db.Column(db.String(255), nullable=True)
+    checksum = db.Column(db.String(255), nullable=True)  # Legacy - use file_hash
+
+    # Enhanced file metadata (Thea spec)
+    file_hash = db.Column(db.String(64), nullable=True, index=True)  # SHA256
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
+    aspect_ratio = db.Column(db.String(20), nullable=True)  # e.g., "16:9"
+    duration_ms = db.Column(db.Integer, nullable=True)  # milliseconds
+    recommended_display_duration = db.Column(db.Integer, nullable=True)  # seconds
+    container = db.Column(db.String(50), nullable=True)  # e.g., "mp4", "webm"
+    codec = db.Column(db.String(50), nullable=True)  # e.g., "h264", "vp9"
+    fps = db.Column(db.Float, nullable=True)  # frames per second
+    pages = db.Column(db.Integer, nullable=True)  # PDF page count
+    preview_url = db.Column(db.String(1000), nullable=True)
+
+    # Content type
+    asset_type = db.Column(db.String(20), nullable=True)  # video / image / pdf
+
+    # Multi-tenant support (Thea spec)
+    tenant_id = db.Column(db.String(36), db.ForeignKey('tenants.id'), nullable=True, index=True)
+    catalog_id = db.Column(db.String(36), db.ForeignKey('catalogs.id'), nullable=True, index=True)
+    category_id = db.Column(db.String(36), db.ForeignKey('categories.id'), nullable=True, index=True)
 
     # Organization ownership
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True, index=True)
+    owner_org_type = db.Column(db.String(20), nullable=True)  # SKILLZ / RETAILER / BRAND / AGENCY
+
+    # Versioning
+    version = db.Column(db.Integer, default=1, nullable=False)
+    previous_version_id = db.Column(db.Integer, db.ForeignKey('content_assets.id'), nullable=True)
+
+    # Expiration
+    expires_at = db.Column(db.DateTime, nullable=True)
 
     # Upload tracking
     uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
@@ -107,6 +159,10 @@ class ContentAsset(db.Model):
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     reviewed_at = db.Column(db.DateTime, nullable=True)
     review_notes = db.Column(db.Text, nullable=True)
+
+    # Approval (Thea spec)
+    approved_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
 
     # Publishing
     published_at = db.Column(db.DateTime, nullable=True)
@@ -138,6 +194,23 @@ class ContentAsset(db.Model):
         'User',
         foreign_keys=[reviewed_by],
         backref=db.backref('reviewed_assets', lazy='dynamic')
+    )
+    approver = db.relationship(
+        'User',
+        foreign_keys=[approved_by_user_id],
+        backref=db.backref('approved_assets', lazy='dynamic')
+    )
+
+    # Multi-tenant relationships
+    tenant = db.relationship('Tenant', backref=db.backref('assets', lazy='dynamic'))
+    catalog = db.relationship('Catalog', backref=db.backref('assets', lazy='dynamic'))
+    asset_category = db.relationship('Category', backref=db.backref('assets', lazy='dynamic'))
+
+    # Version chain
+    previous_version = db.relationship(
+        'ContentAsset',
+        remote_side=[id],
+        backref=db.backref('next_versions', lazy='dynamic')
     )
 
     def to_dict(self):

@@ -10,6 +10,8 @@ Business logic services for the Content Catalog:
 - UserService: User management and role assignment
 - IngestionService: Asset processing and metadata extraction
 - EmailService: Email notifications for invitations, password resets, etc.
+- VisibilityService: Asset visibility rules based on user organization type
+- CheckoutService: Asset checkout with signed download URLs
 """
 
 from content_catalog.services.auth_service import AuthService
@@ -18,5 +20,16 @@ from content_catalog.services.approval_service import ApprovalService
 from content_catalog.services.content_service import ContentService
 from content_catalog.services.email_service import EmailService
 from content_catalog.services.user_service import UserService
+from content_catalog.services.visibility_service import VisibilityService
+from content_catalog.services.checkout_service import CheckoutService
 
-__all__ = ['AuthService', 'AuditService', 'ApprovalService', 'ContentService', 'EmailService', 'UserService']
+__all__ = [
+    'AuthService',
+    'AuditService',
+    'ApprovalService',
+    'ContentService',
+    'EmailService',
+    'UserService',
+    'VisibilityService',
+    'CheckoutService',
+]

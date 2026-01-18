@@ -52,6 +52,9 @@ from cms.routes.sessions import sessions_bp
 # Import Audit blueprint from its module
 from cms.routes.audit import audit_bp
 
+# Import Catalog Integration blueprint from its module
+from cms.routes.catalog_integration import catalog_bp
+
 
 __all__ = [
     'networks_bp',
@@ -67,4 +70,5 @@ __all__ = [
     'invitations_bp',
     'sessions_bp',
     'audit_bp',
+    'catalog_bp',
 ]

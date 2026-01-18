@@ -844,3 +844,348 @@ class ApprovalService:
 
         db_session.add(approval_request)
         return approval_request
+
+    @classmethod
+    def submit_content_for_approval(
+        cls,
+        db_session,
+        user_id: int,
+        asset_id: int,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Submit a draft content asset for approval.
+
+        Changes the asset's status from 'draft' to 'pending_review' and creates
+        an approval request.
+
+        Args:
+            db_session: SQLAlchemy database session
+            user_id: ID of the user submitting the content
+            asset_id: ID of the content asset to submit
+            notes: Optional notes about the submission
+
+        Returns:
+            Dict with keys:
+            - success: bool indicating if submission succeeded
+            - asset: The updated ContentAsset instance (if successful)
+            - error: Error message (if unsuccessful)
+            - approval_request: The created ContentApprovalRequest
+
+        Note:
+            Changes are made to the session but not committed.
+            The caller is responsible for committing the transaction.
+        """
+        # Fetch the user
+        user = db_session.query(User).filter_by(id=user_id).first()
+        if user is None:
+            return {
+                'success': False,
+                'error': 'User not found',
+                'asset': None,
+                'approval_request': None
+            }
+
+        # Check user's account status
+        if user.status not in [User.STATUS_ACTIVE, User.STATUS_APPROVED]:
+            return {
+                'success': False,
+                'error': 'User account is not active',
+                'asset': None,
+                'approval_request': None
+            }
+
+        # Fetch the content asset
+        asset = db_session.query(ContentAsset).filter_by(id=asset_id).first()
+        if asset is None:
+            return {
+                'success': False,
+                'error': 'Content asset not found',
+                'asset': None,
+                'approval_request': None
+            }
+
+        # Check content is in draft status
+        if asset.status != ContentAsset.STATUS_DRAFT:
+            return {
+                'success': False,
+                'error': f'Content status "{asset.status}" cannot be submitted for approval',
+                'asset': None,
+                'approval_request': None
+            }
+
+        # Check user can submit this asset (must be owner or have upload permission)
+        if asset.uploaded_by != user_id and user.role not in cls.CONTENT_APPROVER_ROLES:
+            return {
+                'success': False,
+                'error': 'User does not have permission to submit this asset',
+                'asset': None,
+                'approval_request': None
+            }
+
+        # Update asset status
+        asset.status = ContentAsset.STATUS_PENDING_REVIEW
+
+        # Create approval request
+        approval_request = ContentApprovalRequest(
+            asset_id=asset_id,
+            requested_by=user_id,
+            status=ContentApprovalRequest.STATUS_PENDING,
+            notes=notes
+        )
+        db_session.add(approval_request)
+
+        return {
+            'success': True,
+            'asset': asset,
+            'error': None,
+            'approval_request': approval_request
+        }
+
+    @classmethod
+    def revoke_content(
+        cls,
+        db_session,
+        user_id: int,
+        asset_id: int,
+        reason: str
+    ) -> Dict[str, Any]:
+        """
+        Revoke a published or approved content asset.
+
+        Changes the asset's status to 'revoked' and records the revocation
+        reason. Only users with publisher role can revoke content.
+
+        Args:
+            db_session: SQLAlchemy database session
+            user_id: ID of the user revoking the content
+            asset_id: ID of the content asset to revoke
+            reason: Required reason for the revocation
+
+        Returns:
+            Dict with keys:
+            - success: bool indicating if revocation succeeded
+            - asset: The updated ContentAsset instance (if successful)
+            - error: Error message (if unsuccessful)
+
+        Note:
+            Changes are made to the session but not committed.
+            The caller is responsible for committing the transaction.
+        """
+        # Fetch the user
+        user = db_session.query(User).filter_by(id=user_id).first()
+        if user is None:
+            return {
+                'success': False,
+                'error': 'User not found',
+                'asset': None
+            }
+
+        # Check user's account status
+        if user.status not in [User.STATUS_ACTIVE, User.STATUS_APPROVED]:
+            return {
+                'success': False,
+                'error': 'User account is not active',
+                'asset': None
+            }
+
+        # Check user has permission to revoke content
+        if user.role not in cls.CONTENT_PUBLISHER_ROLES:
+            return {
+                'success': False,
+                'error': f'Role "{user.role}" cannot revoke content',
+                'asset': None
+            }
+
+        # Validate reason is provided
+        if not reason or not reason.strip():
+            return {
+                'success': False,
+                'error': 'Revocation reason is required',
+                'asset': None
+            }
+
+        # Fetch the content asset
+        asset = db_session.query(ContentAsset).filter_by(id=asset_id).first()
+        if asset is None:
+            return {
+                'success': False,
+                'error': 'Content asset not found',
+                'asset': None
+            }
+
+        # Check content is in a revocable status (approved or published)
+        revocable_statuses = [ContentAsset.STATUS_APPROVED, ContentAsset.STATUS_PUBLISHED]
+        if asset.status not in revocable_statuses:
+            return {
+                'success': False,
+                'error': f'Content status "{asset.status}" cannot be revoked',
+                'asset': None
+            }
+
+        # Update asset status
+        asset.status = ContentAsset.STATUS_REVOKED
+        asset.review_notes = reason.strip()
+        asset.reviewed_by = user_id
+        asset.reviewed_at = datetime.now(timezone.utc)
+
+        return {
+            'success': True,
+            'asset': asset,
+            'error': None
+        }
+
+    @classmethod
+    def process_magic_link_approval(
+        cls,
+        db_session,
+        token: str,
+        action: str,
+        rejection_reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process a magic link approval or rejection.
+
+        Validates the token and performs the approval/rejection action.
+
+        Args:
+            db_session: SQLAlchemy database session
+            token: The magic link token
+            action: 'approve' or 'reject'
+            rejection_reason: Required reason if action is 'reject'
+
+        Returns:
+            Dict with keys:
+            - success: bool indicating if action succeeded
+            - asset: The updated ContentAsset instance (if successful)
+            - error: Error message (if unsuccessful)
+            - approval_task: The ApprovalTask instance
+
+        Note:
+            Changes are made to the session but not committed.
+            The caller is responsible for committing the transaction.
+        """
+        from content_catalog.models.checkout import ApprovalTask
+
+        # Find the approval task by token
+        approval_task = db_session.query(ApprovalTask).filter_by(
+            review_token=token
+        ).first()
+
+        if approval_task is None:
+            return {
+                'success': False,
+                'error': 'Invalid approval token',
+                'asset': None,
+                'approval_task': None
+            }
+
+        # Check token is valid
+        if not approval_task.is_token_valid:
+            if approval_task.token_used:
+                return {
+                    'success': False,
+                    'error': 'This approval link has already been used',
+                    'asset': None,
+                    'approval_task': approval_task
+                }
+            return {
+                'success': False,
+                'error': 'This approval link has expired',
+                'asset': None,
+                'approval_task': approval_task
+            }
+
+        # Validate action
+        if action not in ['approve', 'reject']:
+            return {
+                'success': False,
+                'error': f'Invalid action: {action}',
+                'asset': None,
+                'approval_task': approval_task
+            }
+
+        # For rejection, require a reason
+        if action == 'reject' and (not rejection_reason or not rejection_reason.strip()):
+            return {
+                'success': False,
+                'error': 'Rejection reason is required',
+                'asset': None,
+                'approval_task': approval_task
+            }
+
+        # Fetch the asset
+        asset = db_session.query(ContentAsset).filter_by(id=approval_task.asset_id).first()
+        if asset is None:
+            return {
+                'success': False,
+                'error': 'Content asset not found',
+                'asset': None,
+                'approval_task': approval_task
+            }
+
+        # Check asset is still pending review
+        if asset.status != ContentAsset.STATUS_PENDING_REVIEW:
+            return {
+                'success': False,
+                'error': f'Content is no longer pending review (status: {asset.status})',
+                'asset': asset,
+                'approval_task': approval_task
+            }
+
+        # Process the action
+        if action == 'approve':
+            asset.status = ContentAsset.STATUS_APPROVED
+            asset.reviewed_at = datetime.now(timezone.utc)
+            if approval_task.intended_approver_id:
+                asset.reviewed_by = approval_task.intended_approver_id
+            approval_task.complete(ApprovalTask.RESULT_APPROVED)
+        else:
+            asset.status = ContentAsset.STATUS_REJECTED
+            asset.review_notes = rejection_reason.strip()
+            asset.reviewed_at = datetime.now(timezone.utc)
+            if approval_task.intended_approver_id:
+                asset.reviewed_by = approval_task.intended_approver_id
+            approval_task.complete(ApprovalTask.RESULT_REJECTED, rejection_reason.strip())
+
+        return {
+            'success': True,
+            'asset': asset,
+            'error': None,
+            'approval_task': approval_task
+        }
+
+    @classmethod
+    def create_magic_link_approval_task(
+        cls,
+        db_session,
+        asset_id: int,
+        tenant_id: str,
+        intended_approver_id: Optional[int] = None
+    ):
+        """
+        Create a magic link approval task for a content asset.
+
+        Args:
+            db_session: SQLAlchemy database session
+            asset_id: ID of the content asset needing approval
+            tenant_id: Tenant ID for the asset
+            intended_approver_id: Optional ID of the intended approver
+
+        Returns:
+            The created ApprovalTask instance
+
+        Note:
+            The task is added to the session but not committed.
+            The caller is responsible for committing the transaction.
+        """
+        from content_catalog.models.checkout import ApprovalTask
+
+        approval_task = ApprovalTask(
+            tenant_id=tenant_id,
+            asset_id=asset_id,
+            intended_approver_id=intended_approver_id
+        )
+
+        db_session.add(approval_task)
+        return approval_task

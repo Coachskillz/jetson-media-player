@@ -323,17 +323,123 @@ def approvals():
     """
     Approval workflow page.
 
-    Shows pending user and content approvals.
+    Shows pending user and content approvals with tabs for:
+    - Pending user approvals
+    - Pending content approvals
+    - Recently processed approvals
+
+    Query Parameters:
+        tab: Which tab to show ('users', 'content', 'recent')
+        page: Page number (default: 1)
+        per_page: Items per page (default: 20)
 
     Returns:
         Rendered approvals.html template
     """
-    # Placeholder - will be implemented with auth check
+    from flask import request
+
+    # Get tab parameter
+    active_tab = request.args.get('tab', 'users')
+    if active_tab not in ['users', 'content', 'recent']:
+        active_tab = 'users'
+
+    # Get pagination parameters
+    try:
+        page = int(request.args.get('page', 1))
+        if page < 1:
+            page = 1
+    except ValueError:
+        page = 1
+
+    try:
+        per_page = int(request.args.get('per_page', 20))
+        if per_page < 1:
+            per_page = 20
+        if per_page > 100:
+            per_page = 100
+    except ValueError:
+        per_page = 20
+
+    # Get pending user approvals
+    pending_users_query = User.query.filter_by(status=User.STATUS_PENDING)
+    pending_users_count = pending_users_query.count()
+
+    if active_tab == 'users':
+        total = pending_users_count
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+        pending_users = pending_users_query.order_by(
+            User.created_at.desc()
+        ).offset((page - 1) * per_page).limit(per_page).all()
+    else:
+        pending_users = pending_users_query.order_by(
+            User.created_at.desc()
+        ).limit(5).all()
+
+    # Get pending content approvals
+    pending_content_query = ContentAsset.query.filter_by(
+        status=ContentAsset.STATUS_PENDING_REVIEW
+    )
+    pending_content_count = pending_content_query.count()
+
+    if active_tab == 'content':
+        total = pending_content_count
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+        pending_content = pending_content_query.order_by(
+            ContentAsset.created_at.desc()
+        ).offset((page - 1) * per_page).limit(per_page).all()
+    else:
+        pending_content = pending_content_query.order_by(
+            ContentAsset.created_at.desc()
+        ).limit(5).all()
+
+    # Get recent processed approvals from audit logs
+    recent_approvals = []
+    if active_tab == 'recent':
+        recent_logs = AuditLog.query.filter(
+            or_(
+                AuditLog.action == 'user.approved',
+                AuditLog.action == 'user.rejected',
+                AuditLog.action == 'content.approved',
+                AuditLog.action == 'content.rejected'
+            )
+        ).order_by(AuditLog.created_at.desc())
+
+        total = recent_logs.count()
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+        for log in recent_logs.offset((page - 1) * per_page).limit(per_page).all():
+            recent_approvals.append({
+                'action': log.action,
+                'description': log.action.replace('.', ' ').title(),
+                'user_email': log.user_email,
+                'resource_type': log.resource_type,
+                'resource_id': log.resource_id,
+                'time_ago': _format_time_ago(log.created_at)
+            })
+    else:
+        total = pending_users_count if active_tab == 'users' else pending_content_count
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+    # Get total pending approvals count for badge
+    total_pending = pending_users_count + pending_content_count
+
     return render_template(
-        'admin/base.html',
+        'admin/approvals.html',
         active_page='approvals',
         current_user=None,
-        pending_approvals_count=0
+        pending_approvals_count=total_pending,
+        # Tab data
+        active_tab=active_tab,
+        pending_users=pending_users,
+        pending_users_count=pending_users_count,
+        pending_content=pending_content,
+        pending_content_count=pending_content_count,
+        recent_approvals=recent_approvals,
+        # Pagination info
+        page=page,
+        per_page=per_page,
+        total=total,
+        total_pages=total_pages
     )
 
 

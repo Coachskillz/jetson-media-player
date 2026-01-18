@@ -65,6 +65,11 @@ class Content(db.Model):
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # Content Catalog integration
+    # Links CMS content to a Content Catalog asset for syncing
+    catalog_asset_uuid = db.Column(db.String(36), nullable=True, index=True)
+    source = db.Column(db.String(20), nullable=True)  # 'upload' or 'catalog'
+
     # Relationships
     network = db.relationship('Network', backref=db.backref('content', lazy='dynamic'))
 
@@ -86,7 +91,9 @@ class Content(db.Model):
             'duration': self.duration,
             'status': self.status,
             'network_id': self.network_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'catalog_asset_uuid': self.catalog_asset_uuid,
+            'source': self.source
         }
 
     def to_manifest_item(self):

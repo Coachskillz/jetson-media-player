@@ -1535,3 +1535,228 @@ def publish_asset(asset_id):
         'message': 'Asset published successfully',
         'asset': asset.to_dict()
     }), 200
+
+
+@assets_bp.route('/<asset_id>/checkout', methods=['POST'])
+@jwt_required()
+def checkout_asset(asset_id):
+    """
+    Checkout an asset and get a time-limited download token.
+
+    Creates a checkout token with a signed download URL that expires
+    after a short time (default 10 minutes).
+
+    Supports fast-track checkout for privileged users, allowing
+    checkout of any visible asset regardless of approval status.
+
+    Args:
+        asset_id: Content asset UUID
+
+    Request Body (optional):
+        {
+            "fasttrack": true/false (default: false),
+            "expiry_minutes": 10 (default: 10, max: 60)
+        }
+
+    Returns:
+        200: Checkout successful
+            {
+                "token": "checkout token string",
+                "download_url": "signed download URL",
+                "expires_at": "ISO timestamp",
+                "is_fasttrack": true/false
+            }
+        400: Invalid request
+        401: Unauthorized (missing or invalid token)
+        403: Insufficient permissions
+        404: Content asset not found
+        409: Asset cannot be checked out (wrong status)
+    """
+    from content_catalog.services.checkout_service import CheckoutService
+
+    current_user = _get_current_user()
+
+    if not current_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Validate asset_id format
+    if not isinstance(asset_id, str) or len(asset_id) > 64:
+        return jsonify({
+            'error': 'Invalid asset_id format'
+        }), 400
+
+    # Look up by UUID
+    asset = ContentAsset.get_by_uuid(asset_id)
+
+    if not asset:
+        return jsonify({'error': 'Content asset not found'}), 404
+
+    # Parse request body
+    data = request.get_json(silent=True) or {}
+
+    # Get fast-track flag
+    fasttrack = data.get('fasttrack', False)
+    if not isinstance(fasttrack, bool):
+        return jsonify({'error': 'fasttrack must be a boolean'}), 400
+
+    # Get expiry minutes
+    expiry_minutes = data.get('expiry_minutes')
+    if expiry_minutes is not None:
+        if not isinstance(expiry_minutes, int) or expiry_minutes < 1 or expiry_minutes > 60:
+            return jsonify({
+                'error': 'expiry_minutes must be an integer between 1 and 60'
+            }), 400
+
+    # Perform checkout
+    result = CheckoutService.checkout_asset(
+        db_session=db.session,
+        user_id=current_user.id,
+        asset_id=asset.id,
+        fasttrack=fasttrack,
+        expiry_minutes=expiry_minutes
+    )
+
+    if not result['success']:
+        # Determine appropriate status code
+        error_msg = result['error']
+        if 'not found' in error_msg.lower():
+            status_code = 404
+        elif 'permission' in error_msg.lower() or 'cannot' in error_msg.lower():
+            status_code = 403
+        elif 'status' in error_msg.lower():
+            status_code = 409
+        else:
+            status_code = 400
+
+        return jsonify({'error': error_msg}), status_code
+
+    try:
+        # Log the checkout action
+        AuditService.log_action(
+            db_session=db.session,
+            action='content.checked_out',
+            user_id=current_user.id,
+            user_email=current_user.email,
+            resource_type='content_asset',
+            resource_id=asset.id,
+            details={
+                'asset_uuid': asset.uuid,
+                'asset_title': asset.title,
+                'is_fasttrack': fasttrack,
+                'expires_at': result['expires_at']
+            }
+        )
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to checkout asset: {str(e)}'}), 500
+
+    return jsonify({
+        'token': result['token'],
+        'download_url': result['download_url'],
+        'expires_at': result['expires_at'],
+        'is_fasttrack': fasttrack
+    }), 200
+
+
+@assets_bp.route('/<asset_id>/revoke', methods=['POST'])
+@jwt_required()
+def revoke_asset(asset_id):
+    """
+    Revoke a published or approved content asset.
+
+    Changes the asset status to 'revoked'. Only Content Managers
+    and above can revoke content. A reason is required.
+
+    Args:
+        asset_id: Content asset UUID
+
+    Request Body:
+        {
+            "reason": "Revocation reason" (required)
+        }
+
+    Returns:
+        200: Asset revoked successfully
+            {
+                "message": "Asset revoked successfully",
+                "asset": { asset data }
+            }
+        400: Missing or invalid revocation reason
+        401: Unauthorized (missing or invalid token)
+        403: Insufficient permissions to revoke content
+        404: Content asset not found
+        409: Asset cannot be revoked (wrong status)
+    """
+    from content_catalog.services.approval_service import ApprovalService
+
+    current_user = _get_current_user()
+
+    if not current_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Check if user has permission to revoke content
+    if not _can_manage_content(current_user):
+        return jsonify({'error': 'Insufficient permissions to revoke content'}), 403
+
+    # Validate asset_id format
+    if not isinstance(asset_id, str) or len(asset_id) > 64:
+        return jsonify({
+            'error': 'Invalid asset_id format'
+        }), 400
+
+    # Look up by UUID
+    asset = ContentAsset.get_by_uuid(asset_id)
+
+    if not asset:
+        return jsonify({'error': 'Content asset not found'}), 404
+
+    # Parse request body
+    data = request.get_json()
+
+    if not data or not data.get('reason'):
+        return jsonify({'error': 'Revocation reason is required'}), 400
+
+    reason = data.get('reason')
+    if not isinstance(reason, str) or len(reason) < 3 or len(reason) > 1000:
+        return jsonify({
+            'error': 'reason must be a string between 3 and 1000 characters'
+        }), 400
+
+    # Perform revocation
+    result = ApprovalService.revoke_content(
+        db_session=db.session,
+        user_id=current_user.id,
+        asset_id=asset.id,
+        reason=reason.strip()
+    )
+
+    if not result['success']:
+        return jsonify({'error': result['error']}), 409
+
+    try:
+        # Log the action
+        AuditService.log_action(
+            db_session=db.session,
+            action='content.revoked',
+            user_id=current_user.id,
+            user_email=current_user.email,
+            resource_type='content_asset',
+            resource_id=asset.id,
+            details={
+                'asset_uuid': asset.uuid,
+                'asset_title': asset.title,
+                'reason': reason.strip()
+            }
+        )
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to revoke asset: {str(e)}'}), 500
+
+    return jsonify({
+        'message': 'Asset revoked successfully',
+        'asset': result['asset'].to_dict()
+    }), 200

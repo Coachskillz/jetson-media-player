@@ -33,14 +33,21 @@ db = SQLAlchemy(model_class=Base)
 
 # Import models after db is defined to avoid circular imports
 # Models will be imported here as they are created:
+from content_catalog.models.tenant import Tenant
+from content_catalog.models.catalog import Catalog
+from content_catalog.models.category import Category
 from content_catalog.models.organization import Organization
 from content_catalog.models.user import User, UserInvitation, UserApprovalRequest, AdminSession
 from content_catalog.models.audit import AuditLog
 from content_catalog.models.content import ContentAsset, ContentApprovalRequest
+from content_catalog.models.checkout import CheckoutToken, ApprovalTask
 
 __all__ = [
     'db',
     'Base',
+    'Tenant',
+    'Catalog',
+    'Category',
     'Organization',
     'User',
     'UserInvitation',
@@ -49,4 +56,6 @@ __all__ = [
     'AuditLog',
     'ContentAsset',
     'ContentApprovalRequest',
+    'CheckoutToken',
+    'ApprovalTask',
 ]
