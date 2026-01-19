@@ -6,6 +6,7 @@ Blueprint registration for all API route modules:
 - Devices: Device registration and management
 - Hubs: Hub registration and manifest delivery
 - Content: Media file upload and management
+- Thea: Proxy routes for Thea Content Catalog integration
 - Playlists: Playlist creation and device assignment
 - Layouts: Screen layout management for multi-zone displays
 - Web: Web UI page rendering
@@ -27,6 +28,9 @@ from cms.routes.hubs import hubs_bp
 
 # Import Content blueprint from its module
 from cms.routes.content import content_bp
+
+# Import Thea Content Catalog proxy blueprint from its module
+from cms.routes.content import thea_bp
 
 # Import Playlists blueprint from its module
 from cms.routes.playlists import playlists_bp
@@ -61,6 +65,7 @@ __all__ = [
     'devices_bp',
     'hubs_bp',
     'content_bp',
+    'thea_bp',
     'playlists_bp',
     'layouts_bp',
     'layouts_web_bp',

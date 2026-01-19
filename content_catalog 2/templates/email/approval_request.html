@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Content Approval Request</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #050508; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6;">
+    <!-- Email Container -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #050508;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <!-- Main Content Card -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background: linear-gradient(135deg, rgba(20, 20, 30, 0.95) 0%, rgba(30, 30, 45, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 32px 40px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <span style="display: inline-block; background: linear-gradient(135deg, #00D4AA 0%, #00B894 100%); color: #050508; font-weight: 700; font-size: 18px; padding: 8px 12px; border-radius: 8px; letter-spacing: 0.5px;">CC</span>
+                                        <span style="color: #ffffff; font-size: 20px; font-weight: 600; margin-left: 12px; vertical-align: middle;">Content Catalog</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <!-- Title -->
+                            <h1 style="margin: 0 0 8px 0; color: #ffffff; font-size: 24px; font-weight: 600; letter-spacing: -0.02em;">Content Approval Request</h1>
+                            <p style="margin: 0 0 32px 0; color: rgba(255, 255, 255, 0.7); font-size: 15px;">A new content asset requires your review and approval.</p>
+
+                            <!-- Asset Details Card -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: rgba(15, 15, 25, 0.9); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 32px;">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <!-- Asset Title -->
+                                        <h2 style="margin: 0 0 16px 0; color: #00D4AA; font-size: 18px; font-weight: 600;">{{ asset.title }}</h2>
+
+                                        <!-- Asset Details Grid -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            {% if asset.description %}
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">Description</span>
+                                                    <span style="color: #ffffff; font-size: 14px;">{{ asset.description }}</span>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">Asset ID</span>
+                                                    <span style="color: #ffffff; font-size: 14px; font-family: monospace;">{{ asset.uuid }}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">File Name</span>
+                                                    <span style="color: #ffffff; font-size: 14px;">{{ asset.filename }}</span>
+                                                </td>
+                                            </tr>
+                                            {% if asset.format %}
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">Format</span>
+                                                    <span style="color: #ffffff; font-size: 14px; text-transform: uppercase;">{{ asset.format }}</span>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if asset.file_size %}
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">File Size</span>
+                                                    <span style="color: #ffffff; font-size: 14px;">{{ (asset.file_size / 1024 / 1024) | round(2) }} MB</span>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if asset.category %}
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">Category</span>
+                                                    <span style="color: #ffffff; font-size: 14px;">{{ asset.category }}</span>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            <tr>
+                                                <td style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">Uploaded By</span>
+                                                    <span style="color: #ffffff; font-size: 14px;">{{ uploader_name }}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: rgba(255, 255, 255, 0.5); font-size: 13px; display: block;">Submitted At</span>
+                                                    <span style="color: #ffffff; font-size: 14px;">{{ submitted_at }}</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Approver Message -->
+                            <p style="margin: 0 0 24px 0; color: rgba(255, 255, 255, 0.7); font-size: 14px;">
+                                Hello <strong style="color: #ffffff;">{{ approver_name }}</strong>,<br><br>
+                                You have been assigned to review the above content asset. Please review and take action using the secure link below.
+                            </p>
+
+                            <!-- Magic Link CTA -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ magic_link }}" style="display: inline-block; background: linear-gradient(135deg, #00D4AA 0%, #00B894 100%); color: #050508; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);">
+                                            Review &amp; Take Action
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Link Expiry Warning -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: rgba(245, 158, 11, 0.1); border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.2); margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 16px;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td width="24" valign="top">
+                                                    <span style="color: #f59e0b; font-size: 16px;">&#9888;</span>
+                                                </td>
+                                                <td style="padding-left: 12px;">
+                                                    <span style="color: #f59e0b; font-size: 13px; font-weight: 600;">Security Notice</span>
+                                                    <p style="margin: 4px 0 0 0; color: rgba(255, 255, 255, 0.7); font-size: 13px;">
+                                                        This link expires in <strong style="color: #ffffff;">30 minutes</strong> and can only be used once.
+                                                        {% if expires_at %}
+                                                        Valid until: {{ expires_at }}
+                                                        {% endif %}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Alternative Link -->
+                            <p style="margin: 0; color: rgba(255, 255, 255, 0.5); font-size: 12px;">
+                                If the button above doesn't work, copy and paste this link into your browser:<br>
+                                <a href="{{ magic_link }}" style="color: #00D4AA; text-decoration: none; word-break: break-all; font-size: 12px;">{{ magic_link }}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 24px 40px; background: rgba(10, 10, 18, 0.95); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <p style="margin: 0 0 8px 0; color: rgba(255, 255, 255, 0.5); font-size: 12px;">
+                                            This is an automated message from the Content Catalog system.
+                                        </p>
+                                        <p style="margin: 0 0 8px 0; color: rgba(255, 255, 255, 0.5); font-size: 12px;">
+                                            If you did not expect this email or believe it was sent in error, please contact your administrator.
+                                        </p>
+                                        <p style="margin: 0; color: rgba(255, 255, 255, 0.4); font-size: 11px;">
+                                            &copy; {{ current_year }} Skillz Media. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

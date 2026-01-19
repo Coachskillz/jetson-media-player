@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "018-integrate-the-existing-content-catalog-partner-por",
+  "spec": "024-auto-claude-task-thea-content-catalog-portal-enhan",
   "state": "building",
   "subtasks": {
-    "completed": 12,
-    "total": 18,
+    "completed": 27,
+    "total": 30,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "CMS Content Template Update",
+    "current": "Integration Testing",
     "id": null,
-    "total": 5
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 13,
-    "started_at": "2026-01-17T07:49:51.826416"
+    "number": 28,
+    "started_at": "2026-01-18T13:15:12.864402"
   },
-  "last_update": "2026-01-17T08:28:37.368192"
+  "last_update": "2026-01-18T14:34:09.073462"
 }

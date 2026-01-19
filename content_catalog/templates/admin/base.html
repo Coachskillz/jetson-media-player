@@ -9,10 +9,8 @@
     {% block extra_styles %}{% endblock %}
 </head>
 <body>
-    <!-- Animated Background -->
     <div class="bg-animation" id="particles"></div>
 
-    <!-- Sidebar Navigation -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -22,6 +20,25 @@
         </div>
 
         <nav class="sidebar-nav">
+            {% if current_user and current_user.role in ['retailer_viewer', 'retailer_uploader', 'retailer_approver', 'retailer_admin'] %}
+            {# Retailer Navigation #}
+            <div class="nav-section">
+                <span class="nav-section-title">My Content</span>
+                <a href="{{ url_for('admin.retailer_dashboard', tab='pending') }}" class="nav-link {% if tab == 'pending' %}active{% endif %}">
+                    <span class="nav-icon">⏳</span>
+                    <span>Pending Approval</span>
+                </a>
+                <a href="{{ url_for('admin.retailer_dashboard', tab='approved') }}" class="nav-link {% if tab == 'approved' %}active{% endif %}">
+                    <span class="nav-icon">✓</span>
+                    <span>Approved</span>
+                </a>
+                <a href="{{ url_for('admin.retailer_dashboard', tab='all') }}" class="nav-link {% if tab == 'all' or not tab %}active{% endif %}">
+                    <span class="nav-icon">📁</span>
+                    <span>All Assets</span>
+                </a>
+            </div>
+            {% else %}
+            {# Admin Navigation #}
             <div class="nav-section">
                 <span class="nav-section-title">Main</span>
                 <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
@@ -46,6 +63,22 @@
             </div>
 
             <div class="nav-section">
+                <span class="nav-section-title">Partners</span>
+                <a href="{{ url_for('admin.retail_partners') }}" class="nav-link {% if active_page == 'retail_partners' %}active{% endif %}">
+                    <span class="nav-icon">&#127978;</span>
+                    <span>Retail Partners</span>
+                </a>
+                <a href="{{ url_for('admin.organizations') }}" class="nav-link {% if active_page == 'organizations' %}active{% endif %}">
+                    <span class="nav-icon">&#9874;</span>
+                    <span>Organizations</span>
+                </a>
+                <a href="{{ url_for('admin.tenants') }}" class="nav-link {% if active_page == 'tenants' %}active{% endif %}">
+                    <span class="nav-icon">&#9733;</span>
+                    <span>Tenants</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
                 <span class="nav-section-title">Users</span>
                 <a href="{{ url_for('admin.users') }}" class="nav-link {% if active_page == 'users' %}active{% endif %}">
                     <span class="nav-icon">&#9787;</span>
@@ -54,10 +87,6 @@
                 <a href="{{ url_for('admin.invitations') }}" class="nav-link {% if active_page == 'invitations' %}active{% endif %}">
                     <span class="nav-icon">&#9993;</span>
                     <span>Invitations</span>
-                </a>
-                <a href="{{ url_for('admin.organizations') }}" class="nav-link {% if active_page == 'organizations' %}active{% endif %}">
-                    <span class="nav-icon">&#9874;</span>
-                    <span>Organizations</span>
                 </a>
             </div>
 
@@ -72,6 +101,7 @@
                     <span>Settings</span>
                 </a>
             </div>
+            {% endif %}
         </nav>
 
         <div class="sidebar-footer">
@@ -88,9 +118,7 @@
         </div>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Top Header -->
         <header class="top-header">
             <div class="header-left">
                 <button class="sidebar-toggle" id="sidebarToggle">
@@ -105,7 +133,6 @@
             </div>
         </header>
 
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages">
@@ -123,23 +150,18 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Page Content -->
         <div class="page-content">
             {% block content %}{% endblock %}
         </div>
 
-        <!-- Footer -->
         <footer class="main-footer">
             <p>Content Catalog Admin v1.0 &bull; Skillz Media</p>
         </footer>
     </main>
 
     <script>
-        // Create animated background particles
         const particlesContainer = document.getElementById('particles');
-        const particleCount = 30;
-
-        for (let i = 0; i < particleCount; i++) {
+        for (let i = 0; i < 30; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle';
             particle.style.width = Math.random() * 4 + 2 + 'px';
@@ -151,17 +173,11 @@
             particlesContainer.appendChild(particle);
         }
 
-        // Sidebar toggle for mobile
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.querySelector('.sidebar');
-        const mainContent = document.querySelector('.main-content');
-
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('expanded');
         });
 
-        // Auto-dismiss flash messages after 5 seconds
         document.querySelectorAll('.flash-message').forEach(function(msg) {
             setTimeout(function() {
                 msg.style.opacity = '0';

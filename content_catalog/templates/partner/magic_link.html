@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if success %}Approval Complete{% elif error %}Approval Error{% else %}Content Approval{% endif %} - Thea Content Catalog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: rgba(15, 15, 25, 0.9);
+            --primary: #06b6d4;
+            --primary-dark: #0891b2;
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #6b6b7b;
+            --border-light: rgba(255, 255, 255, 0.08);
+            --border-medium: rgba(255, 255, 255, 0.15);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border-radius: 12px;
+            --border-radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image:
+                radial-gradient(ellipse at 30% 0%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 100%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-light);
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        /* Error States */
+        .error-card {
+            text-align: center;
+            padding: 48px 32px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+        }
+
+        .error-icon.not_found { color: var(--text-muted); }
+        .error-icon.expired { color: var(--warning); }
+        .error-icon.already_used { color: var(--text-secondary); }
+        .error-icon.already_processed { color: var(--primary); }
+        .error-icon.self_approval { color: var(--error); }
+        .error-icon.server_error { color: var(--error); }
+
+        .error-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .error-details {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Success States */
+        .success-card {
+            text-align: center;
+            padding: 48px 32px;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 40px;
+        }
+
+        .success-icon.approved {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            color: var(--success);
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .success-icon.rejected {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+            color: var(--error);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .success-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .success-message {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .success-asset-info {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 24px;
+            text-align: left;
+        }
+
+        .success-asset-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* Approval Form */
+        .approval-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .approval-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .approval-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .approver-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--primary);
+        }
+
+        /* Asset Preview */
+        .asset-preview {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .asset-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .asset-filename {
+            font-size: 13px;
+            color: var(--text-muted);
+            word-break: break-all;
+            margin-bottom: 16px;
+        }
+
+        .asset-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .asset-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* Uploader Info */
+        .uploader-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .uploader-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--bg-dark);
+        }
+
+        .uploader-details {
+            flex: 1;
+        }
+
+        .uploader-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .uploader-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .uploader-org {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Warning Banner */
+        .warning-banner {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .warning-icon {
+            font-size: 20px;
+            color: var(--warning);
+            flex-shrink: 0;
+        }
+
+        .warning-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .warning-text strong {
+            color: var(--warning);
+        }
+
+        /* Expiry Timer */
+        .expiry-timer {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+        }
+
+        .expiry-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .expiry-time {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Approval Actions */
+        .approval-actions {
+            margin-top: 24px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-approve {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-approve:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-approve:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-reject {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-reject:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-reject:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Rejection Form */
+        .rejection-form {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .rejection-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-label span {
+            color: var(--error);
+        }
+
+        .form-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .rejection-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--border-radius);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border-light);
+        }
+
+        .btn-submit-reject {
+            padding: 12px 24px;
+            background: var(--error);
+            border: none;
+            border-radius: var(--border-radius);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-submit-reject:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        /* Error Alert */
+        .error-alert {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .error-alert-icon {
+            font-size: 20px;
+            color: var(--error);
+            flex-shrink: 0;
+        }
+
+        .error-alert-text {
+            font-size: 14px;
+            color: #fca5a5;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .card-footer {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .card {
+                padding: 24px;
+            }
+
+            .asset-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo -->
+            <div class="logo">
+                <div class="logo-text">Thea Content Catalog</div>
+                <div class="logo-subtitle">Content Approval</div>
+            </div>
+
+            {% if success %}
+            <!-- Success State -->
+            <div class="success-card">
+                <div class="success-icon {{ action_taken }}">
+                    {% if action_taken == 'approved' %}&#10003;{% else %}&#10007;{% endif %}
+                </div>
+                <h1 class="success-title">
+                    {% if action_taken == 'approved' %}
+                        Asset Approved
+                    {% else %}
+                        Asset Rejected
+                    {% endif %}
+                </h1>
+                <p class="success-message">
+                    {% if action_taken == 'approved' %}
+                        The content has been approved and the uploader will be notified.
+                    {% else %}
+                        The content has been rejected and the uploader will be notified with your feedback.
+                    {% endif %}
+                </p>
+                {% if asset %}
+                <div class="success-asset-info">
+                    <div class="success-asset-title">{{ asset.title }}</div>
+                    <div style="font-size: 13px; color: var(--text-muted);">{{ asset.filename }}</div>
+                    {% if rejection_reason %}
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-light);">
+                        <div class="meta-label">Rejection Reason</div>
+                        <div style="margin-top: 4px; color: var(--text-secondary); font-size: 14px;">{{ rejection_reason }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% elif error %}
+            <!-- Error State -->
+            <div class="error-card">
+                <div class="error-icon {{ error_type }}">
+                    {% if error_type == 'not_found' %}&#10067;
+                    {% elif error_type == 'expired' %}&#9200;
+                    {% elif error_type == 'already_used' %}&#10004;
+                    {% elif error_type == 'already_processed' %}&#9989;
+                    {% elif error_type == 'self_approval' %}&#128683;
+                    {% else %}&#9888;{% endif %}
+                </div>
+                <h1 class="error-title">
+                    {% if error_type == 'not_found' %}Link Not Found
+                    {% elif error_type == 'expired' %}Link Expired
+                    {% elif error_type == 'already_used' %}Already Processed
+                    {% elif error_type == 'already_processed' %}Already Handled
+                    {% elif error_type == 'self_approval' %}Cannot Approve
+                    {% elif error_type == 'missing_reason' %}Reason Required
+                    {% else %}Error{% endif %}
+                </h1>
+                <p class="error-message">{{ error }}</p>
+                {% if error_type == 'already_used' and action_taken %}
+                <div class="error-details">
+                    <strong>Previous action:</strong> {{ action_taken|title }}
+                    {% if used_at %}<br><strong>Processed at:</strong> {{ used_at.strftime('%B %d, %Y at %I:%M %p') }}{% endif %}
+                </div>
+                {% elif error_type == 'already_processed' and asset_status %}
+                <div class="error-details">
+                    <strong>Current status:</strong> {{ asset_status|replace('_', ' ')|title }}
+                </div>
+                {% elif error_type == 'expired' and expires_at %}
+                <div class="error-details">
+                    <strong>Expired at:</strong> {{ expires_at.strftime('%B %d, %Y at %I:%M %p') }}
+                </div>
+                {% endif %}
+            </div>
+
+            {% else %}
+            <!-- Approval Form -->
+            <div class="approval-header">
+                <h1 class="approval-title">Review Content</h1>
+                <p class="approval-subtitle">Review and approve or reject this content submission</p>
+                {% if approver %}
+                <div class="approver-badge">Reviewing as {{ approver.name }}</div>
+                {% endif %}
+            </div>
+
+            {% if is_own_upload %}
+            <!-- Self-upload Warning -->
+            <div class="warning-banner">
+                <div class="warning-icon">&#9888;</div>
+                <div class="warning-text">
+                    <strong>Separation of Duties:</strong> You cannot approve or reject your own uploaded content.
+                    Please ask another team member with approval permissions to review this asset.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Asset Preview -->
+            {% if asset %}
+            <div class="asset-preview">
+                <h2 class="asset-title">{{ asset.title }}</h2>
+                <div class="asset-filename">{{ asset.filename }}</div>
+                {% if asset.description %}
+                <div class="asset-description">{{ asset.description }}</div>
+                {% endif %}
+                <div class="asset-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Format</span>
+                        <span class="meta-value">{{ asset.format|upper if asset.format else 'Unknown' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">File Size</span>
+                        <span class="meta-value">
+                            {% if asset.file_size %}
+                                {{ (asset.file_size / 1024 / 1024)|round(2) }} MB
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if asset.duration %}
+                    <div class="meta-item">
+                        <span class="meta-label">Duration</span>
+                        <span class="meta-value">{{ asset.duration|round(1) }}s</span>
+                    </div>
+                    {% endif %}
+                    {% if asset.resolution %}
+                    <div class="meta-item">
+                        <span class="meta-label">Resolution</span>
+                        <span class="meta-value">{{ asset.resolution }}</span>
+                    </div>
+                    {% endif %}
+                    {% if asset.category %}
+                    <div class="meta-item">
+                        <span class="meta-label">Category</span>
+                        <span class="meta-value">{{ asset.category }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="meta-item">
+                        <span class="meta-label">Submitted</span>
+                        <span class="meta-value">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Uploader Info -->
+            {% if uploader %}
+            <div class="uploader-info">
+                <div class="uploader-avatar">{{ uploader.name[0] }}</div>
+                <div class="uploader-details">
+                    <div class="uploader-label">Uploaded by</div>
+                    <div class="uploader-name">{{ uploader.name }}</div>
+                    {% if organization %}
+                    <div class="uploader-org">{{ organization.name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Expiry Timer -->
+            {% if expires_at %}
+            <div class="expiry-timer">
+                <div class="expiry-label">Link expires</div>
+                <div class="expiry-time" id="expiryTime">{{ expires_at.strftime('%B %d, %Y at %I:%M %p UTC') }}</div>
+            </div>
+            {% endif %}
+
+            {% if not is_own_upload %}
+            <!-- Approval Actions -->
+            <form method="POST" action="/approve/{{ raw_token }}" id="approvalForm">
+                <input type="hidden" name="action" id="actionInput" value="">
+                <input type="hidden" name="reason" id="reasonInput" value="">
+
+                <div class="approval-actions">
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-approve" onclick="submitApproval('approve')">
+                            <span>&#10003;</span> Approve
+                        </button>
+                        <button type="button" class="btn btn-reject" onclick="showRejectionForm()">
+                            <span>&#10007;</span> Reject
+                        </button>
+                    </div>
+
+                    <!-- Rejection Form (hidden by default) -->
+                    <div class="rejection-form" id="rejectionForm">
+                        <div class="form-group">
+                            <label class="form-label">Rejection Reason <span>*</span></label>
+                            <textarea
+                                class="form-textarea"
+                                id="rejectionReason"
+                                placeholder="Please provide a clear reason for rejecting this content..."
+                                required
+                            ></textarea>
+                        </div>
+                        <div class="rejection-actions">
+                            <button type="button" class="btn-secondary" onclick="hideRejectionForm()">Cancel</button>
+                            <button type="button" class="btn-submit-reject" onclick="submitApproval('reject')">
+                                Confirm Rejection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+
+            {% endif %}
+
+            <!-- Footer -->
+            <div class="card-footer">
+                Thea Content Catalog &bull; Skillz Media
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showRejectionForm() {
+            document.getElementById('rejectionForm').classList.add('active');
+            document.getElementById('rejectionReason').focus();
+        }
+
+        function hideRejectionForm() {
+            document.getElementById('rejectionForm').classList.remove('active');
+            document.getElementById('rejectionReason').value = '';
+        }
+
+        function submitApproval(action) {
+            const form = document.getElementById('approvalForm');
+            const actionInput = document.getElementById('actionInput');
+            const reasonInput = document.getElementById('reasonInput');
+
+            if (action === 'reject') {
+                const reason = document.getElementById('rejectionReason').value.trim();
+                if (!reason) {
+                    alert('Please provide a reason for rejection.');
+                    document.getElementById('rejectionReason').focus();
+                    return;
+                }
+                reasonInput.value = reason;
+            }
+
+            actionInput.value = action;
+
+            // Disable buttons to prevent double submission
+            document.querySelectorAll('.btn, .btn-submit-reject').forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            });
+
+            form.submit();
+        }
+
+        // Countdown timer for expiry
+        {% if expires_at and not error and not success %}
+        (function() {
+            const expiresAt = new Date('{{ expires_at.isoformat() }}');
+            const timerEl = document.getElementById('expiryTime');
+
+            function updateTimer() {
+                const now = new Date();
+                const diff = expiresAt - now;
+
+                if (diff <= 0) {
+                    timerEl.textContent = 'Expired';
+                    timerEl.style.color = '#ef4444';
+                    return;
+                }
+
+                const minutes = Math.floor(diff / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
+
+                if (minutes < 5) {
+                    timerEl.style.color = '#f59e0b';
+                }
+                if (minutes < 1) {
+                    timerEl.style.color = '#ef4444';
+                }
+
+                timerEl.textContent = `${minutes}m ${seconds}s remaining`;
+            }
+
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        })();
+        {% endif %}
+    </script>
+</body>
+</html>

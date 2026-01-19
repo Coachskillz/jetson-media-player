@@ -1,0 +1,644 @@
+{% extends "partner/base.html" %}
+
+{% block title %}Approval Queue - Partner Portal{% endblock %}
+
+{% block page_title %}Approval Queue{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Approvals Section */
+.approvals-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.approvals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.approvals-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.approvals-count {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.approvals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+}
+
+/* Approval Card */
+.approval-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    border: 1px solid var(--border-light);
+    transition: all 0.3s;
+}
+
+.approval-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
+}
+
+.approval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.approval-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.approval-filename {
+    font-size: 12px;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+.approval-badge {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending_review {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+/* Approval Meta */
+.approval-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.meta-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.meta-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Uploader Info */
+.uploader-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+}
+
+.uploader-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--bg-dark);
+}
+
+.uploader-details {
+    flex: 1;
+}
+
+.uploader-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.uploader-org {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Description */
+.approval-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Asset Category/Tags */
+.approval-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.approval-tag {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.approval-category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Approval Actions */
+.approval-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.approval-actions .btn {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-approve {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-approve:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-approve:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-reject {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reject:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.btn-reject:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+/* Permission Warning */
+.permission-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    text-align: center;
+}
+
+.permission-warning-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.permission-warning h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.permission-warning p {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Reject Modal */
+.reject-modal-content {
+    max-width: 500px;
+}
+
+.reject-form-group {
+    margin-bottom: 20px;
+}
+
+.reject-form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.reject-form-group textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 14px;
+    resize: vertical;
+}
+
+.reject-form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.reject-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if can_approve %}
+<!-- Approvals Grid Section -->
+<div class="approvals-section animate-fade-in">
+    <div class="approvals-header">
+        <h3>&#9203; Pending Approvals</h3>
+        <span class="approvals-count">{{ pending_approvals|length }} item{% if pending_approvals|length != 1 %}s{% endif %} awaiting review</span>
+    </div>
+
+    {% if pending_approvals %}
+    <div class="approvals-grid">
+        {% for asset in pending_approvals %}
+        <div class="approval-card" data-asset-id="{{ asset.id }}" data-asset-uuid="{{ asset.uuid }}">
+            <div class="approval-header">
+                <div>
+                    <div class="approval-title">{{ asset.title }}</div>
+                    <div class="approval-filename">{{ asset.filename }}</div>
+                </div>
+                <div class="approval-badge">
+                    <span class="status-badge status-pending_review">Pending</span>
+                </div>
+            </div>
+
+            {% if asset.description %}
+            <div class="approval-description">{{ asset.description }}</div>
+            {% endif %}
+
+            {% if asset.category or asset.tags %}
+            <div class="approval-tags">
+                {% if asset.category %}
+                <span class="approval-category">{{ asset.category }}</span>
+                {% endif %}
+                {% if asset.tags %}
+                    {% for tag in asset.tags.split(',')[:3] %}
+                    <span class="approval-tag">{{ tag.strip() }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Uploader Info -->
+            <div class="uploader-info">
+                <div class="uploader-avatar">{{ asset.uploader.name[0] if asset.uploader else '?' }}</div>
+                <div class="uploader-details">
+                    <div class="uploader-name">{{ asset.uploader.name if asset.uploader else 'Unknown' }}</div>
+                    <div class="uploader-org">{{ asset.organization.name if asset.organization else 'No Organization' }}</div>
+                </div>
+            </div>
+
+            <div class="approval-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Format</span>
+                    <span class="meta-value">{{ asset.format|upper if asset.format else 'Unknown' }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Size</span>
+                    <span class="meta-value">
+                        {% if asset.file_size %}
+                            {{ (asset.file_size / 1024 / 1024)|round(1) }} MB
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </span>
+                </div>
+                {% if asset.duration %}
+                <div class="meta-item">
+                    <span class="meta-label">Duration</span>
+                    <span class="meta-value">{{ asset.duration|round(1) }}s</span>
+                </div>
+                {% endif %}
+                {% if asset.resolution %}
+                <div class="meta-item">
+                    <span class="meta-label">Resolution</span>
+                    <span class="meta-value">{{ asset.resolution }}</span>
+                </div>
+                {% endif %}
+                <div class="meta-item">
+                    <span class="meta-label">Submitted</span>
+                    <span class="meta-value">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
+                </div>
+            </div>
+
+            <div class="approval-actions">
+                <button class="btn btn-approve" onclick="approveAsset('{{ asset.uuid }}', '{{ asset.title|e }}')">
+                    <span>&#10003;</span> Approve
+                </button>
+                <button class="btn btn-reject" onclick="openRejectModal('{{ asset.uuid }}', '{{ asset.title|e }}')">
+                    <span>&#10007;</span> Reject
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">&#10003;</div>
+        <h3>All caught up!</h3>
+        <p>There are no content assets awaiting your approval at this time.</p>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<!-- Permission Warning -->
+<div class="approvals-section animate-fade-in">
+    <div class="permission-warning">
+        <div class="permission-warning-icon">&#128274;</div>
+        <h3>Approval Permission Required</h3>
+        <p>You do not have permission to approve content assets. Please contact your administrator if you believe you should have this access.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-content reject-modal-content">
+        <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+        <h2>Reject Asset</h2>
+        <p id="rejectAssetTitle" style="color: var(--text-muted); margin-bottom: 20px;"></p>
+
+        <form id="rejectForm" onsubmit="submitRejection(event)">
+            <input type="hidden" id="rejectAssetUuid" value="">
+
+            <div class="reject-form-group">
+                <label for="rejectionReason">Rejection Reason <span style="color: #f87171;">*</span></label>
+                <textarea
+                    id="rejectionReason"
+                    name="reason"
+                    placeholder="Please provide a clear reason for rejecting this asset..."
+                    required
+                    minlength="10"
+                ></textarea>
+            </div>
+
+            <div class="reject-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn btn-reject">
+                    <span>&#10007;</span> Reject Asset
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Approve asset
+    async function approveAsset(assetUuid, assetTitle) {
+        if (!confirm('Approve "' + assetTitle + '"? This will make the asset available for publishing.')) {
+            return;
+        }
+
+        const card = document.querySelector('[data-asset-uuid="' + assetUuid + '"]');
+        const buttons = card.querySelectorAll('button');
+        buttons.forEach(btn => btn.disabled = true);
+
+        try {
+            const response = await fetch('/partner/api/approvals/' + assetUuid + '/approve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Partner.status.toast('Asset approved successfully!', 'success');
+                // Remove the card with animation
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    card.remove();
+                    updateApprovalCount();
+                }, 300);
+            } else {
+                Partner.status.toast(data.error || 'Failed to approve asset', 'error');
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        } catch (error) {
+            Partner.status.toast('Error: ' + error.message, 'error');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    }
+
+    // Open reject modal
+    function openRejectModal(assetUuid, assetTitle) {
+        document.getElementById('rejectAssetUuid').value = assetUuid;
+        document.getElementById('rejectAssetTitle').textContent = 'Rejecting: ' + assetTitle;
+        document.getElementById('rejectionReason').value = '';
+        document.getElementById('rejectModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Close reject modal
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Submit rejection
+    async function submitRejection(event) {
+        event.preventDefault();
+
+        const assetUuid = document.getElementById('rejectAssetUuid').value;
+        const reason = document.getElementById('rejectionReason').value.trim();
+
+        if (!reason || reason.length < 10) {
+            Partner.status.toast('Please provide a detailed rejection reason (at least 10 characters)', 'warning');
+            return;
+        }
+
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        try {
+            const response = await fetch('/partner/api/approvals/' + assetUuid + '/reject', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Partner.status.toast('Asset rejected successfully', 'success');
+                closeRejectModal();
+
+                // Remove the card with animation
+                const card = document.querySelector('[data-asset-uuid="' + assetUuid + '"]');
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        card.remove();
+                        updateApprovalCount();
+                    }, 300);
+                }
+            } else {
+                Partner.status.toast(data.error || 'Failed to reject asset', 'error');
+            }
+        } catch (error) {
+            Partner.status.toast('Error: ' + error.message, 'error');
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    // Update approval count after removing a card
+    function updateApprovalCount() {
+        const cards = document.querySelectorAll('.approval-card');
+        const countEl = document.querySelector('.approvals-count');
+        if (countEl) {
+            const count = cards.length;
+            countEl.textContent = count + ' item' + (count !== 1 ? 's' : '') + ' awaiting review';
+        }
+
+        // Show empty state if no more approvals
+        if (cards.length === 0) {
+            const grid = document.querySelector('.approvals-grid');
+            if (grid) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state-icon">&#10003;</div>
+                        <h3>All caught up!</h3>
+                        <p>There are no content assets awaiting your approval at this time.</p>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeRejectModal();
+        }
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('rejectModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeRejectModal();
+        }
+    });
+</script>
+{% endblock %}

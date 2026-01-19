@@ -1,0 +1,402 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ retailer.name }} Dashboard{% endblock %}
+{% block page_title %}{{ retailer.name }}{% endblock %}
+
+{% block header_actions %}
+{% if can_upload %}
+<button class="btn btn-primary" onclick="openUploadModal()">+ Upload Content</button>
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.stat-card:hover { border-color: rgba(0,212,170,0.3); transform: translateY(-2px); }
+.stat-card.pending { border-color: rgba(245,158,11,0.3); }
+.stat-card.success { border-color: rgba(16,185,129,0.3); }
+.stat-card.active { border-color: #00D4AA; background: rgba(0,212,170,0.1); }
+.stat-icon { font-size: 24px; margin-bottom: 8px; }
+.stat-value { font-size: 32px; font-weight: 700; }
+.stat-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+.section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+.section-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+.section-header h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+.section-badge { background: #f59e0b; color: #000; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.section-content { padding: 20px; }
+
+.assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.asset-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; transition: all 0.2s; }
+.asset-card:hover { border-color: rgba(0,212,170,0.3); }
+.asset-preview { position: relative; aspect-ratio: 16/9; background: #000; }
+.asset-preview img, .asset-preview video { width: 100%; height: 100%; object-fit: cover; }
+.asset-type { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; }
+.asset-status { position: absolute; top: 8px; right: 8px; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+.status-pending_review { background: rgba(245,158,11,0.9); color: #000; }
+.status-approved { background: rgba(16,185,129,0.9); color: #fff; }
+.status-published { background: rgba(59,130,246,0.9); color: #fff; }
+.status-rejected { background: rgba(239,68,68,0.9); color: #fff; }
+.status-draft { background: rgba(156,163,175,0.8); color: #fff; }
+.asset-info { padding: 12px; }
+.asset-info h4 { margin: 0 0 4px; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.asset-meta { font-size: 11px; color: rgba(255,255,255,0.4); }
+.asset-actions { padding: 8px 12px 12px; display: flex; gap: 6px; }
+
+.users-list { display: flex; flex-direction: column; gap: 8px; }
+.user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+.user-info { display: flex; align-items: center; gap: 12px; }
+.user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+.user-details .name { font-weight: 500; font-size: 14px; }
+.user-details .email { font-size: 12px; color: rgba(255,255,255,0.4); }
+.user-role { font-size: 11px; padding: 3px 8px; background: rgba(0,212,170,0.2); color: #00D4AA; border-radius: 4px; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.5); }
+.empty-state p { margin: 0; }
+
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+.modal.active { display: flex; }
+.modal-content { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.modal-header h3 { margin: 0; font-size: 18px; }
+.modal-close { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; }
+.modal-body { padding: 24px; }
+.modal-actions { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 12px; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+.form-input { width: 100%; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px; color: #fff; box-sizing: border-box; }
+.form-input:focus { outline: none; border-color: #00D4AA; }
+.form-help { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+.file-drop { border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 30px 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.file-drop:hover, .file-drop.dragover { border-color: #00D4AA; background: rgba(0,212,170,0.05); }
+.file-drop-icon { font-size: 32px; margin-bottom: 8px; }
+.file-drop a { color: #00D4AA; }
+.file-drop-hint { font-size: 11px; color: rgba(255,255,255,0.4); }
+.file-preview { display: flex; align-items: center; justify-content: space-between; background: rgba(0,212,170,0.1); padding: 10px 14px; border-radius: 8px; margin-top: 10px; }
+.file-preview-name { color: #00D4AA; font-size: 13px; }
+.file-preview-clear { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 16px; cursor: pointer; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 6px; font-weight: 500; cursor: pointer; border: none; font-size: 12px; text-decoration: none; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-primary { background: linear-gradient(135deg, #00D4AA, #00B894); color: #000; }
+.btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+.btn-success { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.btn-success:hover { background: #10b981; color: #fff; }
+.btn-danger { background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+.btn-danger:hover { background: #ef4444; color: #fff; }
+.btn-ghost { background: transparent; color: rgba(255,255,255,0.7); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Cards - Click to filter -->
+<div class="stats-row">
+    <div class="stat-card {% if tab == 'all' %}active{% endif %}" onclick="location.href='?tab=all'">
+        <div class="stat-icon">📁</div>
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Total Assets</div>
+    </div>
+    <div class="stat-card pending {% if tab == 'pending' %}active{% endif %}" onclick="location.href='?tab=pending'">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value">{{ stats.pending }}</div>
+        <div class="stat-label">Pending Approval</div>
+    </div>
+    <div class="stat-card success {% if tab == 'approved' %}active{% endif %}" onclick="location.href='?tab=approved'">
+        <div class="stat-icon">✓</div>
+        <div class="stat-value">{{ stats.approved }}</div>
+        <div class="stat-label">Approved</div>
+    </div>
+    <div class="stat-card {% if tab == 'published' %}active{% endif %}" onclick="location.href='?tab=published'">
+        <div class="stat-icon">🚀</div>
+        <div class="stat-value">{{ stats.published }}</div>
+        <div class="stat-label">Published</div>
+    </div>
+</div>
+
+<!-- Pending Approval Section -->
+{% if pending_assets %}
+<div class="section">
+    <div class="section-header">
+        <h3>⏳ Pending Approval <span class="section-badge">{{ pending_assets|length }}</span></h3>
+    </div>
+    <div class="section-content">
+        <div class="assets-grid">
+            {% for asset in pending_assets[:6] %}
+            <div class="asset-card">
+                <div class="asset-preview">
+                    {% if asset.content_type and 'video' in asset.content_type %}
+                    <video src="{{ url_for('static', filename='uploads/' + asset.file_path) if asset.file_path else '' }}" muted></video>
+                    <span class="asset-type">VIDEO</span>
+                    {% else %}
+                    <img src="{{ url_for('static', filename='uploads/' + asset.file_path) if asset.file_path else '' }}" alt="{{ asset.title }}">
+                    <span class="asset-type">IMAGE</span>
+                    {% endif %}
+                    <span class="asset-status status-pending_review">PENDING</span>
+                </div>
+                <div class="asset-info">
+                    <h4>{{ asset.title }}</h4>
+                    <div class="asset-meta">{{ asset.created_at.strftime('%b %d') if asset.created_at else '' }}</div>
+                </div>
+                {% if can_approve %}
+                <div class="asset-actions">
+                    <button class="btn btn-sm btn-success" onclick="approveAsset('{{ asset.uuid }}')">Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="rejectAsset('{{ asset.uuid }}')">Reject</button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if pending_assets|length > 6 %}
+        <div style="text-align: center; margin-top: 16px;">
+            <a href="?tab=pending" class="btn btn-secondary">View All {{ pending_assets|length }} Pending</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Assets Section (filtered by tab) -->
+<div class="section">
+    <div class="section-header">
+        <h3>
+            {% if tab == 'pending' %}⏳ Pending Approval
+            {% elif tab == 'approved' %}✓ Approved Assets
+            {% elif tab == 'published' %}🚀 Published Assets
+            {% else %}📁 All Assets
+            {% endif %}
+        </h3>
+        {% if can_upload %}<button class="btn btn-primary btn-sm" onclick="openUploadModal()">+ Upload</button>{% endif %}
+    </div>
+    <div class="section-content">
+        {% if assets %}
+        <div class="assets-grid">
+            {% for asset in assets %}
+            <div class="asset-card">
+                <div class="asset-preview">
+                    {% if asset.content_type and 'video' in asset.content_type %}
+                    <video src="{{ url_for('static', filename='uploads/' + asset.file_path) if asset.file_path else '' }}" muted></video>
+                    <span class="asset-type">VIDEO</span>
+                    {% else %}
+                    <img src="{{ url_for('static', filename='uploads/' + asset.file_path) if asset.file_path else '' }}" alt="{{ asset.title }}">
+                    <span class="asset-type">IMAGE</span>
+                    {% endif %}
+                    <span class="asset-status status-{{ asset.status|lower }}">{{ asset.status|replace('_', ' ') }}</span>
+                </div>
+                <div class="asset-info">
+                    <h4>{{ asset.title }}</h4>
+                    <div class="asset-meta">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else '' }}</div>
+                </div>
+                {% if can_approve and asset.status == 'PENDING_REVIEW' %}
+                <div class="asset-actions">
+                    <button class="btn btn-sm btn-success" onclick="approveAsset('{{ asset.uuid }}')">Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="rejectAsset('{{ asset.uuid }}')">Reject</button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No assets found</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Users Section -->
+<div class="section">
+    <div class="section-header">
+        <h3>👥 Team Members</h3>
+        {% if can_manage_users %}<button class="btn btn-primary btn-sm" onclick="openAddUserModal()">+ Add User</button>{% endif %}
+    </div>
+    <div class="section-content">
+        {% if users %}
+        <div class="users-list">
+            {% for user in users %}
+            <div class="user-item">
+                <div class="user-info">
+                    <div class="user-avatar">{{ user.name[0] }}</div>
+                    <div class="user-details">
+                        <div class="name">{{ user.name }}</div>
+                        <div class="email">{{ user.email }}</div>
+                    </div>
+                </div>
+                <span class="user-role">{{ user.role|replace('_', ' ')|title }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No team members yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+{% if can_upload %}
+<div class="modal" id="uploadModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Upload Content</h3>
+            <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+        </div>
+        <form action="{{ url_for('admin.retailer_upload') }}" method="POST" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">File *</label>
+                    <div class="file-drop" id="fileDrop" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" name="file" accept="video/*,image/*" required hidden>
+                        <div id="dropPlaceholder">
+                            <div class="file-drop-icon">📤</div>
+                            <p>Drag & drop or <a href="#" onclick="event.preventDefault()">browse</a></p>
+                            <span class="file-drop-hint">MP4, MOV, JPG, PNG</span>
+                        </div>
+                        <div id="filePreview" class="file-preview" style="display:none;">
+                            <span class="file-preview-name" id="fileName"></span>
+                            <button type="button" class="file-preview-clear" onclick="clearFile(event)">&times;</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Title *</label>
+                    <input type="text" name="title" class="form-input" placeholder="Asset title" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-input" rows="2" placeholder="Optional"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-input">
+                        <option value="advertisement">Advertisement</option>
+                        <option value="promotional">Promotional</option>
+                        <option value="informational">Informational</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeUploadModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add User Modal -->
+{% if can_manage_users %}
+<div class="modal" id="addUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Team Member</h3>
+            <button class="modal-close" onclick="closeAddUserModal()">&times;</button>
+        </div>
+        <form id="addUserForm" onsubmit="addUser(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" id="userName" class="form-input" placeholder="John Smith" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input type="email" id="userEmail" class="form-input" placeholder="john@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" id="userPassword" class="form-input" placeholder="Min 8 characters" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select id="userRole" class="form-input">
+                        <option value="retailer_viewer">Viewer</option>
+                        <option value="retailer_uploader">Uploader</option>
+                        <option value="retailer_approver">Approver</option>
+                        <option value="retailer_admin" selected>Admin</option>
+                    </select>
+                    <span class="form-help">Viewer: view only | Uploader: upload | Approver: approve | Admin: full</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeAddUserModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add User</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const retailerUuid = '{{ retailer.uuid }}';
+
+function openUploadModal() { document.getElementById('uploadModal').classList.add('active'); }
+function closeUploadModal() { document.getElementById('uploadModal').classList.remove('active'); }
+function openAddUserModal() { document.getElementById('addUserModal').classList.add('active'); }
+function closeAddUserModal() { document.getElementById('addUserModal').classList.remove('active'); }
+
+const fileDrop = document.getElementById('fileDrop');
+const fileInput = document.getElementById('fileInput');
+if (fileDrop) {
+    fileDrop.addEventListener('dragover', (e) => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+    fileDrop.addEventListener('drop', (e) => {
+        e.preventDefault(); fileDrop.classList.remove('dragover');
+        if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; showFile(e.dataTransfer.files[0]); }
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) showFile(fileInput.files[0]); });
+}
+function showFile(file) {
+    document.getElementById('dropPlaceholder').style.display = 'none';
+    document.getElementById('filePreview').style.display = 'flex';
+    document.getElementById('fileName').textContent = file.name;
+}
+function clearFile(e) {
+    e.stopPropagation(); fileInput.value = '';
+    document.getElementById('dropPlaceholder').style.display = 'block';
+    document.getElementById('filePreview').style.display = 'none';
+}
+
+async function approveAsset(uuid) {
+    if (!confirm('Approve this asset?')) return;
+    try {
+        const res = await fetch('/admin/retailer/assets/' + uuid + '/approve', { method: 'POST' });
+        if (res.ok) location.reload(); else alert('Failed to approve');
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function rejectAsset(uuid) {
+    const reason = prompt('Rejection reason (optional):');
+    if (reason === null) return;
+    try {
+        const res = await fetch('/admin/retailer/assets/' + uuid + '/reject', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+        });
+        if (res.ok) location.reload(); else alert('Failed to reject');
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function addUser(e) {
+    e.preventDefault();
+    const data = {
+        name: document.getElementById('userName').value,
+        email: document.getElementById('userEmail').value,
+        password: document.getElementById('userPassword').value,
+        role: document.getElementById('userRole').value
+    };
+    try {
+        const res = await fetch('/admin/retail-partners/' + retailerUuid + '/users', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        });
+        if (res.ok) location.reload();
+        else { const err = await res.json(); alert(err.error || 'Failed'); }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+document.getElementById('uploadModal')?.addEventListener('click', function(e) { if (e.target === this) closeUploadModal(); });
+document.getElementById('addUserModal')?.addEventListener('click', function(e) { if (e.target === this) closeAddUserModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeUploadModal(); closeAddUserModal(); } });
+</script>
+{% endblock %}

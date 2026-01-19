@@ -1,0 +1,304 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Content Catalog Admin{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Quick Actions */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn span {
+    font-size: 20px;
+}
+
+/* Activity Section */
+.activity-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+}
+
+.activity-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activity-item {
+    padding: 14px 16px;
+    border-left: 3px solid var(--primary);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+    margin-bottom: 12px;
+    transition: all var(--transition-fast);
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+.activity-item:last-child {
+    margin-bottom: 0;
+}
+
+.activity-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.activity-text {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.activity-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(102, 126, 234, 0.1));
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 30px;
+    margin-bottom: 24px;
+}
+
+.hero h2 {
+    font-size: 24px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.hero p {
+    color: var(--text-secondary);
+    font-size: 15px;
+}
+
+/* Two Column Layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Section Headers */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+/* Empty Activity State */
+.empty-activity {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.empty-activity-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.empty-activity p {
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero">
+    <h2>Welcome to Content Catalog Admin</h2>
+    <p>Manage users, organizations, content assets, and approval workflows from one central dashboard.</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">&#9787;</div>
+        <div class="stat-value">{{ stats.total_users }}</div>
+        <div class="stat-label">Total Users</div>
+        <div class="stat-change {% if stats.active_users > 0 %}positive{% else %}neutral{% endif %}">
+            {{ stats.active_users }} active
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#9874;</div>
+        <div class="stat-value">{{ stats.total_organizations }}</div>
+        <div class="stat-label">Organizations</div>
+        <div class="stat-change neutral">
+            {{ stats.active_organizations }} active
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#9733;</div>
+        <div class="stat-value">{{ stats.total_assets }}</div>
+        <div class="stat-label">Content Assets</div>
+        <div class="stat-change {% if stats.published_assets > 0 %}positive{% else %}neutral{% endif %}">
+            {{ stats.published_assets }} published
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#10003;</div>
+        <div class="stat-value">{{ stats.pending_approvals }}</div>
+        <div class="stat-label">Pending Approvals</div>
+        <div class="stat-change {% if stats.pending_approvals > 0 %}negative{% else %}positive{% endif %}">
+            {% if stats.pending_approvals > 0 %}Needs attention{% else %}All clear{% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="glass-card">
+    <div class="section-header">
+        <h3>&#9889; Quick Actions</h3>
+    </div>
+    <div class="quick-actions">
+        <a href="{{ url_for('admin.users') }}" class="action-btn">
+            <span>&#9787;</span>
+            Manage Users
+        </a>
+        <a href="{{ url_for('admin.organizations') }}" class="action-btn">
+            <span>&#9874;</span>
+            Organizations
+        </a>
+        <a href="{{ url_for('admin.approvals') }}" class="action-btn">
+            <span>&#10003;</span>
+            Review Approvals
+        </a>
+        <a href="{{ url_for('admin.invitations') }}" class="action-btn">
+            <span>&#9993;</span>
+            Send Invitation
+        </a>
+    </div>
+</div>
+
+<!-- Dashboard Grid: Activity + Pending Items -->
+<div class="dashboard-grid">
+    <!-- Recent Activity -->
+    <div class="activity-section">
+        <h3>&#128202; Recent Activity</h3>
+        {% if recent_activity %}
+            {% for activity in recent_activity %}
+            <div class="activity-item">
+                <div class="activity-time">{{ activity.time_ago }}</div>
+                <div class="activity-text">{{ activity.description }}</div>
+                {% if activity.user_email %}
+                <div class="activity-meta">by {{ activity.user_email }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-activity">
+                <div class="empty-activity-icon">&#128203;</div>
+                <p>No recent activity to display</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Items Summary -->
+    <div class="activity-section">
+        <h3>&#128276; Pending Items</h3>
+        {% if pending_users or pending_content %}
+            {% for user in pending_users[:5] %}
+            <div class="activity-item">
+                <div class="activity-time">User Approval</div>
+                <div class="activity-text">{{ user.name }}</div>
+                <div class="activity-meta">{{ user.email }} - {{ user.role }}</div>
+            </div>
+            {% endfor %}
+            {% for asset in pending_content[:5] %}
+            <div class="activity-item">
+                <div class="activity-time">Content Review</div>
+                <div class="activity-text">{{ asset.title }}</div>
+                <div class="activity-meta">{{ asset.format or 'Unknown format' }}</div>
+            </div>
+            {% endfor %}
+            {% if (pending_users|length + pending_content|length) > 10 %}
+            <div class="text-center mt-2">
+                <a href="{{ url_for('admin.approvals') }}" class="btn btn-secondary btn-sm">
+                    View All Pending Items
+                </a>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-activity">
+                <div class="empty-activity-icon">&#10004;</div>
+                <p>No pending items - all caught up!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Auto-refresh stats every 60 seconds
+    setTimeout(function() {
+        location.reload();
+    }, 60000);
+</script>
+{% endblock %}

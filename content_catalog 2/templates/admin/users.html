@@ -1,0 +1,1006 @@
+{% extends "admin/base.html" %}
+
+{% block title %}User Management - Content Catalog Admin{% endblock %}
+
+{% block page_title %}User Management{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Filter Section */
+.filter-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.filter-section h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-form {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.filter-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Users Table Section */
+.users-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+}
+
+.users-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.users-header h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.users-count {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Table Styles */
+.users-table-wrapper {
+    overflow-x: auto;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table th {
+    text-align: left;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+}
+
+.users-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.users-table tbody tr {
+    transition: background var(--transition-fast);
+}
+
+.users-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* User Info Cell */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--bg-dark);
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-email {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Role Badge */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.role-badge.super_admin {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.role-badge.admin {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+
+.role-badge.content_manager {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.role-badge.partner {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.role-badge.advertiser {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.role-badge.viewer {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.pending {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+.status-badge.active {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.status-badge.approved {
+    background: var(--info-bg);
+    color: var(--info);
+}
+
+.status-badge.rejected {
+    background: var(--error-bg);
+    color: var(--error);
+}
+
+.status-badge.suspended {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.status-badge.deactivated {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.action-btn.approve {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.action-btn.approve:hover {
+    background: var(--success);
+    color: var(--bg-dark);
+}
+
+.action-btn.reject {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid var(--error);
+}
+
+.action-btn.reject:hover {
+    background: var(--error);
+    color: white;
+}
+
+.action-btn.suspend {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.action-btn.suspend:hover {
+    background: var(--warning);
+    color: var(--bg-dark);
+}
+
+.action-btn.reactivate {
+    background: var(--info-bg);
+    color: var(--info);
+    border: 1px solid var(--info);
+}
+
+.action-btn.reactivate:hover {
+    background: var(--info);
+    color: var(--bg-dark);
+}
+
+.action-btn.view {
+    background: var(--bg-card-hover);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+}
+
+.action-btn.view:hover {
+    background: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Pagination */
+.pagination-section {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.page-btn {
+    padding: 8px 12px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.page-btn:hover:not(.disabled) {
+    background: var(--bg-input);
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
+.page-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--bg-dark);
+}
+
+.page-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    max-width: 480px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    margin-bottom: 20px;
+}
+
+.modal-body p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Status Indicator for Table */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.status-dot.pending { background: var(--warning); }
+.status-dot.active { background: var(--success); }
+.status-dot.approved { background: var(--info); }
+.status-dot.rejected { background: var(--error); }
+.status-dot.suspended { background: #f87171; }
+.status-dot.deactivated { background: var(--text-muted); }
+
+/* Time Ago */
+.time-ago {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">&#9787;</div>
+        <div class="stat-value">{{ stats.total_users }}</div>
+        <div class="stat-label">Total Users</div>
+        <div class="stat-change neutral">All registered users</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#10003;</div>
+        <div class="stat-value">{{ stats.active_users }}</div>
+        <div class="stat-label">Active Users</div>
+        <div class="stat-change positive">Can access the system</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#9203;</div>
+        <div class="stat-value">{{ stats.pending_users }}</div>
+        <div class="stat-label">Pending Approval</div>
+        <div class="stat-change {% if stats.pending_users > 0 %}negative{% else %}positive{% endif %}">
+            {% if stats.pending_users > 0 %}Needs attention{% else %}All clear{% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#9888;</div>
+        <div class="stat-value">{{ stats.suspended_users }}</div>
+        <div class="stat-label">Suspended</div>
+        <div class="stat-change {% if stats.suspended_users > 0 %}negative{% else %}neutral{% endif %}">
+            Temporarily disabled
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <h3>&#128269; Filter Users</h3>
+    <form class="filter-form" method="GET" action="{{ url_for('admin.users') }}">
+        <div class="filter-group">
+            <label>Search</label>
+            <input type="text" name="search" placeholder="Name or email..." value="{{ search_query }}">
+        </div>
+
+        <div class="filter-group">
+            <label>Status</label>
+            <select name="status">
+                <option value="">All Statuses</option>
+                {% for status in valid_statuses %}
+                <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>
+                    {{ status|replace('_', ' ')|title }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label>Role</label>
+            <select name="role">
+                <option value="">All Roles</option>
+                {% for role in valid_roles %}
+                <option value="{{ role }}" {% if role_filter == role %}selected{% endif %}>
+                    {{ role|replace('_', ' ')|title }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Users Table -->
+<div class="users-section">
+    <div class="users-header">
+        <h3>&#9787; Users <span class="users-count">({{ total }} total)</span></h3>
+    </div>
+
+    {% if users %}
+    <div class="users-table-wrapper">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Organization</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr data-user-id="{{ user.id }}">
+                    <td>
+                        <div class="user-info">
+                            <div class="user-avatar">{{ user.name[0] if user.name else '?' }}</div>
+                            <div class="user-details">
+                                <span class="user-name">{{ user.name }}</span>
+                                <span class="user-email">{{ user.email }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-badge {{ user.role }}">
+                            {{ user.role|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge {{ user.status }}">
+                            <span class="status-dot {{ user.status }}"></span>
+                            {{ user.status|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.organization %}
+                            {{ user.organization.name }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="time-ago">{{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'Unknown' }}</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if user.status == 'pending' %}
+                            <button class="action-btn approve" onclick="approveUser({{ user.id }}, '{{ user.name }}')">
+                                Approve
+                            </button>
+                            <button class="action-btn reject" onclick="rejectUser({{ user.id }}, '{{ user.name }}')">
+                                Reject
+                            </button>
+                            {% elif user.status == 'active' or user.status == 'approved' %}
+                            <button class="action-btn suspend" onclick="suspendUser({{ user.id }}, '{{ user.name }}')">
+                                Suspend
+                            </button>
+                            {% elif user.status == 'suspended' or user.status == 'deactivated' %}
+                            <button class="action-btn reactivate" onclick="reactivateUser({{ user.id }}, '{{ user.name }}')">
+                                Reactivate
+                            </button>
+                            {% endif %}
+                            <button class="action-btn view" onclick="viewUser({{ user.id }})">
+                                View
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-section">
+        <div class="pagination-info">
+            Showing {{ (page - 1) * per_page + 1 }} to {{ [page * per_page, total]|min }} of {{ total }} users
+        </div>
+        <div class="pagination-controls">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.users', page=page-1, status=status_filter, role=role_filter, search=search_query, per_page=per_page) }}" class="page-btn">
+                &#8592; Prev
+            </a>
+            {% else %}
+            <span class="page-btn disabled">&#8592; Prev</span>
+            {% endif %}
+
+            {% for p in range([1, page - 2]|max, [total_pages, page + 2]|min + 1) %}
+            <a href="{{ url_for('admin.users', page=p, status=status_filter, role=role_filter, search=search_query, per_page=per_page) }}"
+               class="page-btn {% if p == page %}active{% endif %}">
+                {{ p }}
+            </a>
+            {% endfor %}
+
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.users', page=page+1, status=status_filter, role=role_filter, search=search_query, per_page=per_page) }}" class="page-btn">
+                Next &#8594;
+            </a>
+            {% else %}
+            <span class="page-btn disabled">Next &#8594;</span>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">&#9787;</div>
+        <h3>No users found</h3>
+        <p>{% if search_query or status_filter or role_filter %}Try adjusting your filters{% else %}No users have been registered yet{% endif %}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Reject User</h3>
+            <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Please provide a reason for rejecting <strong id="rejectUserName"></strong>.</p>
+            <div class="form-group">
+                <label class="form-label">Rejection Reason</label>
+                <textarea class="form-textarea" id="rejectReason" rows="3" placeholder="Enter rejection reason..."></textarea>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmReject()">Reject User</button>
+        </div>
+    </div>
+</div>
+
+<!-- View User Modal -->
+<div class="modal-overlay" id="viewModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>User Details</h3>
+            <button class="modal-close" onclick="closeViewModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="viewModalContent">
+            <!-- User details will be loaded here -->
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeViewModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentRejectUserId = null;
+
+    // Approve user
+    async function approveUser(userId, userName) {
+        if (!confirm(`Are you sure you want to approve "${userName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/approvals/${userId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: 'active'
+                })
+            });
+
+            if (response.ok) {
+                showNotification('User approved successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to approve user', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to approve user: ' + error.message, 'error');
+        }
+    }
+
+    // Open reject modal
+    function rejectUser(userId, userName) {
+        currentRejectUserId = userId;
+        document.getElementById('rejectUserName').textContent = userName;
+        document.getElementById('rejectReason').value = '';
+        document.getElementById('rejectModal').classList.add('active');
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.remove('active');
+        currentRejectUserId = null;
+    }
+
+    async function confirmReject() {
+        const reason = document.getElementById('rejectReason').value.trim();
+
+        if (!reason) {
+            showNotification('Please provide a rejection reason', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/approvals/${currentRejectUserId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    reason: reason
+                })
+            });
+
+            if (response.ok) {
+                closeRejectModal();
+                showNotification('User rejected successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to reject user', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to reject user: ' + error.message, 'error');
+        }
+    }
+
+    // Suspend user
+    async function suspendUser(userId, userName) {
+        if (!confirm(`Are you sure you want to suspend "${userName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/suspend`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                showNotification('User suspended successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to suspend user', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to suspend user: ' + error.message, 'error');
+        }
+    }
+
+    // Reactivate user
+    async function reactivateUser(userId, userName) {
+        if (!confirm(`Are you sure you want to reactivate "${userName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}/reactivate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                showNotification('User reactivated successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to reactivate user', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to reactivate user: ' + error.message, 'error');
+        }
+    }
+
+    // View user details
+    async function viewUser(userId) {
+        const content = document.getElementById('viewModalContent');
+        content.innerHTML = '<p class="text-center">Loading...</p>';
+        document.getElementById('viewModal').classList.add('active');
+
+        try {
+            const response = await fetch(`/api/v1/users/${userId}`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const user = await response.json();
+                content.innerHTML = `
+                    <div class="user-detail-card">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light);">
+                            <div class="user-avatar" style="width: 60px; height: 60px; font-size: 20px;">${user.name ? user.name[0] : '?'}</div>
+                            <div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">${user.name || 'Unknown'}</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">${user.email}</div>
+                            </div>
+                        </div>
+                        <div style="display: grid; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Role:</span>
+                                <span class="role-badge ${user.role}">${user.role.replace('_', ' ')}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Status:</span>
+                                <span class="status-badge ${user.status}">${user.status.replace('_', ' ')}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Phone:</span>
+                                <span style="color: var(--text-primary);">${user.phone || '-'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">2FA Enabled:</span>
+                                <span style="color: var(--text-primary);">${user.two_factor_enabled ? 'Yes' : 'No'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Created:</span>
+                                <span style="color: var(--text-primary);">${user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Last Login:</span>
+                                <span style="color: var(--text-primary);">${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</span>
+                            </div>
+                            ${user.rejection_reason ? `
+                            <div style="margin-top: 12px; padding: 12px; background: var(--error-bg); border-radius: 8px;">
+                                <span style="color: var(--error); font-weight: 600;">Rejection Reason:</span>
+                                <p style="color: var(--text-primary); margin-top: 6px;">${user.rejection_reason}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = '<p class="text-center text-error">Failed to load user details</p>';
+            }
+        } catch (error) {
+            content.innerHTML = '<p class="text-center text-error">Failed to load user details</p>';
+        }
+    }
+
+    function closeViewModal() {
+        document.getElementById('viewModal').classList.remove('active');
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `flash-message ${type}`;
+        notification.innerHTML = `
+            <span class="flash-icon">${type === 'success' ? '&#10003;' : type === 'error' ? '&#10007;' : '&#9888;'}</span>
+            <span class="flash-text">${message}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+        `;
+
+        // Add to page
+        let container = document.querySelector('.flash-messages');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'flash-messages';
+            document.querySelector('.page-content').prepend(container);
+        }
+        container.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100px)';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    // Close modals on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeRejectModal();
+            closeViewModal();
+        }
+    });
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRejectModal();
+                closeViewModal();
+            }
+        });
+    });
+</script>
+{% endblock %}

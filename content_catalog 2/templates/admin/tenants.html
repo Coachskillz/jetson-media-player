@@ -1,0 +1,799 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Tenant Management - Content Catalog Admin{% endblock %}
+
+{% block page_title %}Tenant Management{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Filter Section */
+.filter-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.filter-section h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-form {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.filter-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Tenants Table Section */
+.tenants-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+}
+
+.tenants-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tenants-header h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.tenants-count {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Table Styles */
+.tenants-table-wrapper {
+    overflow-x: auto;
+}
+
+.tenants-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tenants-table th {
+    text-align: left;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+}
+
+.tenants-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.tenants-table tbody tr {
+    transition: background var(--transition-fast);
+}
+
+.tenants-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tenants-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Tenant Info Cell */
+.tenant-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tenant-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--bg-dark);
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.tenant-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.tenant-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tenant-slug {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: monospace;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.active {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.status-badge.inactive {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.action-btn.activate {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.action-btn.activate:hover {
+    background: var(--success);
+    color: var(--bg-dark);
+}
+
+.action-btn.deactivate {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.action-btn.deactivate:hover {
+    background: var(--warning);
+    color: var(--bg-dark);
+}
+
+.action-btn.view {
+    background: var(--bg-card-hover);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+}
+
+.action-btn.view:hover {
+    background: var(--border-medium);
+    color: var(--text-primary);
+}
+
+.action-btn.edit {
+    background: var(--info-bg);
+    color: var(--info);
+    border: 1px solid var(--info);
+}
+
+.action-btn.edit:hover {
+    background: var(--info);
+    color: var(--bg-dark);
+}
+
+/* Pagination */
+.pagination-section {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.page-btn {
+    padding: 8px 12px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.page-btn:hover:not(.disabled) {
+    background: var(--bg-input);
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
+.page-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--bg-dark);
+}
+
+.page-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    max-width: 480px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    margin-bottom: 20px;
+}
+
+.modal-body p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Status Indicator for Table */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.status-dot.active { background: var(--success); }
+.status-dot.inactive { background: var(--text-muted); }
+
+/* Time Ago */
+.time-ago {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Description Cell */
+.description-cell {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">&#9874;</div>
+        <div class="stat-value">{{ stats.total_tenants }}</div>
+        <div class="stat-label">Total Tenants</div>
+        <div class="stat-change neutral">All registered tenants</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#10003;</div>
+        <div class="stat-value">{{ stats.active_tenants }}</div>
+        <div class="stat-label">Active Tenants</div>
+        <div class="stat-change positive">Currently operational</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#10007;</div>
+        <div class="stat-value">{{ stats.inactive_tenants }}</div>
+        <div class="stat-label">Inactive Tenants</div>
+        <div class="stat-change {% if stats.inactive_tenants > 0 %}negative{% else %}positive{% endif %}">
+            {% if stats.inactive_tenants > 0 %}Disabled{% else %}All active{% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">&#9733;</div>
+        <div class="stat-value">{{ stats.total_assets }}</div>
+        <div class="stat-label">Total Assets</div>
+        <div class="stat-change neutral">Across all tenants</div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <h3>&#128269; Filter Tenants</h3>
+    <form class="filter-form" method="GET" action="{{ url_for('admin.tenants') }}">
+        <div class="filter-group">
+            <label>Search</label>
+            <input type="text" name="search" placeholder="Name or slug..." value="{{ search_query }}">
+        </div>
+
+        <div class="filter-group">
+            <label>Status</label>
+            <select name="status">
+                <option value="">All Statuses</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            <a href="{{ url_for('admin.tenants') }}" class="btn btn-ghost btn-sm">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Tenants Table -->
+<div class="tenants-section">
+    <div class="tenants-header">
+        <h3>&#9874; Tenants <span class="tenants-count">({{ total }} total)</span></h3>
+    </div>
+
+    {% if tenants %}
+    <div class="tenants-table-wrapper">
+        <table class="tenants-table">
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tenant in tenants %}
+                <tr data-tenant-id="{{ tenant.id }}">
+                    <td>
+                        <div class="tenant-info">
+                            <div class="tenant-avatar">{{ tenant.name[0] if tenant.name else '?' }}</div>
+                            <div class="tenant-details">
+                                <span class="tenant-name">{{ tenant.name }}</span>
+                                <span class="tenant-slug">{{ tenant.slug }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="description-cell" title="{{ tenant.description or '' }}">
+                            {{ tenant.description or '-' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge {{ 'active' if tenant.is_active else 'inactive' }}">
+                            <span class="status-dot {{ 'active' if tenant.is_active else 'inactive' }}"></span>
+                            {{ 'Active' if tenant.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="time-ago">{{ tenant.created_at.strftime('%b %d, %Y') if tenant.created_at else 'Unknown' }}</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if tenant.is_active %}
+                            <button class="action-btn deactivate" onclick="deactivateTenant({{ tenant.id }}, '{{ tenant.name }}')">
+                                Deactivate
+                            </button>
+                            {% else %}
+                            <button class="action-btn activate" onclick="activateTenant({{ tenant.id }}, '{{ tenant.name }}')">
+                                Activate
+                            </button>
+                            {% endif %}
+                            <button class="action-btn view" onclick="viewTenant({{ tenant.id }})">
+                                View
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-section">
+        <div class="pagination-info">
+            Showing {{ (page - 1) * per_page + 1 }} to {{ [page * per_page, total]|min }} of {{ total }} tenants
+        </div>
+        <div class="pagination-controls">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.tenants', page=page-1, status=status_filter, search=search_query, per_page=per_page) }}" class="page-btn">
+                &#8592; Prev
+            </a>
+            {% else %}
+            <span class="page-btn disabled">&#8592; Prev</span>
+            {% endif %}
+
+            {% for p in range([1, page - 2]|max, [total_pages, page + 2]|min + 1) %}
+            <a href="{{ url_for('admin.tenants', page=p, status=status_filter, search=search_query, per_page=per_page) }}"
+               class="page-btn {% if p == page %}active{% endif %}">
+                {{ p }}
+            </a>
+            {% endfor %}
+
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.tenants', page=page+1, status=status_filter, search=search_query, per_page=per_page) }}" class="page-btn">
+                Next &#8594;
+            </a>
+            {% else %}
+            <span class="page-btn disabled">Next &#8594;</span>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">&#9874;</div>
+        <h3>No tenants found</h3>
+        <p>{% if search_query or status_filter %}Try adjusting your filters{% else %}No tenants have been created yet{% endif %}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- View Tenant Modal -->
+<div class="modal-overlay" id="viewModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Tenant Details</h3>
+            <button class="modal-close" onclick="closeViewModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="viewModalContent">
+            <!-- Tenant details will be loaded here -->
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeViewModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Activate tenant
+    async function activateTenant(tenantId, tenantName) {
+        if (!confirm(`Are you sure you want to activate "${tenantName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/tenants/${tenantId}/activate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                showNotification('Tenant activated successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to activate tenant', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to activate tenant: ' + error.message, 'error');
+        }
+    }
+
+    // Deactivate tenant
+    async function deactivateTenant(tenantId, tenantName) {
+        if (!confirm(`Are you sure you want to deactivate "${tenantName}"? This will affect all content and users within this tenant.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/tenants/${tenantId}/deactivate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                showNotification('Tenant deactivated successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to deactivate tenant', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to deactivate tenant: ' + error.message, 'error');
+        }
+    }
+
+    // View tenant details
+    async function viewTenant(tenantId) {
+        const content = document.getElementById('viewModalContent');
+        content.innerHTML = '<p class="text-center">Loading...</p>';
+        document.getElementById('viewModal').classList.add('active');
+
+        try {
+            const response = await fetch(`/api/v1/tenants/${tenantId}`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const tenant = await response.json();
+                content.innerHTML = `
+                    <div class="tenant-detail-card">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light);">
+                            <div class="tenant-avatar" style="width: 60px; height: 60px; font-size: 20px;">${tenant.name ? tenant.name[0] : '?'}</div>
+                            <div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">${tenant.name || 'Unknown'}</div>
+                                <div style="font-size: 13px; color: var(--text-muted); font-family: monospace;">${tenant.slug}</div>
+                            </div>
+                        </div>
+                        <div style="display: grid; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">UUID:</span>
+                                <span style="color: var(--text-primary); font-family: monospace; font-size: 12px;">${tenant.uuid || '-'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Status:</span>
+                                <span class="status-badge ${tenant.is_active ? 'active' : 'inactive'}">${tenant.is_active ? 'Active' : 'Inactive'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Created:</span>
+                                <span style="color: var(--text-primary);">${tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : '-'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Updated:</span>
+                                <span style="color: var(--text-primary);">${tenant.updated_at ? new Date(tenant.updated_at).toLocaleString() : 'Never'}</span>
+                            </div>
+                            ${tenant.description ? `
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                <span style="color: var(--text-muted); font-weight: 600;">Description:</span>
+                                <p style="color: var(--text-primary); margin-top: 6px;">${tenant.description}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = '<p class="text-center text-error">Failed to load tenant details</p>';
+            }
+        } catch (error) {
+            content.innerHTML = '<p class="text-center text-error">Failed to load tenant details</p>';
+        }
+    }
+
+    function closeViewModal() {
+        document.getElementById('viewModal').classList.remove('active');
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `flash-message ${type}`;
+        notification.innerHTML = `
+            <span class="flash-icon">${type === 'success' ? '&#10003;' : type === 'error' ? '&#10007;' : '&#9888;'}</span>
+            <span class="flash-text">${message}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">&#10005;</button>
+        `;
+
+        // Add to page
+        let container = document.querySelector('.flash-messages');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'flash-messages';
+            document.querySelector('.page-content').prepend(container);
+        }
+        container.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100px)';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    // Close modals on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeViewModal();
+        }
+    });
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeViewModal();
+            }
+        });
+    });
+</script>
+{% endblock %}

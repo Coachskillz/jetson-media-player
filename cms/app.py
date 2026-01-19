@@ -244,6 +244,14 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.debug("Layouts web blueprint not available yet")
         app.logger.debug('Content blueprint not available yet')
 
+    # Thea Content Catalog proxy blueprint
+    try:
+        from cms.routes import thea_bp
+        app.register_blueprint(thea_bp, url_prefix='/api/v1/thea')
+        app.logger.info('Registered thea blueprint at /api/v1/thea')
+    except ImportError:
+        app.logger.debug('Thea blueprint not available yet')
+
     try:
         from cms.routes import playlists_bp
         app.register_blueprint(playlists_bp, url_prefix='/api/v1/playlists')

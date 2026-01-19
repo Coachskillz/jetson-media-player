@@ -1,0 +1,612 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Approvals - Content Catalog Admin{% endblock %}
+
+{% block page_title %}Approval Queue{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 16px;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: var(--bg-card);
+    border-color: var(--border-light);
+    color: var(--primary);
+}
+
+.tab-badge {
+    background: var(--primary);
+    color: var(--bg-dark);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tab-btn:not(.active) .tab-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+}
+
+/* Approval Cards */
+.approval-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.approval-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.approval-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.3s;
+}
+
+.approval-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(6, 182, 212, 0.1);
+}
+
+.approval-card:last-child {
+    margin-bottom: 0;
+}
+
+.approval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.approval-info h4 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.approval-info .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.approval-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.approval-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.approval-actions .btn {
+    flex: 1;
+    padding: 10px 16px;
+}
+
+/* Status Badges */
+.role-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-super_admin { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.role-admin { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.role-content_manager { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.role-partner { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.role-advertiser { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.role-viewer { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+/* Content Preview */
+.content-preview {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.content-thumbnail {
+    width: 80px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.content-details {
+    flex: 1;
+}
+
+.content-title {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.content-filename {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+}
+
+/* Recent Activity */
+.recent-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-left: 3px solid var(--primary);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+    margin-bottom: 12px;
+}
+
+.recent-item:last-child {
+    margin-bottom: 0;
+}
+
+.recent-item.approved {
+    border-left-color: var(--success);
+}
+
+.recent-item.rejected {
+    border-left-color: var(--danger);
+}
+
+.recent-icon {
+    font-size: 24px;
+}
+
+.recent-content {
+    flex: 1;
+}
+
+.recent-action {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.recent-details {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.recent-time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.pagination a, .pagination span {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.pagination a {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+}
+
+.pagination a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.pagination .active {
+    background: var(--primary);
+    color: var(--bg-dark);
+    font-weight: 600;
+}
+
+.pagination .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Tab Navigation -->
+<div class="tab-nav">
+    <a href="{{ url_for('admin.approvals', tab='users') }}"
+       class="tab-btn {% if active_tab == 'users' %}active{% endif %}">
+        &#9787; User Approvals
+        <span class="tab-badge">{{ pending_users_count }}</span>
+    </a>
+    <a href="{{ url_for('admin.approvals', tab='content') }}"
+       class="tab-btn {% if active_tab == 'content' %}active{% endif %}">
+        &#128193; Content Approvals
+        <span class="tab-badge">{{ pending_content_count }}</span>
+    </a>
+    <a href="{{ url_for('admin.approvals', tab='recent') }}"
+       class="tab-btn {% if active_tab == 'recent' %}active{% endif %}">
+        &#128337; Recent Activity
+    </a>
+</div>
+
+{% if active_tab == 'users' %}
+<!-- User Approvals Tab -->
+<div class="approval-section animate-fade-in">
+    <h3>&#9787; Pending User Approvals</h3>
+
+    {% if pending_users %}
+        {% for user in pending_users %}
+        <div class="approval-card" data-user-id="{{ user.id }}">
+            <div class="approval-header">
+                <div class="approval-info">
+                    <h4>{{ user.name }}</h4>
+                    <div class="subtitle">{{ user.email }}</div>
+                </div>
+                <span class="role-badge role-{{ user.role }}">{{ user.role|replace('_', ' ') }}</span>
+            </div>
+
+            <div class="approval-meta">
+                <span>&#127970; {{ user.organization.name if user.organization else 'No Organization' }}</span>
+                <span>&#128197; Registered: {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'Unknown' }}</span>
+            </div>
+
+            <div class="approval-actions">
+                <button class="btn btn-success" onclick="approveUser({{ user.id }})">
+                    &#10003; Approve
+                </button>
+                <button class="btn btn-danger" onclick="rejectUser({{ user.id }})">
+                    &#10007; Reject
+                </button>
+                <button class="btn btn-secondary" onclick="viewUserDetails({{ user.id }})">
+                    &#128065; Details
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">&#10004;</div>
+            <h3>No Pending User Approvals</h3>
+            <p>All user approval requests have been processed.</p>
+        </div>
+    {% endif %}
+</div>
+
+{% elif active_tab == 'content' %}
+<!-- Content Approvals Tab -->
+<div class="approval-section animate-fade-in">
+    <h3>&#128193; Pending Content Approvals</h3>
+
+    {% if pending_content %}
+        {% for asset in pending_content %}
+        <div class="approval-card" data-asset-id="{{ asset.id }}">
+            <div class="content-preview">
+                <div class="content-thumbnail">
+                    {% if asset.format in ['mp4', 'mov', 'avi', 'webm'] %}
+                        &#127909;
+                    {% elif asset.format in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
+                        &#128444;
+                    {% elif asset.format in ['pdf'] %}
+                        &#128196;
+                    {% else %}
+                        &#128193;
+                    {% endif %}
+                </div>
+                <div class="content-details">
+                    <div class="content-title">{{ asset.title }}</div>
+                    <div class="content-filename">{{ asset.filename }}</div>
+                </div>
+            </div>
+
+            <div class="approval-meta">
+                <span>&#128196; {{ asset.format|upper if asset.format else 'Unknown' }}</span>
+                <span>&#128290; {{ (asset.file_size / 1024 / 1024)|round(1) }} MB</span>
+                <span>&#9787; Uploaded by: {{ asset.uploader.name if asset.uploader else 'Unknown' }}</span>
+                <span>&#128197; {{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
+            </div>
+
+            {% if asset.description %}
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">
+                {{ asset.description[:150] }}{% if asset.description|length > 150 %}...{% endif %}
+            </p>
+            {% endif %}
+
+            <div class="approval-actions">
+                <button class="btn btn-success" onclick="approveContent({{ asset.id }})">
+                    &#10003; Approve
+                </button>
+                <button class="btn btn-danger" onclick="rejectContent({{ asset.id }})">
+                    &#10007; Reject
+                </button>
+                <button class="btn btn-secondary" onclick="previewContent('{{ asset.uuid }}')">
+                    &#128065; Preview
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">&#10004;</div>
+            <h3>No Pending Content Approvals</h3>
+            <p>All content approval requests have been processed.</p>
+        </div>
+    {% endif %}
+</div>
+
+{% else %}
+<!-- Recent Activity Tab -->
+<div class="approval-section animate-fade-in">
+    <h3>&#128337; Recent Approval Activity</h3>
+
+    {% if recent_approvals %}
+        {% for item in recent_approvals %}
+        <div class="recent-item {% if 'approved' in item.action %}approved{% elif 'rejected' in item.action %}rejected{% endif %}">
+            <div class="recent-icon">
+                {% if 'approved' in item.action %}&#10003;
+                {% elif 'rejected' in item.action %}&#10007;
+                {% else %}&#128276;
+                {% endif %}
+            </div>
+            <div class="recent-content">
+                <div class="recent-action">{{ item.description }}</div>
+                <div class="recent-details">
+                    {% if item.resource_type %}{{ item.resource_type }}{% endif %}
+                    {% if item.resource_id %}#{{ item.resource_id }}{% endif %}
+                    by {{ item.user_email or 'System' }}
+                </div>
+            </div>
+            <div class="recent-time">{{ item.time_ago }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">&#128203;</div>
+            <h3>No Recent Activity</h3>
+            <p>Approval activity will appear here once processing begins.</p>
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="{{ url_for('admin.approvals', tab=active_tab, page=page-1) }}">&laquo; Prev</a>
+    {% else %}
+        <span class="disabled">&laquo; Prev</span>
+    {% endif %}
+
+    {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+            <span class="active">{{ p }}</span>
+        {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+            <a href="{{ url_for('admin.approvals', tab=active_tab, page=p) }}">{{ p }}</a>
+        {% elif p == 4 or p == total_pages - 3 %}
+            <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+        <a href="{{ url_for('admin.approvals', tab=active_tab, page=page+1) }}">Next &raquo;</a>
+    {% else %}
+        <span class="disabled">Next &raquo;</span>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Approve user
+function approveUser(userId) {
+    if (!confirm('Approve this user? They will gain access to the system.')) {
+        return;
+    }
+
+    fetch('/api/v1/admin/users/' + userId + '/approve', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            return response.json().then(data => {
+                alert('Error: ' + (data.error || 'Failed to approve user'));
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error approving user: ' + error.message);
+    });
+}
+
+// Reject user
+function rejectUser(userId) {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) {
+        return;
+    }
+
+    fetch('/api/v1/admin/users/' + userId + '/reject', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            return response.json().then(data => {
+                alert('Error: ' + (data.error || 'Failed to reject user'));
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error rejecting user: ' + error.message);
+    });
+}
+
+// View user details
+function viewUserDetails(userId) {
+    window.location.href = '/admin/users?search=' + userId;
+}
+
+// Approve content
+function approveContent(assetId) {
+    if (!confirm('Approve this content asset? It will be available for publishing.')) {
+        return;
+    }
+
+    fetch('/api/v1/admin/content/' + assetId + '/approve', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            return response.json().then(data => {
+                alert('Error: ' + (data.error || 'Failed to approve content'));
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error approving content: ' + error.message);
+    });
+}
+
+// Reject content
+function rejectContent(assetId) {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) {
+        return;
+    }
+
+    fetch('/api/v1/admin/content/' + assetId + '/reject', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            return response.json().then(data => {
+                alert('Error: ' + (data.error || 'Failed to reject content'));
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error rejecting content: ' + error.message);
+    });
+}
+
+// Preview content
+function previewContent(assetUuid) {
+    // Open preview in new window/modal
+    alert('Content preview coming soon. Asset UUID: ' + assetUuid);
+}
+</script>
+{% endblock %}

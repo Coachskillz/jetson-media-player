@@ -13,14 +13,24 @@ Blueprint for content management API endpoints:
 - GET /synced: List synced content with filters
 
 All endpoints are prefixed with /api/v1/content when registered with the app.
+
+Thea Content Catalog Proxy Blueprint (thea_bp):
+- GET /approved-assets: Proxy to Content Catalog for browsing approved assets
+- POST /checkout/<asset_id>: Checkout asset from Content Catalog with hash verification
+
+The thea_bp is registered at /api/v1/thea for CMS integration with Thea Content Catalog.
 """
 
+import hashlib
 import os
 import uuid
 from pathlib import Path
 
 from flask import Blueprint, request, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
+
+import requests
+from requests.exceptions import RequestException, Timeout, ConnectionError as ReqConnectionError
 
 from cms.models import db, Content, Network, ContentStatus
 from cms.utils.auth import login_required
@@ -34,6 +44,9 @@ from cms.services.content_sync_service import (
 
 # Create content blueprint
 content_bp = Blueprint('content', __name__)
+
+# Create Thea integration blueprint for proxying requests to Content Catalog
+thea_bp = Blueprint('thea', __name__)
 
 
 def allowed_file(filename):
@@ -656,3 +669,504 @@ def sync_content():
             'error': 'Content sync failed',
             'message': str(e)
         }), 500
+
+
+# =============================================================================
+# Thea Content Catalog Proxy Endpoints
+# =============================================================================
+
+# Request timeout settings (in seconds)
+THEA_REQUEST_TIMEOUT = 30
+THEA_CONNECT_TIMEOUT = 10
+
+
+def get_content_catalog_url():
+    """
+    Get the Content Catalog (Thea) base URL from configuration.
+
+    Returns:
+        str: Content Catalog base URL
+    """
+    return current_app.config.get('CONTENT_CATALOG_URL', 'http://localhost:5003')
+
+
+@thea_bp.route('/approved-assets', methods=['GET'])
+def list_approved_assets():
+    """
+    Proxy endpoint to fetch approved assets from Content Catalog (Thea).
+
+    This endpoint proxies requests to the Content Catalog's /api/v1/approved-assets
+    endpoint, allowing the CMS to browse approved assets available for checkout
+    and import.
+
+    Query Parameters:
+        page: Page number (default: 1)
+        per_page: Items per page (default: 20, max: 100)
+        organization_id: Filter by organization ID
+        category: Filter by category
+        format: Filter by file format (e.g., mp4, jpg)
+        search: Search term for title/description
+
+    Returns:
+        200: List of approved assets
+            {
+                "assets": [
+                    {
+                        "uuid": "asset-uuid",
+                        "title": "Asset Title",
+                        "description": "Asset description",
+                        "filename": "file.mp4",
+                        "format": "mp4",
+                        "file_size": 52428800,
+                        "file_hash": "sha256:...",
+                        "organization_id": 1,
+                        "organization_name": "Organization",
+                        "category": "Category Name",
+                        "status": "approved",
+                        "approved_at": "2024-01-15T10:00:00Z",
+                        "download_url": "/api/v1/assets/{uuid}/download"
+                    },
+                    ...
+                ],
+                "count": 20,
+                "total": 150,
+                "page": 1,
+                "pages": 8
+            }
+        503: Content Catalog service unavailable
+            {
+                "error": "Content Catalog service unavailable",
+                "message": "error details",
+                "catalog_url": "http://localhost:5003"
+            }
+        502: Bad Gateway - upstream error
+            {
+                "error": "Bad gateway",
+                "message": "error details"
+            }
+    """
+    # Build request parameters from incoming query string
+    params = {}
+
+    # Pagination parameters
+    page = request.args.get('page')
+    if page:
+        try:
+            params['page'] = int(page)
+        except ValueError:
+            return jsonify({
+                'error': 'Invalid page parameter: must be an integer'
+            }), 400
+
+    per_page = request.args.get('per_page')
+    if per_page:
+        try:
+            per_page_int = int(per_page)
+            # Enforce maximum
+            params['per_page'] = min(per_page_int, 100)
+        except ValueError:
+            return jsonify({
+                'error': 'Invalid per_page parameter: must be an integer'
+            }), 400
+
+    # Filter parameters
+    if request.args.get('organization_id'):
+        params['organization_id'] = request.args.get('organization_id')
+
+    if request.args.get('category'):
+        params['category'] = request.args.get('category')
+
+    if request.args.get('format'):
+        params['format'] = request.args.get('format')
+
+    if request.args.get('search'):
+        params['search'] = request.args.get('search')
+
+    # Build URL to Content Catalog
+    catalog_url = get_content_catalog_url()
+    url = f"{catalog_url}/api/v1/approved-assets"
+
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            timeout=(THEA_CONNECT_TIMEOUT, THEA_REQUEST_TIMEOUT),
+        )
+
+        # Pass through the response from Content Catalog
+        if response.status_code == 200:
+            return jsonify(response.json()), 200
+        else:
+            # Forward error response from Content Catalog
+            try:
+                error_data = response.json()
+            except ValueError:
+                error_data = {'message': response.text}
+
+            return jsonify({
+                'error': 'Content Catalog returned an error',
+                'status_code': response.status_code,
+                'details': error_data
+            }), response.status_code
+
+    except ReqConnectionError:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': f'Cannot connect to Content Catalog at {catalog_url}',
+            'catalog_url': catalog_url
+        }), 503
+
+    except Timeout:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': 'Request to Content Catalog timed out',
+            'catalog_url': catalog_url
+        }), 503
+
+    except RequestException as e:
+        return jsonify({
+            'error': 'Bad gateway',
+            'message': f'Request to Content Catalog failed: {str(e)}'
+        }), 502
+
+
+# Download timeout settings (larger for file downloads)
+THEA_DOWNLOAD_TIMEOUT = 120
+
+
+def calculate_sha256(file_path):
+    """
+    Calculate SHA256 hash of a file.
+
+    Args:
+        file_path: Path to the file to hash
+
+    Returns:
+        str: Hexadecimal SHA256 hash string
+    """
+    sha256_hash = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        # Read in chunks to handle large files efficiently
+        for chunk in iter(lambda: f.read(8192), b''):
+            sha256_hash.update(chunk)
+    return sha256_hash.hexdigest()
+
+
+@thea_bp.route('/checkout/<asset_id>', methods=['POST'])
+@login_required
+def checkout_asset(asset_id):
+    """
+    Checkout an asset from Thea Content Catalog, download, verify hash, and import.
+
+    This endpoint performs a full checkout workflow:
+    1. Fetches asset metadata from Content Catalog
+    2. Downloads the file from Content Catalog
+    3. Verifies the SHA256 hash matches the expected checksum
+    4. Saves the file to cms/uploads/trusted/ directory
+    5. Creates a Content record in the CMS database
+
+    Args:
+        asset_id: The UUID of the asset in Content Catalog (Thea)
+
+    Request Body (optional):
+        {
+            "network_id": "uuid" (optional) - Network to assign the imported content to
+        }
+
+    Returns:
+        201: Asset checked out and imported successfully
+            {
+                "message": "Asset checked out and imported successfully",
+                "content": {
+                    "id": "uuid",
+                    "filename": "stored-filename.mp4",
+                    "original_name": "my-video.mp4",
+                    "mime_type": "video/mp4",
+                    "file_size": 52428800,
+                    "created_at": "2024-01-15T10:00:00Z"
+                },
+                "source_asset_uuid": "thea-asset-uuid",
+                "hash_verified": true,
+                "hash": "sha256:abc123..."
+            }
+        400: Invalid asset_id format or hash verification failed
+            {
+                "error": "error message"
+            }
+        404: Asset not found in Content Catalog
+            {
+                "error": "Asset not found"
+            }
+        503: Content Catalog service unavailable
+            {
+                "error": "Content Catalog service unavailable",
+                "message": "error details"
+            }
+        502: Bad Gateway - download failed
+            {
+                "error": "Bad gateway",
+                "message": "error details"
+            }
+    """
+    # Validate asset_id format (UUID should be 36 chars)
+    if not isinstance(asset_id, str) or len(asset_id) > 64:
+        return jsonify({
+            'error': 'Invalid asset_id format'
+        }), 400
+
+    # Parse optional network_id from request body
+    data = request.get_json(silent=True) or {}
+    network_id = data.get('network_id')
+
+    # Validate network_id if provided
+    if network_id:
+        network = db.session.get(Network, network_id)
+        if not network:
+            return jsonify({
+                'error': f'Network with id {network_id} not found'
+            }), 400
+
+    catalog_url = get_content_catalog_url()
+
+    # Step 1: Fetch asset metadata from Content Catalog
+    asset_url = f"{catalog_url}/api/v1/assets/{asset_id}"
+
+    try:
+        response = requests.get(
+            asset_url,
+            timeout=(THEA_CONNECT_TIMEOUT, THEA_REQUEST_TIMEOUT),
+        )
+
+        if response.status_code == 404:
+            return jsonify({
+                'error': 'Asset not found in Content Catalog'
+            }), 404
+
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+            except ValueError:
+                error_data = {'message': response.text}
+
+            return jsonify({
+                'error': 'Failed to fetch asset metadata',
+                'status_code': response.status_code,
+                'details': error_data
+            }), response.status_code
+
+        asset_data = response.json()
+
+    except ReqConnectionError:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': f'Cannot connect to Content Catalog at {catalog_url}',
+            'catalog_url': catalog_url
+        }), 503
+
+    except Timeout:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': 'Request to Content Catalog timed out',
+            'catalog_url': catalog_url
+        }), 503
+
+    except RequestException as e:
+        return jsonify({
+            'error': 'Bad gateway',
+            'message': f'Request to Content Catalog failed: {str(e)}'
+        }), 502
+
+    # Extract asset metadata
+    asset_uuid = asset_data.get('uuid')
+    asset_filename = asset_data.get('filename', 'unknown')
+    asset_title = asset_data.get('title', 'Untitled')
+    asset_checksum = asset_data.get('checksum')
+    asset_file_size = asset_data.get('file_size')
+    asset_format = asset_data.get('format', '')
+    asset_duration = asset_data.get('duration')
+    asset_resolution = asset_data.get('resolution')
+    asset_status = asset_data.get('status')
+
+    # Check if asset is approved or published
+    if asset_status not in ['approved', 'published']:
+        return jsonify({
+            'error': f"Cannot checkout asset: status is '{asset_status}'. Only approved or published assets can be checked out."
+        }), 400
+
+    # Step 2: Download the file from Content Catalog
+    download_url = f"{catalog_url}/api/v1/assets/{asset_id}/download"
+
+    # Prepare trusted uploads directory
+    uploads_path = current_app.config.get('UPLOADS_PATH')
+    if uploads_path is None:
+        return jsonify({'error': 'Upload path not configured'}), 500
+
+    trusted_path = Path(uploads_path) / 'trusted'
+    trusted_path.mkdir(parents=True, exist_ok=True)
+
+    # Generate unique filename for local storage
+    file_ext = asset_filename.rsplit('.', 1)[1].lower() if '.' in asset_filename else ''
+    unique_filename = f"{uuid.uuid4()}.{file_ext}" if file_ext else str(uuid.uuid4())
+    local_file_path = trusted_path / unique_filename
+
+    try:
+        # Stream download to handle large files
+        with requests.get(
+            download_url,
+            timeout=(THEA_CONNECT_TIMEOUT, THEA_DOWNLOAD_TIMEOUT),
+            stream=True
+        ) as download_response:
+
+            if download_response.status_code == 404:
+                return jsonify({
+                    'error': 'Asset file not found in Content Catalog'
+                }), 404
+
+            if download_response.status_code != 200:
+                return jsonify({
+                    'error': 'Failed to download asset file',
+                    'status_code': download_response.status_code
+                }), download_response.status_code
+
+            # Write file to disk in chunks
+            with open(local_file_path, 'wb') as f:
+                for chunk in download_response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+
+    except ReqConnectionError:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': f'Cannot connect to Content Catalog at {catalog_url} for download',
+            'catalog_url': catalog_url
+        }), 503
+
+    except Timeout:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': 'Download from Content Catalog timed out',
+            'catalog_url': catalog_url
+        }), 503
+
+    except RequestException as e:
+        # Clean up partial download
+        try:
+            if local_file_path.exists():
+                os.remove(str(local_file_path))
+        except OSError:
+            pass
+        return jsonify({
+            'error': 'Bad gateway',
+            'message': f'Download from Content Catalog failed: {str(e)}'
+        }), 502
+
+    # Step 3: Calculate and verify hash
+    calculated_hash = calculate_sha256(str(local_file_path))
+    hash_verified = True
+    hash_mismatch_error = None
+
+    if asset_checksum:
+        # Normalize checksum format (may or may not have sha256: prefix)
+        expected_hash = asset_checksum
+        if expected_hash.startswith('sha256:'):
+            expected_hash = expected_hash[7:]
+
+        if calculated_hash.lower() != expected_hash.lower():
+            hash_verified = False
+            hash_mismatch_error = (
+                f"Hash verification failed. Expected: {expected_hash}, "
+                f"Calculated: {calculated_hash}"
+            )
+            # Clean up the downloaded file
+            try:
+                os.remove(str(local_file_path))
+            except OSError:
+                pass
+            return jsonify({
+                'error': 'Hash verification failed',
+                'message': hash_mismatch_error,
+                'expected_hash': expected_hash,
+                'calculated_hash': calculated_hash
+            }), 400
+
+    # Get actual file size
+    actual_file_size = os.path.getsize(str(local_file_path))
+
+    # Determine MIME type
+    mime_type = get_mime_type(asset_filename)
+
+    # Parse dimensions from resolution (e.g., "1920x1080")
+    width = None
+    height = None
+    if asset_resolution:
+        try:
+            parts = asset_resolution.lower().split('x')
+            if len(parts) == 2:
+                width = int(parts[0].strip())
+                height = int(parts[1].strip())
+        except (ValueError, IndexError):
+            pass
+
+    # Parse duration
+    duration = None
+    if asset_duration:
+        try:
+            duration = int(float(asset_duration))
+        except (ValueError, TypeError):
+            pass
+
+    # Step 4: Create Content record in CMS database
+    content = Content(
+        filename=unique_filename,
+        original_name=asset_title or asset_filename,
+        mime_type=mime_type,
+        file_size=actual_file_size,
+        width=width,
+        height=height,
+        duration=duration,
+        network_id=network_id,
+        status=ContentStatus.APPROVED.value  # Auto-approve since it's from trusted source
+    )
+
+    try:
+        db.session.add(content)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Clean up downloaded file on database error
+        try:
+            os.remove(str(local_file_path))
+        except OSError:
+            pass
+        return jsonify({
+            'error': f'Failed to create content record: {str(e)}'
+        }), 500
+
+    # Log the checkout action
+    log_action(
+        action='thea.checkout',
+        action_category='content',
+        resource_type='content',
+        resource_id=content.id,
+        resource_name=content.original_name,
+        details={
+            'source_asset_uuid': asset_uuid,
+            'source_catalog_url': catalog_url,
+            'filename': unique_filename,
+            'original_name': content.original_name,
+            'mime_type': mime_type,
+            'file_size': actual_file_size,
+            'hash_verified': hash_verified,
+            'hash': f'sha256:{calculated_hash}',
+            'network_id': network_id,
+            'stored_path': str(local_file_path)
+        }
+    )
+
+    return jsonify({
+        'message': 'Asset checked out and imported successfully',
+        'content': content.to_dict(),
+        'source_asset_uuid': asset_uuid,
+        'hash_verified': hash_verified,
+        'hash': f'sha256:{calculated_hash}'
+    }), 201
