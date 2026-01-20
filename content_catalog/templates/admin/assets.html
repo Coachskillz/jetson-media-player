@@ -72,7 +72,7 @@
         <tbody>
             {% if assets %}
                 {% for asset in assets %}
-                <tr>
+                <tr class="asset-row {% if asset.status in ['APPROVED', 'PUBLISHED'] %}draggable-asset{% endif %}" {% if asset.status in ['APPROVED', 'PUBLISHED'] %}draggable="true" data-asset-uuid="{{ asset.uuid }}" data-asset-title="{{ asset.title }}" data-asset-filename="{{ asset.filename or asset.file_path }}" data-asset-format="{{ asset.format or 'video' }}" data-asset-size="{{ asset.file_size or 0 }}" data-asset-duration="{{ asset.duration or 0 }}" data-asset-status="{{ asset.status }}" data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}" data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}"{% endif %}>
                     <td>
                         <div class="asset-title">{{ asset.title }}</div>
                         {% if asset.description %}
@@ -92,6 +92,7 @@
                     <td>{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'N/A' }}</td>
                     <td>
                         <div class="action-buttons">
+                            <button class="btn-icon" title="Preview" onclick="window.open('/api/v1/assets/{{ asset.id }}/preview', 'VideoPreview', 'width=900,height=600,resizable=yes')">&#9658;</button>
                             <button class="btn-icon" title="Download">&#8595;</button>
                             <button class="btn-icon" title="Edit">&#9998;</button>
                         </div>
@@ -245,6 +246,26 @@ textarea.form-input { resize: vertical; }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,212,170,0.3); }
 .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
 .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+
+/* Drag and Drop Styles */
+.draggable-asset {
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.draggable-asset:hover {
+    background: rgba(0, 212, 170, 0.05) !important;
+}
+
+.draggable-asset.dragging {
+    opacity: 0.5;
+    background: rgba(0, 212, 170, 0.1) !important;
+    cursor: grabbing;
+}
+
+.asset-row:not(.draggable-asset) {
+    opacity: 0.6;
+}
 </style>
 
 <script>
@@ -274,6 +295,39 @@ document.getElementById('tenantSelect').addEventListener('change', function() {
 // Close modal on outside click
 document.getElementById('uploadModal').addEventListener('click', function(e) {
     if (e.target === this) closeUploadModal();
+});
+
+// ==========================================================================
+// DRAG AND DROP - Send asset data to CMS
+// ==========================================================================
+
+document.querySelectorAll(".draggable-asset").forEach(row => {
+    row.addEventListener("dragstart", function(e) {
+        this.classList.add("dragging");
+        
+        const assetData = {
+            uuid: this.dataset.assetUuid,
+            title: this.dataset.assetTitle,
+            filename: this.dataset.assetFilename,
+            format: this.dataset.assetFormat,
+            file_size: parseInt(this.dataset.assetSize) || 0,
+            duration: parseInt(this.dataset.assetDuration) || 0,
+            status: this.dataset.assetStatus,
+            tenant_name: this.dataset.assetTenant,
+            tenant_id: this.dataset.assetTenantId,
+            source: "content_catalog"
+        };
+        
+        e.dataTransfer.setData("application/json", JSON.stringify(assetData));
+        e.dataTransfer.setData("text/plain", JSON.stringify(assetData));
+        e.dataTransfer.effectAllowed = "copy";
+        
+        console.log("Dragging asset:", assetData.title);
+    });
+    
+    row.addEventListener("dragend", function(e) {
+        this.classList.remove("dragging");
+    });
 });
 </script>
 {% endblock %}

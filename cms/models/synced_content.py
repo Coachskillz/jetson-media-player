@@ -75,6 +75,7 @@ class SyncedContent(db.Model):
 
     # Source tracking from Content Catalog
     source_uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    source_id = db.Column(db.Integer, nullable=True)  # Integer ID from Content Catalog for download URL
 
     # Content metadata
     title = db.Column(db.String(500), nullable=False)
@@ -82,6 +83,7 @@ class SyncedContent(db.Model):
 
     # File information
     filename = db.Column(db.String(500), nullable=False)
+    local_filename = db.Column(db.String(500), nullable=True)  # Local CMS copy filename
     file_path = db.Column(db.String(1000), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
     duration = db.Column(db.Float, nullable=True)
@@ -365,6 +367,7 @@ class SyncedContent(db.Model):
 
         # Update fields from catalog data
         synced.title = catalog_data.get('title', 'Untitled')
+        synced.source_id = catalog_data.get('id')
         synced.description = catalog_data.get('description')
         synced.filename = catalog_data.get('filename', 'unknown')
         synced.file_path = catalog_data.get('file_path')

@@ -23,7 +23,8 @@ All endpoints except magic link routes require JWT authentication with appropria
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request, render_template
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
+from content_catalog.utils.api_key_auth import api_key_or_jwt_required
 
 from content_catalog.models import db, User, UserApprovalRequest, ContentAsset, ContentApprovalRequest, MagicLinkToken
 from content_catalog.services.audit_service import AuditService
@@ -38,10 +39,21 @@ approvals_bp = Blueprint('approvals', __name__)
 def _get_current_user():
     """
     Get the current authenticated user from JWT identity.
+    Returns a service user placeholder for API key auth.
 
     Returns:
-        User object or None if not found
+        User object, ServiceUser placeholder, or None if not found
     """
+    from flask import request
+    # If API key auth, return a placeholder service user
+    if request.headers.get('X-Service-API-Key'):
+        class ServiceUser:
+            id = 0
+            email = 'cms-service@internal'
+            role = 'service'
+            is_active = True
+        return ServiceUser()
+    
     current_user_id = get_jwt_identity()
     return db.session.get(User, current_user_id)
 
@@ -89,7 +101,7 @@ def _can_approve_content(user):
 
 
 @approvals_bp.route('/pending', methods=['GET'])
-@jwt_required()
+@api_key_or_jwt_required
 def list_pending_users():
     """
     List all users pending approval.
@@ -199,7 +211,7 @@ def list_pending_users():
 
 
 @approvals_bp.route('/<int:user_id>/approve', methods=['POST'])
-@jwt_required()
+@api_key_or_jwt_required
 def approve_user(user_id):
     """
     Approve a pending user.
@@ -319,7 +331,7 @@ def approve_user(user_id):
 
 
 @approvals_bp.route('/<int:user_id>/reject', methods=['POST'])
-@jwt_required()
+@api_key_or_jwt_required
 def reject_user(user_id):
     """
     Reject a pending user.
@@ -439,7 +451,7 @@ def reject_user(user_id):
 
 
 @approvals_bp.route('/content/pending', methods=['GET'])
-@jwt_required()
+@api_key_or_jwt_required
 def list_pending_content_approvals():
     """
     List all content assets pending approval.
@@ -532,7 +544,7 @@ def list_pending_content_approvals():
 
 
 @approvals_bp.route('/content/approved', methods=['GET'])
-@jwt_required()
+@api_key_or_jwt_required
 def list_approved_content():
     """
     List all approved and published content assets.

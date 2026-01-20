@@ -841,6 +841,41 @@ def download_asset(asset_id):
         }), 500
 
 
+@assets_bp.route('/<int:asset_id>/preview', methods=['GET'])
+def preview_asset(asset_id):
+    """
+    Preview the content file for an asset (inline playback).
+
+    Args:
+        asset_id: The content asset ID (integer)
+
+    Returns:
+        200: File content with appropriate MIME type for inline playback
+        404: Asset not found
+    """
+    asset = db.session.get(ContentAsset, asset_id)
+
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+
+    file_path = asset.file_path
+
+    # Verify file exists
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found on storage'}), 404
+
+    try:
+        return send_file(
+            file_path,
+            mimetype=get_mime_type(asset.filename),
+            as_attachment=False
+        )
+    except Exception as e:
+        return jsonify({
+            'error': f'Failed to preview file: {str(e)}'
+        }), 500
+
+
 @assets_bp.route('/<int:asset_id>/thumbnail', methods=['GET'])
 def get_thumbnail(asset_id):
     """

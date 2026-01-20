@@ -299,6 +299,165 @@
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* Venue Approval Modal */
+.venue-approval-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.venue-approval-modal.active {
+    display: flex;
+}
+
+.venue-modal-content {
+    background: #1a1a2e;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.venue-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.venue-modal-header h3 {
+    color: #fff;
+    font-size: 20px;
+    margin: 0;
+}
+
+.venue-modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.venue-modal-close:hover {
+    color: #fff;
+}
+
+.venue-list {
+    margin-bottom: 20px;
+}
+
+.venue-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.venue-item:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.venue-item input[type="checkbox"] {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+}
+
+.venue-item label {
+    color: #fff;
+    cursor: pointer;
+    flex: 1;
+}
+
+.venue-item .venue-approval-status {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.venue-item .requires-approval {
+    background: rgba(234, 179, 8, 0.2);
+    color: #eab308;
+}
+
+.venue-item .auto-approve {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.override-section {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.override-section label {
+    color: #a78bfa;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.override-section input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+}
+
+.override-section p {
+    color: #888;
+    font-size: 12px;
+    margin: 8px 0 0 28px;
+}
+
+.venue-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.asset-info-banner {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+}
+
+.asset-info-banner .asset-title {
+    color: #3b82f6;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.asset-info-banner .asset-meta {
+    color: #888;
+    font-size: 12px;
+    margin-top: 4px;
+}
 </style>
 {% endblock %}
 
@@ -404,13 +563,13 @@
             {% endif %}
 
             <div class="approval-actions">
-                <button class="btn btn-success" onclick="approveContent({{ asset.id }})">
+                <button class="btn btn-success" onclick="openApprovalModal({{ asset.id }}, '{{ asset.title|e }}', '{{ asset.format or 'unknown' }}', '{{ ((asset.file_size or 0) / 1024 / 1024)|round(1) }} MB')">
                     &#10003; Approve
                 </button>
                 <button class="btn btn-danger" onclick="rejectContent({{ asset.id }})">
                     &#10007; Reject
                 </button>
-                <button class="btn btn-secondary" onclick="previewContent('{{ asset.uuid }}')">
+                <button class="btn btn-secondary" onclick="previewContent({{ asset.id }})">
                     &#128065; Preview
                 </button>
             </div>
@@ -486,6 +645,51 @@
     {% endif %}
 </div>
 {% endif %}
+
+<!-- Venue Approval Modal -->
+<div class="venue-approval-modal" id="venueApprovalModal">
+    <div class="venue-modal-content">
+        <div class="venue-modal-header">
+            <h3>🎯 Approve Content for Venues</h3>
+            <button class="venue-modal-close" onclick="closeApprovalModal()">&times;</button>
+        </div>
+        
+        <div class="asset-info-banner">
+            <div class="asset-title" id="approvalAssetTitle">Asset Title</div>
+            <div class="asset-meta" id="approvalAssetMeta">Format • Size</div>
+        </div>
+        
+        <p style="color: #888; font-size: 13px; margin-bottom: 15px;">
+            Select which venue networks should receive this content:
+        </p>
+        
+        <div class="venue-list" id="venueList">
+            <!-- Venues loaded dynamically -->
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="selectAllVenues()">Select All</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="selectNoVenues()">Select None</button>
+        </div>
+        
+        {% if current_user and current_user.role == 'super_admin' %}
+        <div class="override-section">
+            <label>
+                <input type="checkbox" id="overrideVenueApproval">
+                Override venue approval requirement
+            </label>
+            <p>Content will be sent directly to CMS without venue approval</p>
+        </div>
+        {% endif %}
+        
+        <div class="venue-modal-actions">
+            <button class="btn btn-secondary" onclick="closeApprovalModal()">Cancel</button>
+            <button class="btn btn-success" id="submitApprovalBtn" onclick="submitVenueApproval()">
+                ✓ Approve for Selected Venues
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -555,7 +759,7 @@ function approveContent(assetId) {
         return;
     }
 
-    fetch('/api/v1/admin/content/' + assetId + '/approve', {
+    fetch('/admin/content/' + assetId + '/approve', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -582,7 +786,7 @@ function rejectContent(assetId) {
         return;
     }
 
-    fetch('/api/v1/admin/content/' + assetId + '/reject', {
+    fetch('/admin/content/' + assetId + '/reject', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -604,9 +808,150 @@ function rejectContent(assetId) {
 }
 
 // Preview content
-function previewContent(assetUuid) {
-    // Open preview in new window/modal
-    alert('Content preview coming soon. Asset UUID: ' + assetUuid);
+function previewContent(assetId) {
+    // Open preview in popup window
+    window.open('/api/v1/assets/' + assetId + '/preview', 'VideoPreview', 'width=900,height=600,resizable=yes');
 }
+
+// ==========================================================================
+// VENUE APPROVAL MODAL
+// ==========================================================================
+
+let currentApprovalAssetId = null;
+let currentApprovalAssetTitle = '';
+let venueData = [];
+
+function openApprovalModal(assetId, assetTitle, assetFormat, assetSize) {
+    currentApprovalAssetId = assetId;
+    currentApprovalAssetTitle = assetTitle;
+    
+    // Update modal header
+    document.getElementById('approvalAssetTitle').textContent = assetTitle;
+    document.getElementById('approvalAssetMeta').textContent = assetFormat.toUpperCase() + ' • ' + assetSize;
+    
+    // Load venues
+    loadVenuesForApproval();
+    
+    // Show modal
+    document.getElementById('venueApprovalModal').classList.add('active');
+}
+
+function closeApprovalModal() {
+    document.getElementById('venueApprovalModal').classList.remove('active');
+    currentApprovalAssetId = null;
+    currentApprovalAssetTitle = '';
+}
+
+function loadVenuesForApproval() {
+    const venueList = document.getElementById('venueList');
+    venueList.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">Loading venues...</div>';
+    
+    fetch('/admin/api/tenants')
+        .then(response => response.json())
+        .then(data => {
+            venueData = data.tenants || data || [];
+            renderVenueList();
+        })
+        .catch(error => {
+            venueList.innerHTML = '<div style="color: #ef4444; padding: 20px;">Error loading venues</div>';
+            console.error('Error loading venues:', error);
+        });
+}
+
+function renderVenueList() {
+    const venueList = document.getElementById('venueList');
+    
+    if (venueData.length === 0) {
+        venueList.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">No venues configured</div>';
+        return;
+    }
+    
+    let html = '';
+    venueData.forEach(venue => {
+        const requiresApproval = venue.requires_content_approval !== false;
+        const statusClass = requiresApproval ? 'requires-approval' : 'auto-approve';
+        const statusText = requiresApproval ? 'Requires Approval' : 'Auto-Approve';
+        
+        html += `
+            <div class="venue-item">
+                <input type="checkbox" id="venue_${venue.id}" name="venue_ids" value="${venue.id}">
+                <label for="venue_${venue.id}">${venue.name}</label>
+                <span class="venue-approval-status ${statusClass}">${statusText}</span>
+            </div>
+        `;
+    });
+    
+    venueList.innerHTML = html;
+}
+
+function selectAllVenues() {
+    document.querySelectorAll('#venueList input[type="checkbox"]').forEach(cb => cb.checked = true);
+}
+
+function selectNoVenues() {
+    document.querySelectorAll('#venueList input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+function submitVenueApproval() {
+    const selectedVenues = [];
+    document.querySelectorAll('#venueList input[type="checkbox"]:checked').forEach(cb => {
+        selectedVenues.push(parseInt(cb.value));
+    });
+    
+    if (selectedVenues.length === 0) {
+        alert('Please select at least one venue');
+        return;
+    }
+    
+    const overrideApproval = document.getElementById('overrideVenueApproval')?.checked || false;
+    
+    // Disable button while processing
+    const submitBtn = document.getElementById('submitApprovalBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+    
+    fetch('/admin/content/' + currentApprovalAssetId + '/approve-for-venues', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            target_venue_ids: selectedVenues,
+            override_venue_approval: overrideApproval
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeApprovalModal();
+            // Show success message
+            alert('Content approved successfully!\n\n' + 
+                  'Auto-transferred: ' + (data.auto_transferred || 0) + '\n' +
+                  'Pending venue approval: ' + (data.pending_venue_approval || 0));
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to approve content'));
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Approve for Selected Venues';
+        }
+    })
+    .catch(error => {
+        alert('Error approving content: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Approve for Selected Venues';
+    });
+}
+
+// Close modal on outside click
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('venueApprovalModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeApprovalModal();
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

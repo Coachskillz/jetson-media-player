@@ -331,6 +331,61 @@ def assets():
         tenant_filter=tenant_filter,
         tenants=tenants
     )
+
+
+@admin_web_bp.route('/approved-assets')
+@login_required
+def approved_assets():
+    """Approved assets page for drag-and-drop to CMS."""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    search = request.args.get('search', '')
+    tenant_filter = request.args.get('tenant', '')
+
+    # Only show APPROVED and PUBLISHED assets
+    query = ContentAsset.query.filter(
+        ContentAsset.status.in_([ContentAsset.STATUS_APPROVED, ContentAsset.STATUS_PUBLISHED])
+    )
+
+    # Filter by tenant
+    if tenant_filter:
+        query = query.filter_by(tenant_id=tenant_filter)
+
+    if search:
+        query = query.filter(
+            or_(
+                ContentAsset.title.ilike(f'%{search}%'),
+                ContentAsset.description.ilike(f'%{search}%')
+            )
+        )
+
+    query = query.order_by(ContentAsset.created_at.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Get all tenants for filter dropdown
+    tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+
+    stats = {
+        'total': ContentAsset.query.filter(
+            ContentAsset.status.in_([ContentAsset.STATUS_APPROVED, ContentAsset.STATUS_PUBLISHED])
+        ).count(),
+        'approved': ContentAsset.query.filter_by(status=ContentAsset.STATUS_APPROVED).count(),
+        'published': ContentAsset.query.filter_by(status=ContentAsset.STATUS_PUBLISHED).count(),
+    }
+
+    return render_template(
+        'admin/approved_assets.html',
+        active_page='approved_assets',
+        current_user=g.current_user,
+        pending_approvals_count=_get_pending_approvals_count(),
+        assets=pagination.items,
+        pagination=pagination,
+        stats=stats,
+        search=search,
+        tenant_filter=tenant_filter,
+        tenants=tenants
+    )
+
 @admin_web_bp.route('/assets/upload', methods=['POST'])
 @login_required
 def upload_asset():
@@ -579,13 +634,29 @@ def approvals():
     """Approval workflow page."""
     active_tab = request.args.get('tab', 'users')
     
-    pending_users = User.query.filter_by(status=User.STATUS_PENDING).order_by(
-        User.created_at.desc()
-    ).all()
+    # Only super_admin can see pending users
+    if g.current_user.role == 'super_admin':
+        pending_users = User.query.filter_by(status=User.STATUS_PENDING).order_by(
+            User.created_at.desc()
+        ).all()
+    else:
+        pending_users = []
     
-    pending_content = ContentAsset.query.filter_by(
-        status=ContentAsset.STATUS_PENDING_REVIEW
-    ).order_by(ContentAsset.created_at.desc()).all()
+    # Filter content by tenant for non-super_admin users
+    if g.current_user.role == 'super_admin':
+        pending_content = ContentAsset.query.filter_by(
+            status=ContentAsset.STATUS_PENDING_REVIEW
+        ).order_by(ContentAsset.created_at.desc()).all()
+    else:
+        # Get user's tenant IDs
+        user_tenant_ids = g.current_user.get_tenant_ids_list() or []
+        if user_tenant_ids:
+            pending_content = ContentAsset.query.filter(
+                ContentAsset.status == ContentAsset.STATUS_PENDING_REVIEW,
+                ContentAsset.tenant_id.in_(user_tenant_ids)
+            ).order_by(ContentAsset.created_at.desc()).all()
+        else:
+            pending_content = []
 
     return render_template(
         'admin/approvals.html',
@@ -1041,6 +1112,146 @@ def retailer_upload():
     flash(f'"{title}" uploaded and pending approval', 'success')
     return redirect(url_for('admin.retailer_dashboard'))
 
+
+
+
+@admin_web_bp.route('/api/tenants', methods=['GET'])
+@login_required
+def get_tenants_for_approval():
+    """Get list of tenants for the approval modal."""
+    tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+    return jsonify({
+        'tenants': [t.to_dict() for t in tenants]
+    })
+
+
+
+@admin_web_bp.route('/content/<int:asset_id>/approve-for-venues', methods=['POST'])
+@login_required
+def approve_content_for_venues(asset_id):
+    """
+    Approve content for specific venues with optional override.
+    
+    This is the main Skillz admin approval endpoint that:
+    1. Creates ContentVenueApproval records for each target venue
+    2. Checks each venue's requires_content_approval setting
+    3. Auto-transfers to CMS if venue doesn't require approval or override is set
+    4. Queues for venue approval if required
+    """
+    from content_catalog.models import ContentAsset, Tenant, ContentVenueApproval
+    from content_catalog.services.cms_transfer_service import CMSTransferService
+    
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Check permissions - only admins and super_admin can approve
+    if user.role not in ['admin', 'super_admin', 'content_manager']:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    # Get the asset
+    asset = ContentAsset.query.get(asset_id)
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+    
+    # Get request data
+    data = request.get_json() or {}
+    target_venue_ids = data.get('target_venue_ids', [])
+    override_venue_approval = data.get('override_venue_approval', False)
+    
+    # Only super_admin can override
+    if override_venue_approval and user.role != 'super_admin':
+        override_venue_approval = False
+    
+    if not target_venue_ids:
+        return jsonify({'error': 'No venues selected'}), 400
+    
+    # Update asset status to approved
+    asset.status = ContentAsset.STATUS_APPROVED
+    # Store approved venue/network slugs on the asset for CMS sync
+    import json
+    existing_networks = json.loads(asset.networks) if asset.networks else []
+    # Get slugs for the selected venues
+    venue_slugs = []
+    for vid in target_venue_ids:
+        t = Tenant.query.get(vid)
+        if t and t.slug:
+            venue_slugs.append(t.slug)
+    new_networks = list(set(existing_networks + venue_slugs))
+    asset.networks = json.dumps(new_networks)
+    asset.approved_by = user.id
+    asset.approved_at = datetime.now(timezone.utc)
+    
+    auto_transferred = 0
+    pending_venue_approval = 0
+    transfer_results = []
+    
+    for venue_id in target_venue_ids:
+        tenant = Tenant.query.get(venue_id)
+        if not tenant:
+            continue
+        
+        # Check if approval record already exists
+        existing = ContentVenueApproval.query.filter_by(
+            content_asset_id=asset.id,
+            tenant_id=tenant.id
+        ).first()
+        
+        if existing:
+            # Update existing record
+            approval = existing
+        else:
+            # Create new approval record
+            approval = ContentVenueApproval(
+                content_asset_id=asset.id,
+                tenant_id=tenant.id
+            )
+            db.session.add(approval)
+        
+        # Skillz approval
+        approval.skillz_approved = True
+        approval.skillz_approved_by_id = user.id
+        approval.skillz_approved_at = datetime.now(timezone.utc)
+        
+        # Check if we should auto-approve for venue
+        should_auto_approve = override_venue_approval or not tenant.requires_content_approval
+        
+        if should_auto_approve:
+            approval.venue_approved = True
+            approval.auto_approved = True
+            approval.venue_approved_at = datetime.now(timezone.utc)
+            approval.status = ContentVenueApproval.STATUS_APPROVED
+            
+            # Commit so the approval record has an ID before transfer
+            db.session.commit()
+            
+            # Transfer to CMS
+            result = CMSTransferService.transfer_to_cms(asset, tenant)
+            transfer_results.append({
+                'venue': tenant.name,
+                'result': result
+            })
+            
+            if result.get('success'):
+                auto_transferred += 1
+            else:
+                # Log the error but continue
+                print(f"Transfer failed for {tenant.name}: {result.get('error')}")
+        else:
+            approval.status = ContentVenueApproval.STATUS_PENDING_VENUE
+            pending_venue_approval += 1
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Content approved for venues',
+        'auto_transferred': auto_transferred,
+        'pending_venue_approval': pending_venue_approval,
+        'transfer_results': transfer_results
+    })
 
 @admin_web_bp.route('/retailer/assets/<asset_uuid>/approve', methods=['POST'])
 @login_required

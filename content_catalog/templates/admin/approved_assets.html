@@ -1,0 +1,292 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Approved Content - Skillz Media Content Catalog{% endblock %}
+{% block page_title %}Approved Content{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; align-items: center; gap: 12px;">
+    
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Ready to Use</div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-icon">✓</div>
+        <div class="stat-value">{{ stats.approved }}</div>
+        <div class="stat-label">Approved</div>
+    </div>
+    <div class="stat-card published">
+        <div class="stat-icon">🚀</div>
+        <div class="stat-value">{{ stats.published }}</div>
+        <div class="stat-label">Published</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+    <form method="GET" class="filters-form">
+        <select name="tenant" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Retail Partners</option>
+            {% for tenant in tenants %}
+            <option value="{{ tenant.id }}" {% if tenant_filter == tenant.id|string %}selected{% endif %}>{{ tenant.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="search" value="{{ search }}" placeholder="Search approved assets..." class="filter-input">
+        <button type="submit" class="btn btn-secondary">Filter</button>
+    </form>
+</div>
+
+<!-- Assets Grid -->
+<div class="assets-grid">
+    {% if assets %}
+        {% for asset in assets %}
+        <div class="asset-card draggable-asset" 
+             draggable="true"
+             data-asset-uuid="{{ asset.uuid }}"
+             data-asset-title="{{ asset.title }}"
+             data-asset-filename="{{ asset.filename or asset.file_path }}"
+             data-asset-format="{{ asset.format or 'video' }}"
+             data-asset-size="{{ asset.file_size or 0 }}"
+             data-asset-duration="{{ asset.duration or 0 }}"
+             data-asset-status="{{ asset.status }}"
+             data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}"
+             data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}">
+            <div class="asset-card-header">
+                <span class="status-badge status-{{ asset.status|lower }}">{{ asset.status }}</span>
+                <span class="drag-handle">⠿</span>
+            </div>
+            <div class="asset-card-body">
+                <div class="asset-icon">
+                    {% if asset.format in ['mp4', 'mov', 'avi', 'video'] %}🎬
+                    {% elif asset.format in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'image'] %}🖼️
+                    {% elif asset.format in ['mp3', 'wav', 'audio'] %}🎵
+                    {% else %}📄{% endif %}
+                </div>
+                <div class="asset-title">{{ asset.title }}</div>
+                <div class="asset-meta">
+                    {% if asset.tenant %}
+                    <span class="tenant-tag">🏢 {{ asset.tenant.name }}</span>
+                    {% endif %}
+                    <span class="size-tag">{{ (asset.file_size / 1024 / 1024)|round(1) if asset.file_size else 0 }} MB</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-text">No approved content yet</div>
+            <p>Assets will appear here once they are approved</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+    <a href="?page={{ pagination.prev_num }}&search={{ search }}&tenant={{ tenant_filter }}" class="page-link">&laquo; Prev</a>
+    {% endif %}
+    <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+    {% if pagination.has_next %}
+    <a href="?page={{ pagination.next_num }}&search={{ search }}&tenant={{ tenant_filter }}" class="page-link">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+/* Drag Banner */
+.drag-banner {
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.15), rgba(0, 184, 148, 0.15));
+    border: 1px solid rgba(0, 212, 170, 0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.drag-banner-icon {
+    font-size: 32px;
+}
+
+.drag-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.drag-banner-text strong {
+    color: #00D4AA;
+    font-size: 15px;
+}
+
+.drag-banner-text span {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+}
+
+/* Stats */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; }
+.stat-card.success { border-color: rgba(16, 185, 129, 0.3); }
+.stat-card.published { border-color: rgba(59, 130, 246, 0.3); }
+.stat-icon { font-size: 24px; margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: 700; color: #fff; }
+.stat-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+/* Filters */
+.filters-bar { margin-bottom: 24px; }
+.filters-form { display: flex; gap: 12px; flex-wrap: wrap; }
+.filter-input, .filter-select { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 16px; color: #fff; font-size: 14px; }
+.filter-input { flex: 1; min-width: 200px; }
+.filter-select { min-width: 180px; }
+
+/* Assets Grid */
+.assets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.asset-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.asset-card:hover {
+    background: rgba(0, 212, 170, 0.08);
+    border-color: rgba(0, 212, 170, 0.3);
+    transform: translateY(-2px);
+}
+
+.asset-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    border-color: #00D4AA;
+}
+
+.asset-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-approved { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.status-published { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+
+.drag-handle {
+    font-size: 18px;
+    color: rgba(255,255,255,0.3);
+    cursor: grab;
+}
+
+.asset-card:hover .drag-handle {
+    color: #00D4AA;
+}
+
+.asset-card-body {
+    text-align: center;
+}
+
+.asset-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+
+.asset-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.asset-meta {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tenant-tag, .size-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+}
+
+/* Empty State */
+.empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 48px; opacity: 0.3; margin-bottom: 16px; }
+.empty-text { font-size: 18px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+.empty-state p { color: rgba(255,255,255,0.3); font-size: 14px; }
+
+/* Pagination */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; }
+.page-link { color: #00D4AA; text-decoration: none; padding: 8px 16px; border: 1px solid rgba(0,212,170,0.3); border-radius: 6px; }
+.page-link:hover { background: rgba(0,212,170,0.1); }
+.page-info { color: rgba(255,255,255,0.5); }
+
+/* Button styles */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
+.btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+.btn-secondary:hover { background: rgba(255,255,255,0.15); }
+</style>
+
+<script>
+// Drag and Drop functionality
+document.querySelectorAll('.draggable-asset').forEach(card => {
+    card.addEventListener('dragstart', function(e) {
+        this.classList.add('dragging');
+        
+        const assetData = {
+            uuid: this.dataset.assetUuid,
+            title: this.dataset.assetTitle,
+            filename: this.dataset.assetFilename,
+            format: this.dataset.assetFormat,
+            file_size: parseInt(this.dataset.assetSize) || 0,
+            duration: parseInt(this.dataset.assetDuration) || 0,
+            status: this.dataset.assetStatus,
+            tenant_name: this.dataset.assetTenant,
+            tenant_id: this.dataset.assetTenantId,
+            source: "content_catalog"
+        };
+        
+        e.dataTransfer.setData('application/json', JSON.stringify(assetData));
+        e.dataTransfer.setData('text/plain', JSON.stringify(assetData));
+        e.dataTransfer.effectAllowed = 'copy';
+        
+        console.log('Dragging asset:', assetData.title);
+    });
+    
+    card.addEventListener('dragend', function(e) {
+        this.classList.remove('dragging');
+    });
+});
+</script>
+{% endblock %}

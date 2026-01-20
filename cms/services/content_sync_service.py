@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Any
 import requests
 from requests.exceptions import RequestException, Timeout, ConnectionError
 
+from flask import current_app
 from cms.models import db
 from cms.models.synced_content import SyncedContent
 
@@ -67,6 +68,68 @@ class ContentSyncService:
     # Request timeout settings (in seconds)
     REQUEST_TIMEOUT = 30
     CONNECT_TIMEOUT = 10
+
+
+    # ==========================================================================
+    # File Download Operations
+    # ==========================================================================
+
+    @classmethod
+    def download_asset_file(cls, asset_id, filename, uploads_path):
+        """
+        Download an asset file from Content Catalog to local CMS storage.
+
+        Args:
+            asset_id: Integer ID of the asset in Content Catalog
+            filename: Original filename to save as
+            uploads_path: Path to CMS uploads directory
+
+        Returns:
+            Local file path if successful, None if failed
+        """
+        if not asset_id:
+            logger.warning("No asset_id provided for download")
+            return None
+
+        download_url = f"{cls.CONTENT_CATALOG_URL}/api/v1/assets/{asset_id}/download"
+        
+        try:
+            logger.info(f"Downloading asset {asset_id} from {download_url}")
+            
+            response = requests.get(
+                download_url,
+                stream=True,
+                timeout=(cls.CONNECT_TIMEOUT, 120)
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to download asset {asset_id}: HTTP {response.status_code}")
+                return None
+            
+            os.makedirs(uploads_path, exist_ok=True)
+            
+            import uuid as uuid_module
+            file_ext = os.path.splitext(filename)[1] if filename else ""
+            unique_filename = f"{uuid_module.uuid4()}{file_ext}"
+            local_path = os.path.join(uploads_path, unique_filename)
+            
+            with open(local_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            
+            logger.info(f"Downloaded asset {asset_id} to {local_path}")
+            return local_path
+            
+        except Timeout:
+            logger.error(f"Timeout downloading asset {asset_id}")
+            return None
+        except ConnectionError:
+            logger.error(f"Connection error downloading asset {asset_id}")
+            return None
+        except Exception as e:
+            logger.error(f"Error downloading asset {asset_id}: {str(e)}")
+            return None
 
     # ==========================================================================
     # Core Sync Operations
@@ -144,9 +207,25 @@ class ContentSyncService:
                     break
 
             # Upsert all fetched content
+            uploads_path = str(current_app.config.get('UPLOADS_PATH', './uploads'))
+            
             for asset_data in all_assets:
                 try:
                     existing = SyncedContent.get_by_source_uuid(asset_data.get('uuid'))
+                    
+                    # Download file for new content (not existing)
+                    local_file_path = None
+                    if not existing:
+                        asset_id = asset_data.get('id')
+                        filename = asset_data.get('filename', 'unknown')
+                        local_file_path = cls.download_asset_file(asset_id, filename, uploads_path)
+                        
+                        if local_file_path:
+                            # Update asset_data with local path
+                            asset_data['file_path'] = local_file_path
+                        else:
+                            logger.warning(f"Could not download file for asset {asset_data.get('uuid')}, using remote path")
+                    
                     synced = SyncedContent.upsert_from_catalog(
                         db_session=db.session,
                         catalog_data=asset_data,
@@ -246,6 +325,7 @@ class ContentSyncService:
                 url,
                 params=params,
                 timeout=(cls.CONNECT_TIMEOUT, cls.REQUEST_TIMEOUT),
+                headers={"X-Service-API-Key": os.environ.get("CONTENT_CATALOG_SERVICE_KEY", "skillz-cms-service-key-2026")},
             )
 
             response.raise_for_status()

@@ -9,7 +9,7 @@ Blueprint for web page rendering:
 - GET /playlists: Playlist management page
 """
 
-from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify, send_from_directory, current_app
 from flask_login import login_required
 
 from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment
@@ -23,6 +23,12 @@ from cms.services.content_sync_service import ContentSyncService
 web_bp = Blueprint('web', __name__)
 
 
+
+@web_bp.route("/cms/uploads/<filename>")
+def serve_upload(filename):
+    """Serve uploaded content files."""
+    uploads_path = current_app.config.get("UPLOADS_PATH", "./uploads")
+    return send_from_directory(uploads_path, filename)
 @web_bp.route('/')
 @login_required
 def dashboard():
@@ -147,6 +153,7 @@ def content_page():
         content.append({
             'id': item.id,
             'filename': item.filename,
+            'local_filename': item.local_filename if item.local_filename else (item.file_path.split('/')[-1] if item.file_path else item.filename),
             'title': item.title,
             'duration': item.duration or 0,
             'file_size': item.file_size or 0,
@@ -178,6 +185,7 @@ def content_page():
         content.append({
             'id': item.id,
             'filename': item.filename,
+            'local_filename': item.local_filename if item.local_filename else (item.file_path.split('/')[-1] if item.file_path else item.filename),
             'title': item.original_name,  # Template expects 'title'
             'duration': item.duration or 0,
             'file_size': item.file_size,

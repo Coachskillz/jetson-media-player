@@ -845,12 +845,254 @@
     margin-top: 5px;
 }
 
+
+/* Drop Zone Styles */
+.drop-zone-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(102, 126, 234, 0.15);
+    border: 4px dashed #667eea;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.drop-zone-overlay.active {
+    display: flex;
+}
+
+.drop-zone-message {
+    background: white;
+    padding: 40px 60px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.drop-zone-message .drop-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.drop-zone-message h3 {
+    font-size: 24px;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.drop-zone-message p {
+    color: #64748b;
+    font-size: 16px;
+}
+
+.drop-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: white;
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 10000;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.drop-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.drop-toast.success {
+    border-left: 4px solid #10b981;
+}
+
+.drop-toast.error {
+    border-left: 4px solid #ef4444;
+}
+
+.drop-toast .toast-icon {
+    font-size: 32px;
+}
+
+.drop-toast .toast-content h4 {
+    font-size: 16px;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+}
+
+.drop-toast .toast-content p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.content-section.drop-target {
+    border: 3px dashed #667eea !important;
+    background: rgba(102, 126, 234, 0.05) !important;
+}
+
+/* Upload Button */
+.upload-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.upload-section h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+    margin: 0;
+}
+
+.upload-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.upload-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Upload Modal */
+.upload-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-modal.active {
+    display: flex;
+}
+
+.upload-modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.upload-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.upload-modal-header h3 {
+    font-size: 22px;
+    color: #1e293b;
+    font-weight: 700;
+    margin: 0;
+}
+
+.upload-close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.upload-form-group {
+    margin-bottom: 20px;
+}
+
+.upload-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.upload-form-group input,
+.upload-form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.upload-form-group input:focus,
+.upload-form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.upload-submit-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+}
+
 {% endblock %}
 
 {% block content %}
+
+<!-- Drop Zone Overlay -->
 <div class="layout">
     <div class="main-content">
         <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📁 Content Library</h2>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3>📤 Add Content</h3>
+            <div class="upload-actions">
+                <button class="upload-btn" onclick="openUploadModal()">
+                    <span>📁</span> Upload Local File
+                </button>
+                <span style="color: #64748b; font-size: 14px;">or drag from Content Catalog</span>
+            </div>
+        </div>
 
         <!-- Sync Section -->
         <div class="sync-section">
@@ -890,9 +1132,9 @@
                     <span class="count" id="network-count-all">{{ content|length }}</span>
                 </button>
                 {% for network in networks %}
-                <button class="network-btn" data-network-id="{{ network.id }}" onclick="filterNetwork('{{ network.id }}')">
+                <button class="network-btn" data-network-id="{{ network.slug }}" onclick="filterNetwork('{{ network.slug }}')">
                     📡 {{ network.name }}
-                    <span class="count" id="network-count-{{ network.id }}">0</span>
+                    <span class="count" id="network-count-{{ network.slug }}">0</span>
                 </button>
                 {% endfor %}
             </div>
@@ -972,20 +1214,20 @@
             {% if content %}
             <div class="content-grid" id="contentGrid">
                 {% for item in content %}
-                <div class="content-card" data-id="{{ item.id }}" data-folder="{{ item.folder_id or '' }}" data-networks="{{ item.network_ids|default([])|tojson }}" data-organization="{{ item.organization_id or '' }}" data-content-type="{{ item.content_type or 'video' }}" data-status="{{ item.status or '' }}"
-                     onclick="previewContent({{ item.id }}, '{{ item.filename }}', '{{ item.title }}', {{ item.duration }}, {{ item.file_size }})">
+                <div class="content-card" data-id="{{ item.id }}" data-folder="{{ item.folder_id or '' }}" data-networks='{{ item.network_ids|default([])|tojson|safe }}' data-organization="{{ item.organization_id or '' }}" data-content-type="{{ item.content_type or 'video' }}" data-status="{{ item.status or '' }}"
+                     onclick="previewContent('{{ item.id }}', '{{ item.local_filename|default(item.filename) }}', '{{ item.title }}', {{ item.duration }}, {{ item.file_size }})">
                     <!-- Thumbnail with Status Badge -->
                     <div class="content-thumbnail">
                         {% if item.thumbnail_url %}
                         <img src="{{ item.thumbnail_url }}" alt="{{ item.title }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <div class="no-thumbnail" style="display: none;">
                             {% if item.content_type == 'video' or not item.content_type %}🎬{% elif item.content_type == 'image' %}🖼️{% elif item.content_type == 'audio' %}🎵{% else %}📄{% endif %}
-                            <span>No preview</span>
+                            <span>Click to preview</span>
                         </div>
                         {% else %}
                         <div class="no-thumbnail">
                             {% if item.content_type == 'video' or not item.content_type %}🎬{% elif item.content_type == 'image' %}🖼️{% elif item.content_type == 'audio' %}🎵{% else %}📄{% endif %}
-                            <span>No preview</span>
+                            <span>Click to preview</span>
                         </div>
                         {% endif %}
                         {% if item.status %}
@@ -1026,32 +1268,6 @@
         </div>
     </div>
 
-    <div class="preview-panel">
-        <div class="player-box">
-            <h3>📺 Content Preview (16:9)</h3>
-            <div class="player-container" id="playerContainer">
-                <div class="no-preview">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                    </svg>
-                    <p>Click on content to preview</p>
-                </div>
-            </div>
-            <div class="player-info" id="playerInfo" style="display: none;">
-                <div class="player-title" id="playerTitle"></div>
-                <div class="player-meta">
-                    <div class="meta-item">
-                        <div class="meta-label">Duration</div>
-                        <div class="meta-value" id="playerDuration"></div>
-                    </div>
-                    <div class="meta-item">
-                        <div class="meta-label">File Size</div>
-                        <div class="meta-value" id="playerSize"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Create Folder Modal -->
@@ -1109,6 +1325,31 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Create Folder</button>
+        </form>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="upload-modal" id="uploadModal">
+    <div class="upload-modal-content">
+        <div class="upload-modal-header">
+            <h3>Upload Content</h3>
+            <button class="upload-close-btn" onclick="closeUploadModal()">&times;</button>
+        </div>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-form-group">
+                <label>File *</label>
+                <input type="file" name="file" id="uploadFile" required accept=".mp4,.mov,.avi,.jpg,.jpeg,.png,.gif,.webp">
+            </div>
+            <div class="upload-form-group">
+                <label>Title</label>
+                <input type="text" name="title" id="uploadTitle" placeholder="Content title (optional)">
+            </div>
+            <div class="upload-form-group">
+                <label>Duration (seconds)</label>
+                <input type="number" name="duration" id="uploadDuration" placeholder="Auto-detected for videos" min="1">
+            </div>
+            <button type="submit" class="upload-submit-btn">Upload Content</button>
         </form>
     </div>
 </div>
@@ -1263,7 +1504,6 @@
     }
 
     // Load sync status on page load
-    document.addEventListener('DOMContentLoaded', loadSyncStatus);
 
     // ==========================================================================
     // Filter Functions
@@ -1305,7 +1545,7 @@
             }
         });
 
-        const allCountEl = document.getElementById('network-count-all');
+        const allCountEl = document.getElementById(`network-count-all`);
         if (allCountEl) {
             allCountEl.textContent = totalCount;
         }
@@ -1574,29 +1814,79 @@
 
     // Video preview
     function previewContent(id, filename, title, duration, fileSize) {
-        document.querySelectorAll('.content-card').forEach(card => {
-            card.classList.remove('active');
+        document.querySelectorAll(".content-card").forEach(card => {
+            card.classList.remove("active");
         });
 
-        document.querySelector(`[data-id="${id}"]`).classList.add('active');
-
+        const card = document.querySelector('[data-id="' + id + '"]');
+        if (card) card.classList.add("active");
         currentPreviewId = id;
 
-        const playerContainer = document.getElementById('playerContainer');
-        const playerInfo = document.getElementById('playerInfo');
+        // Open video in new popup window
+        const videoUrl = '/cms/uploads/' + filename;
+        window.open(videoUrl, "VideoPreview", "width=900,height=600,resizable=yes");
 
-        playerContainer.innerHTML = `
-            <video controls autoplay>
-                <source src="/cms/uploads/${filename}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        `;
-
-        document.getElementById('playerTitle').textContent = title;
-        document.getElementById('playerDuration').textContent = duration + 's';
-        document.getElementById('playerSize').textContent = (fileSize / 1024 / 1024).toFixed(1) + ' MB';
-
-        playerInfo.style.display = 'block';
+        // Also update the info panel
+        document.getElementById("playerTitle").textContent = title;
+        document.getElementById("playerDuration").textContent = duration + "s";
+        document.getElementById("playerSize").textContent = (fileSize / 1024 / 1024).toFixed(1) + " MB";
+        document.getElementById("playerInfo").style.display = "block";
     }
+
+    // ==========================================================================
+    // UPLOAD FUNCTIONALITY
+    // ==========================================================================
+    
+    function openUploadModal() {
+        document.getElementById('uploadModal').classList.add('active');
+    }
+    
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.remove('active');
+        document.getElementById('uploadForm').reset();
+    }
+    
+    document.getElementById('uploadModal').addEventListener('click', function(e) {
+        if (e.target === this) closeUploadModal();
+    });
+    
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const fileInput = document.getElementById('uploadFile');
+        const titleInput = document.getElementById('uploadTitle');
+        const durationInput = document.getElementById('uploadDuration');
+        
+        if (!fileInput.files[0]) {
+            showToast(false, 'No File', 'Please select a file to upload');
+            return;
+        }
+        
+        formData.append('file', fileInput.files[0]);
+        if (titleInput.value) formData.append('title', titleInput.value);
+        if (durationInput.value) formData.append('duration', durationInput.value);
+        
+        try {
+            const response = await fetch('/api/v1/content/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showToast(true, 'Upload Complete!', `"${result.title || fileInput.files[0].name}" uploaded`);
+                closeUploadModal();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(false, 'Upload Failed', result.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            showToast(false, 'Upload Error', 'Could not upload file');
+        }
+    });
+
 </script>
 {% endblock %}

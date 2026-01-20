@@ -643,7 +643,7 @@ def sync_content():
 
     try:
         sync_service = ContentSyncService()
-        result = sync_service.sync_content(
+        result = sync_service.sync_approved_content(
             network_id=network_id,
             organization_id=organization_id,
             category=category
@@ -1170,3 +1170,63 @@ def checkout_asset(asset_id):
         'hash_verified': hash_verified,
         'hash': f'sha256:{calculated_hash}'
     }), 201
+
+@content_bp.route('/from-catalog', methods=['POST'])
+def add_content_from_catalog():
+    """
+    Add content to CMS from Content Catalog drag-and-drop.
+    
+    Called when user drags an approved asset from Content Catalog
+    and drops it into CMS content library.
+    """
+    from cms.models import db
+    from cms.models.content import Content
+    from datetime import datetime, timezone
+    
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    catalog_uuid = data.get('catalog_uuid')
+    if not catalog_uuid:
+        return jsonify({'error': 'catalog_uuid is required'}), 400
+    
+    # Check if content already exists
+    existing = Content.query.filter_by(catalog_asset_uuid=catalog_uuid).first()
+    if existing:
+        return jsonify({
+            'error': 'Content already exists',
+            'message': f'This asset is already in your library as "{existing.title or existing.original_name}"',
+            'content_id': existing.id
+        }), 409
+    
+    # Create new content entry
+    try:
+        content = Content(
+            title=data.get('title', 'Untitled'),
+            original_name=data.get('filename', ''),
+            content_type=data.get('format', 'video'),
+            file_size=data.get('file_size', 0),
+            duration=data.get('duration', 0),
+            catalog_asset_uuid=catalog_uuid,
+            source='catalog',
+            created_at=datetime.now(timezone.utc)
+        )
+        
+        db.session.add(content)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Content added to library',
+            'content_id': content.id,
+            'title': content.title
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': 'Failed to add content',
+            'message': str(e)
+        }), 500
