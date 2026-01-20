@@ -68,9 +68,23 @@ class Device(db.Model):
     # Pairing code for device registration workflow
     pairing_code = db.Column(db.String(10), nullable=True, index=True)
 
+    # Layout assignment
+    layout_id = db.Column(db.String(36), db.ForeignKey('screen_layouts.id', ondelete='SET NULL'), nullable=True, index=True)
+
+    # Store/Location information (required for pairing)
+    store_name = db.Column(db.String(200), nullable=True)  # Store name or number
+    store_address = db.Column(db.String(300), nullable=True)
+    store_city = db.Column(db.String(100), nullable=True)
+    store_state = db.Column(db.String(50), nullable=True)
+    store_zipcode = db.Column(db.String(20), nullable=True)
+    screen_location = db.Column(db.String(200), nullable=True)  # Location in store (entrance, checkout, aisle-1, etc.)
+    manager_name = db.Column(db.String(200), nullable=True)
+    store_phone = db.Column(db.String(30), nullable=True)
+
     # Relationships
     hub = db.relationship('Hub', backref=db.backref('devices', lazy='dynamic'))
     network = db.relationship('Network', backref=db.backref('devices', lazy='dynamic'))
+    layout = db.relationship('ScreenLayout', backref=db.backref('devices', lazy='dynamic'))
 
     def to_dict(self):
         """
@@ -98,8 +112,64 @@ class Device(db.Model):
             'connection_mode': self.connection_mode,
             'hub_url': self.hub_url,
             'cms_url': self.cms_url,
-            'pairing_code': self.pairing_code
+            'pairing_code': self.pairing_code,
+            'layout_id': self.layout_id,
+            'layout_name': self.layout.name if self.layout else None,
+            # Store/Location information
+            'store_name': self.store_name,
+            'store_address': self.store_address,
+            'store_city': self.store_city,
+            'store_state': self.store_state,
+            'store_zipcode': self.store_zipcode,
+            'screen_location': self.screen_location,
+            'manager_name': self.manager_name,
+            'store_phone': self.store_phone
         }
+
+    def is_pairing_complete(self):
+        """
+        Check if all required pairing fields are filled.
+
+        Returns:
+            bool: True if all required pairing fields are complete
+        """
+        required_fields = [
+            self.network_id,
+            self.store_name,
+            self.store_address,
+            self.store_city,
+            self.store_state,
+            self.store_zipcode,
+            self.screen_location,
+            self.manager_name,
+            self.store_phone
+        ]
+        return all(field is not None and str(field).strip() != '' for field in required_fields)
+
+    def get_missing_pairing_fields(self):
+        """
+        Get list of missing required pairing fields.
+
+        Returns:
+            list: Names of missing required fields
+        """
+        missing = []
+        field_names = {
+            'network_id': 'Network',
+            'store_name': 'Store Name',
+            'store_address': 'Address',
+            'store_city': 'City',
+            'store_state': 'State',
+            'store_zipcode': 'Zipcode',
+            'screen_location': 'Screen Location',
+            'manager_name': 'Manager Name',
+            'store_phone': 'Store Phone'
+        }
+        for field, label in field_names.items():
+            value = getattr(self, field, None)
+            if value is None or str(value).strip() == '':
+                missing.append(label)
+        return missing
 
     def __repr__(self):
         """String representation for debugging."""

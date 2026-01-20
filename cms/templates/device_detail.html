@@ -94,6 +94,43 @@
     display: inline-block;
 }
 
+/* Push to Device Button */
+.btn-push-device {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-push-device:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-push-device:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-push-device:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+.btn-push-icon {
+    font-size: 16px;
+}
+
 .device-meta-row {
     display: flex;
     gap: 20px;
@@ -342,6 +379,28 @@ input:disabled + .toggle-slider {
     flex-shrink: 0;
 }
 
+/* Store Information */
+.store-info-item {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-radius: 10px;
+}
+
+.store-info-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.store-info-value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
 /* Playlists Section */
 .playlists-section {
     background: rgba(255, 255, 255, 0.95);
@@ -439,6 +498,31 @@ input:disabled + .toggle-slider {
     font-weight: 500;
     color: #667eea;
     font-size: 13px;
+    transition: all 0.2s;
+}
+
+.playlist-name.disabled {
+    color: #94a3b8;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.playlist-status-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.playlist-status-badge.enabled {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.playlist-status-badge.disabled {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .trigger-actions {
@@ -590,6 +674,245 @@ input:disabled + .toggle-slider {
     color: #991b1b;
 }
 
+/* Layout Preview Section */
+.layout-preview-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.layout-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.layout-preview-header h3 {
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.layout-preview-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.layout-canvas-container {
+    position: relative;
+    background: #0a0a10;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.layout-canvas {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 default */
+}
+
+.layout-canvas.portrait {
+    padding-bottom: 177.78%; /* 9:16 */
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.layout-canvas.ultrawide {
+    padding-bottom: 37.76%; /* 2.65:1 */
+}
+
+.layout-canvas.square {
+    padding-bottom: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.zone-overlay {
+    position: absolute;
+    border: 2px solid rgba(102, 126, 234, 0.6);
+    background: rgba(102, 126, 234, 0.15);
+    border-radius: 4px;
+    transition: all 0.2s;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.zone-overlay:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.25);
+    z-index: 10;
+}
+
+.zone-overlay.primary {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+}
+
+.zone-overlay.primary:hover {
+    border-color: #059669;
+    background: rgba(16, 185, 129, 0.25);
+}
+
+.zone-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.zone-content-preview {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zone-content-preview .icon {
+    margin-right: 4px;
+}
+
+/* Zones List */
+.zones-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.zone-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 15px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.zone-card:hover {
+    border-color: #e2e8f0;
+}
+
+.zone-card.primary {
+    border-color: #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+}
+
+.zone-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.zone-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.zone-card.primary .zone-number {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.zone-card-info {
+    flex: 1;
+}
+
+.zone-card-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.zone-card-dims {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.zone-primary-badge {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.zone-content-info {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+}
+
+.zone-content-label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.zone-content-value {
+    font-weight: 500;
+    color: #667eea;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.zone-content-value.empty {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.no-layout-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+.no-layout-message .icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.no-layout-message p {
+    margin-bottom: 15px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .settings-grid {
@@ -603,6 +926,10 @@ input:disabled + .toggle-slider {
     .device-header-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .zones-list {
+        grid-template-columns: 1fr;
     }
 }
 {% endblock %}
@@ -622,9 +949,15 @@ input:disabled + .toggle-slider {
             <div class="device-title">{{ device.name or 'Unnamed Device' }}</div>
             <span class="device-id-display">{{ device.device_id }}</span>
         </div>
-        <span class="badge badge-{{ 'success' if device.status == 'active' else ('warning' if device.status == 'pending' else 'error') }}">
-            {{ device.status|upper }}
-        </span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="badge badge-{{ 'success' if device.status == 'active' else ('warning' if device.status == 'pending' else 'error') }}">
+                {{ device.status|upper }}
+            </span>
+            <button onclick="pushLayout()" class="btn-push-device" id="pushDeviceBtn" {% if not device.layout_id %}disabled title="Select a layout first"{% endif %}>
+                <span class="btn-push-icon">🚀</span>
+                <span>Push to Device</span>
+            </button>
+        </div>
     </div>
 
     <div class="device-meta-row">
@@ -652,6 +985,43 @@ input:disabled + .toggle-slider {
     </div>
 </div>
 
+<!-- Store Information -->
+<div class="connection-settings-card">
+    <h3>
+        <div class="connection-icon">🏪</div>
+        Store Information
+    </h3>
+    <div class="store-info-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div class="store-info-item">
+            <div class="store-info-label">Store Name</div>
+            <div class="store-info-value">{{ device.store_name or 'Not set' }}</div>
+        </div>
+        <div class="store-info-item">
+            <div class="store-info-label">Screen Location</div>
+            <div class="store-info-value">{{ device.screen_location or 'Not set' }}</div>
+        </div>
+        <div class="store-info-item">
+            <div class="store-info-label">Address</div>
+            <div class="store-info-value">
+                {% if device.store_address %}
+                {{ device.store_address }}<br>
+                {{ device.store_city }}, {{ device.store_state }} {{ device.store_zipcode }}
+                {% else %}
+                Not set
+                {% endif %}
+            </div>
+        </div>
+        <div class="store-info-item">
+            <div class="store-info-label">Manager</div>
+            <div class="store-info-value">{{ device.manager_name or 'Not set' }}</div>
+        </div>
+        <div class="store-info-item">
+            <div class="store-info-label">Store Phone</div>
+            <div class="store-info-value">{{ device.store_phone or 'Not set' }}</div>
+        </div>
+    </div>
+</div>
+
 <!-- Connection Settings -->
 <div class="connection-settings-card">
     <h3>
@@ -674,6 +1044,97 @@ input:disabled + .toggle-slider {
             <span>Device will reconnect on next sync</span>
         </div>
     </div>
+</div>
+
+<!-- Screen Layout & Zones -->
+<div class="layout-preview-section">
+    <div class="layout-preview-header">
+        <h3>
+            <span style="font-size: 24px;">📺</span>
+            Screen Layout & Zones
+        </h3>
+        <div class="layout-preview-actions">
+            <select id="layout_id" onchange="saveSettings()" style="padding: 10px 15px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 14px; min-width: 200px;">
+                <option value="">-- Select Layout --</option>
+                {% for layout in all_layouts %}
+                <option value="{{ layout.id }}" {% if device.layout_id == layout.id %}selected{% endif %}>
+                    {{ layout.name }} ({{ layout.canvas_width }}x{{ layout.canvas_height }})
+                </option>
+                {% endfor %}
+            </select>
+            {% if device.layout_id %}
+            <a href="/layouts/{{ device.layout_id }}/designer" class="btn btn-primary" style="padding: 10px 16px; display: inline-flex; align-items: center; gap: 6px;">
+                <span>✏️</span> Edit Layout
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if device.layout %}
+    <!-- Layout Canvas Preview -->
+    <div class="layout-canvas-container">
+        <div class="layout-canvas {% if device.layout.orientation == 'portrait' %}portrait{% elif device.layout.canvas_width > device.layout.canvas_height * 2 %}ultrawide{% elif device.layout.canvas_width == device.layout.canvas_height %}square{% endif %}" id="layoutCanvas">
+            <!-- Zones will be rendered by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Zones List -->
+    <h4 style="color: #1e293b; font-size: 16px; font-weight: 600; margin-bottom: 15px;">
+        Zones ({{ device.layout.layers.count() }})
+        <span style="font-weight: 400; color: #64748b; font-size: 13px; margin-left: 10px;">Zone 1 is the primary zone for playlist content</span>
+    </h4>
+
+    <div class="zones-list" id="zonesList">
+        {% for layer in device.layout.layers|sort(attribute='z_index') %}
+        <div class="zone-card {% if loop.index == 1 %}primary{% endif %}" data-layer-id="{{ layer.id }}">
+            <div class="zone-card-header">
+                <div class="zone-number">{{ loop.index }}</div>
+                <div class="zone-card-info">
+                    <div class="zone-card-name">{{ layer.name or 'Zone ' ~ loop.index }}</div>
+                    <div class="zone-card-dims">{{ layer.width }}x{{ layer.height }} at ({{ layer.x }}, {{ layer.y }})</div>
+                </div>
+                {% if loop.index == 1 %}
+                <span class="zone-primary-badge">Primary</span>
+                {% endif %}
+            </div>
+
+            <div class="zone-content-info">
+                <div class="zone-content-label">Content Source</div>
+                {% if layer.content_source == 'playlist' and layer.playlist %}
+                <div class="zone-content-value">
+                    <span>📋</span> {{ layer.playlist.name }}
+                </div>
+                {% elif layer.content_source == 'static' and layer.content %}
+                <div class="zone-content-value">
+                    <span>🎬</span> {{ layer.content.original_name }}
+                </div>
+                {% elif layer.content_source == 'widget' %}
+                <div class="zone-content-value">
+                    <span>📊</span> Widget ({{ layer.layer_type }})
+                </div>
+                {% else %}
+                <div class="zone-content-value empty">
+                    No content assigned
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: #64748b;">
+            <p>No zones defined. <a href="/layouts/{{ device.layout_id }}/designer" style="color: #667eea;">Edit the layout</a> to add zones.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- No Layout Assigned -->
+    <div class="no-layout-message">
+        <div class="icon">📺</div>
+        <h4 style="color: #1e293b; margin-bottom: 10px;">No Layout Assigned</h4>
+        <p>Select a layout above to define how content appears on this screen.</p>
+        <p style="font-size: 13px;">Layouts contain zones where you can place playlists, static content, or widgets.</p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Camera Settings -->
@@ -760,7 +1221,10 @@ input:disabled + .toggle-slider {
 <div class="playlists-section">
     <div class="playlists-header">
         <h3>Playlist Assignments</h3>
-        <p style="color: #64748b; font-size: 13px;">Assign playlists to different triggers. When a trigger condition is met, the associated playlist will play.</p>
+        <p style="color: #64748b; font-size: 13px;">
+            Assign playlists to camera triggers. Toggle <strong>ON</strong> to enable - when the camera detects a matching trigger (face, age, gender, etc.), the assigned playlist will play.
+            Toggle <strong>OFF</strong> to disable without removing the assignment. The "Default" playlist is always on as fallback content.
+        </p>
     </div>
 
     <div class="trigger-grid">
@@ -776,9 +1240,21 @@ input:disabled + .toggle-slider {
             </div>
 
             {% if assigned %}
-            <div class="trigger-playlist">
-                <span class="playlist-name">{{ assigned.playlist_name }}</span>
-                <div class="trigger-actions">
+            <div class="trigger-playlist" style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span class="playlist-name {% if not assigned.is_enabled %}disabled{% endif %}">{{ assigned.playlist_name }}</span>
+                    <span class="playlist-status-badge {% if assigned.is_enabled %}enabled{% else %}disabled{% endif %}">
+                        {{ 'ON' if assigned.is_enabled else 'OFF' }}
+                    </span>
+                </div>
+                <div class="trigger-actions" style="display: flex; align-items: center; gap: 12px; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label class="toggle-switch" title="Toggle playlist on/off">
+                            <input type="checkbox" {% if assigned.is_enabled %}checked{% endif %} onchange="togglePlaylist('{{ assigned.assignment_id }}', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span style="font-size: 12px; color: #64748b;">{{ 'Enabled' if assigned.is_enabled else 'Disabled' }}</span>
+                    </div>
                     <button class="trigger-btn remove" onclick="removePlaylist('{{ assigned.assignment_id }}', '{{ trigger.label }}')">
                         Remove
                     </button>
@@ -837,6 +1313,101 @@ input:disabled + .toggle-slider {
 <script>
     const deviceId = '{{ device.device_id }}';
     const originalConnectionMode = '{{ device.connection_mode or "direct" }}';
+
+    // Layout zones data for visual preview
+    {% if device.layout %}
+    const layoutData = {
+        width: {{ device.layout.canvas_width }},
+        height: {{ device.layout.canvas_height }},
+        orientation: '{{ device.layout.orientation }}',
+        layers: [
+            {% for layer in device.layout.layers|sort(attribute='z_index') %}
+            {
+                id: '{{ layer.id }}',
+                name: {{ (layer.name or 'Zone ' ~ loop.index)|tojson }},
+                x: {{ layer.x }},
+                y: {{ layer.y }},
+                width: {{ layer.width }},
+                height: {{ layer.height }},
+                zIndex: {{ layer.z_index }},
+                contentSource: '{{ layer.content_source or "none" }}',
+                playlistName: {{ (layer.playlist.name if layer.playlist else '')|tojson }},
+                contentName: {{ (layer.content.original_name if layer.content else '')|tojson }},
+                isPrimary: {{ 'true' if loop.index == 1 else 'false' }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    };
+
+    // Render zone overlays on the canvas
+    function renderZoneOverlays() {
+        const canvas = document.getElementById('layoutCanvas');
+        if (!canvas || !layoutData.layers.length) return;
+
+        // Clear existing overlays
+        canvas.querySelectorAll('.zone-overlay').forEach(el => el.remove());
+
+        // Get canvas dimensions
+        const canvasRect = canvas.getBoundingClientRect();
+        const scaleX = canvasRect.width / layoutData.width;
+        const scaleY = canvasRect.height / layoutData.height;
+
+        // Render each zone
+        layoutData.layers.forEach((layer, index) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'zone-overlay' + (layer.isPrimary ? ' primary' : '');
+            overlay.style.left = (layer.x * scaleX) + 'px';
+            overlay.style.top = (layer.y * scaleY) + 'px';
+            overlay.style.width = (layer.width * scaleX) + 'px';
+            overlay.style.height = (layer.height * scaleY) + 'px';
+            overlay.style.zIndex = layer.zIndex;
+
+            // Zone label
+            const label = document.createElement('div');
+            label.className = 'zone-label';
+            label.textContent = 'Zone ' + (index + 1);
+            overlay.appendChild(label);
+
+            // Content preview
+            const preview = document.createElement('div');
+            preview.className = 'zone-content-preview';
+            if (layer.contentSource === 'playlist' && layer.playlistName) {
+                preview.innerHTML = '<span class="icon">📋</span>' + escapeHtml(layer.playlistName);
+            } else if (layer.contentSource === 'static' && layer.contentName) {
+                preview.innerHTML = '<span class="icon">🎬</span>' + escapeHtml(layer.contentName);
+            } else {
+                preview.innerHTML = '<span class="icon">⬜</span>Empty';
+                preview.style.opacity = '0.6';
+            }
+            overlay.appendChild(preview);
+
+            // Click to highlight zone card
+            overlay.addEventListener('click', () => {
+                document.querySelectorAll('.zone-card').forEach(card => card.style.boxShadow = '');
+                const zoneCard = document.querySelector(`.zone-card[data-layer-id="${layer.id}"]`);
+                if (zoneCard) {
+                    zoneCard.style.boxShadow = '0 0 0 3px #667eea';
+                    zoneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
+            canvas.appendChild(overlay);
+        });
+    }
+
+    // Escape HTML helper
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initial render and resize handler
+    document.addEventListener('DOMContentLoaded', () => {
+        renderZoneOverlays();
+        window.addEventListener('resize', renderZoneOverlays);
+    });
+    {% endif %}
 
     // Connection mode save with AJAX
     let connectionModeTimeout = null;
@@ -905,6 +1476,19 @@ input:disabled + .toggle-slider {
     function saveSettings() {
         updateSubToggles();
 
+        // Update Push button state based on layout selection
+        const layoutSelect = document.getElementById('layout_id');
+        const pushBtn = document.getElementById('pushDeviceBtn');
+        if (pushBtn && layoutSelect) {
+            if (layoutSelect.value) {
+                pushBtn.disabled = false;
+                pushBtn.title = '';
+            } else {
+                pushBtn.disabled = true;
+                pushBtn.title = 'Select a layout first';
+            }
+        }
+
         // Clear previous timeout
         if (saveTimeout) {
             clearTimeout(saveTimeout);
@@ -915,12 +1499,14 @@ input:disabled + .toggle-slider {
 
         // Debounce the save
         saveTimeout = setTimeout(async () => {
+            const layoutSelect = document.getElementById('layout_id');
             const settings = {
                 camera1_enabled: document.getElementById('camera1_enabled').checked,
                 camera1_demographics: document.getElementById('camera1_demographics').checked,
                 camera1_loyalty: document.getElementById('camera1_loyalty').checked,
                 camera2_enabled: document.getElementById('camera2_enabled').checked,
-                camera2_ncmec: document.getElementById('camera2_ncmec').checked
+                camera2_ncmec: document.getElementById('camera2_ncmec').checked,
+                layout_id: layoutSelect ? (layoutSelect.value || null) : null
             };
 
             try {
@@ -1012,6 +1598,42 @@ input:disabled + .toggle-slider {
         }
     }
 
+    async function togglePlaylist(assignmentId, isEnabled) {
+        showSaveStatus('saving', isEnabled ? 'Enabling playlist...' : 'Disabling playlist...');
+
+        try {
+            const response = await fetch(`/api/v1/devices/${deviceId}/playlists/${assignmentId}/toggle`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_enabled: isEnabled })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showSaveStatus('saved', data.message);
+                // Update UI without full reload
+                const checkbox = document.querySelector(`input[onchange*="${assignmentId}"]`);
+                if (checkbox) {
+                    const playlistName = checkbox.closest('.trigger-playlist').querySelector('.playlist-name');
+                    if (playlistName) {
+                        playlistName.classList.toggle('disabled', !isEnabled);
+                    }
+                }
+            } else {
+                showSaveStatus('error', data.error || 'Failed to toggle playlist');
+                // Revert checkbox state
+                const checkbox = document.querySelector(`input[onchange*="${assignmentId}"]`);
+                if (checkbox) checkbox.checked = !isEnabled;
+            }
+        } catch (error) {
+            showSaveStatus('error', 'Connection error');
+            // Revert checkbox state
+            const checkbox = document.querySelector(`input[onchange*="${assignmentId}"]`);
+            if (checkbox) checkbox.checked = !isEnabled;
+        }
+    }
+
     async function removePlaylist(assignmentId, triggerLabel) {
         if (!confirm(`Remove playlist from "${triggerLabel}" trigger?`)) {
             return;
@@ -1046,5 +1668,44 @@ input:disabled + .toggle-slider {
             closeAssignModal();
         }
     });
+
+    // Push layout to device
+    async function pushLayout() {
+        const layoutSelect = document.getElementById('layout_id');
+        const layoutId = layoutSelect ? layoutSelect.value : null;
+
+        if (!layoutId) {
+            alert('Please select a layout first');
+            return;
+        }
+
+        if (!confirm('Push this layout and all its content to the device?\n\nThis will sync the layout configuration and all media files to the device storage.')) {
+            return;
+        }
+
+        showSaveStatus('saving', 'Pushing layout...');
+
+        try {
+            // Use the layout push API which bundles layout + content
+            const response = await fetch(`/api/v1/layouts/${layoutId}/push`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: '{{ device.id }}' })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const contentCount = data.content_files_count || 0;
+                const playlistCount = data.playlists_count || 0;
+                showSaveStatus('saved', `Layout pushed! (${contentCount} files, ${playlistCount} playlists)`);
+            } else {
+                showSaveStatus('error', data.error || 'Failed to push layout');
+            }
+        } catch (err) {
+            showSaveStatus('error', 'Connection error');
+        }
+    }
 </script>
 {% endblock %}

@@ -1,155 +1,706 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Skillz Media Screens CMS{% endblock %}
+{% block title %}Dashboard - Skillz Media CMS{% endblock %}
 
 {% block extra_styles %}
-/* Quick Actions */
-.quick-actions {
+/* System Health Section */
+.health-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    margin: 30px 0;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.quick-actions h3 {
-    font-size: 20px;
-    color: #1e293b;
-    margin-bottom: 20px;
+.health-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.health-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
     font-weight: 700;
+    color: #1e293b;
 }
 
-/* Activity Feed */
-.activity-section {
+.health-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.health-indicator.healthy {
+    background: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.health-indicator.warning {
+    background: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.health-indicator.error {
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.health-stats {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.health-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.health-stat-value {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.health-alerts {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #92400e;
+}
+
+.alert-item:last-child {
+    margin-bottom: 0;
+}
+
+.alert-icon {
+    font-size: 18px;
+}
+
+.no-alerts {
+    color: #10b981;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Management Section */
+.management-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.management-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    margin: 30px 0;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.activity-section h3 {
-    font-size: 20px;
-    color: #1e293b;
+.management-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 20px;
-    font-weight: 700;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-.activity-item {
-    padding: 15px;
-    border-left: 3px solid #667eea;
-    background: #f8fafc;
+.management-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.management-card-icon.screen {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.management-card-icon.hub {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.management-card-icon.network {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.management-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.management-card-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    margin-bottom: 12px;
+    font-size: 14px;
+    color: #1e293b;
+    background: white;
     transition: all 0.2s;
 }
 
-.activity-item:hover {
-    background: #f1f5f9;
-    transform: translateX(4px);
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
-.activity-time {
-    font-size: 12px;
+.form-group input::placeholder {
     color: #94a3b8;
-    margin-bottom: 5px;
 }
 
-.activity-text {
-    color: #1e293b;
+.form-group .hint {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-submit.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-submit.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-submit.success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.btn-submit.success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.form-feedback {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    display: none;
+}
+
+.form-feedback.success {
+    background: #d1fae5;
+    color: #065f46;
+    display: block;
+}
+
+.form-feedback.error {
+    background: #fee2e2;
+    color: #991b1b;
+    display: block;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
 }
 {% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero">
-    <h2>👋 Welcome back, Matt!</h2>
-    <p>Your media network is running smoothly. Here's what's happening across your devices.</p>
+<!-- System Health Section -->
+<div class="health-section">
+    <div class="health-header">
+        <div class="health-title">
+            <span class="health-indicator {{ system_health.status }}"></span>
+            System Health
+        </div>
+        <div class="health-stats">
+            <div class="health-stat">
+                <span class="health-stat-value">{{ system_health.total_screens }}</span>
+                Total Screens
+            </div>
+            <div class="health-stat">
+                <span class="health-stat-value" style="color: #10b981;">{{ system_health.online_screens }}</span>
+                Online
+            </div>
+            {% if system_health.offline_screens > 0 %}
+            <div class="health-stat">
+                <span class="health-stat-value" style="color: #ef4444;">{{ system_health.offline_screens }}</span>
+                Offline
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if system_health.alerts %}
+    <div class="health-alerts">
+        {% for alert in system_health.alerts[:5] %}
+        <div class="alert-item">
+            <span class="alert-icon">&#9888;</span>
+            <span>{{ alert.message }}</span>
+            <a href="/devices/{{ alert.device_id }}" style="margin-left: auto; color: #92400e; font-weight: 600;">View</a>
+        </div>
+        {% endfor %}
+        {% if system_health.alerts|length > 5 %}
+        <div style="text-align: center; padding-top: 8px; font-size: 13px; color: #64748b;">
+            And {{ system_health.alerts|length - 5 }} more alerts...
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="no-alerts">
+        <span>&#10003;</span>
+        All systems operating normally
+    </div>
+    {% endif %}
 </div>
 
-<!-- Stats Grid -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">📱</div>
-        <div class="stat-value">{{ device_count }}</div>
-        <div class="stat-label">Connected Devices</div>
-        <div class="stat-change neutral">{{ device_count }} active</div>
+<!-- Device & Hub Management Section -->
+<div class="management-section">
+    <!-- Create Network Card -->
+    <div class="management-card">
+        <div class="management-card-header">
+            <div>
+                <div class="management-card-title">Create Network</div>
+                <div class="management-card-subtitle">Add a new signage network</div>
+            </div>
+        </div>
+        <form id="create-network-form">
+            <div class="form-group">
+                <label for="network-name">Network Name</label>
+                <input type="text" id="network-name" name="name" placeholder="High Octane Network">
+            </div>
+            <button type="submit" class="btn-submit primary">Create Network</button>
+            <div id="create-network-feedback" class="form-feedback"></div>
+        </form>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">🎬</div>
-        <div class="stat-value">{{ content_count }}</div>
-        <div class="stat-label">Media Files</div>
-        <div class="stat-change positive">↑ Ready to deploy</div>
+    <!-- Add Hub Card -->
+    <div class="management-card">
+        <div class="management-card-header">
+            <div>
+                <div class="management-card-title">Add Hub</div>
+                <div class="management-card-subtitle">Register a new location hub</div>
+            </div>
+        </div>
+        <form id="add-hub-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="hub-code">Code</label>
+                    <input type="text" id="hub-code" name="code" placeholder="WM" maxlength="4" style="text-transform: uppercase;">
+                    <div class="hint">2-4 letters</div>
+                </div>
+                <div class="form-group">
+                    <label for="hub-name">Name</label>
+                    <input type="text" id="hub-name" name="name" placeholder="West Marine Store">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="hub-network">Network</label>
+                <select id="hub-network" name="network_id">
+                    <option value="">Select a network...</option>
+                    {% for network in networks %}
+                    <option value="{{ network.id }}">{{ network.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-submit primary">Add Hub</button>
+            <div id="add-hub-feedback" class="form-feedback"></div>
+        </form>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-value">{{ playlist_count }}</div>
-        <div class="stat-label">Active Playlists</div>
-        <div class="stat-change neutral">With triggers</div>
-    </div>
+    <!-- Pair Device Card -->
+    <div class="management-card" style="grid-column: span 2;">
+        <div class="management-card-header">
+            <div>
+                <div class="management-card-title">Pair Screen</div>
+                <div class="management-card-subtitle">Connect a new screen - all fields are required</div>
+            </div>
+        </div>
+        <form id="pair-device-form">
+            <!-- Row 1: Pairing Code & Network -->
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label for="pairing-code">Pairing Code *</label>
+                    <input type="text" id="pairing-code" name="pairing_code" placeholder="ABC123" maxlength="6" style="text-transform: uppercase; letter-spacing: 2px; text-align: center; font-size: 16px; font-weight: 600;" required>
+                    <div class="hint">Code displayed on screen</div>
+                </div>
+                <div class="form-group">
+                    <label for="pair-network">Network *</label>
+                    <select id="pair-network" name="network_id" onchange="updateHubSelect()" required>
+                        <option value="">Select network...</option>
+                        {% for network in networks %}
+                        <option value="{{ network.id }}">{{ network.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pair-hub">Hub (Optional)</label>
+                    <select id="pair-hub" name="hub_id">
+                        <option value="">Direct connection</option>
+                    </select>
+                </div>
+            </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">⚡</div>
-        <div class="stat-value">100%</div>
-        <div class="stat-label">System Health</div>
-        <div class="stat-change positive">↑ All systems go</div>
+            <!-- Row 2: Store Info -->
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+                <div class="form-group">
+                    <label for="store-name">Store Name/Number *</label>
+                    <input type="text" id="store-name" name="store_name" placeholder="Store #1234 or West Marine Fort Lauderdale" required>
+                </div>
+                <div class="form-group">
+                    <label for="screen-location">Screen Location in Store *</label>
+                    <input type="text" id="screen-location" name="screen_location" placeholder="Entrance, Checkout, Aisle 1, etc." required>
+                </div>
+            </div>
+
+            <!-- Row 3: Address -->
+            <div class="form-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 16px; margin-top: 16px;">
+                <div class="form-group">
+                    <label for="store-address">Street Address *</label>
+                    <input type="text" id="store-address" name="store_address" placeholder="123 Main Street" required>
+                </div>
+                <div class="form-group">
+                    <label for="store-city">City *</label>
+                    <input type="text" id="store-city" name="store_city" placeholder="Fort Lauderdale" required>
+                </div>
+                <div class="form-group">
+                    <label for="store-state">State *</label>
+                    <select id="store-state" name="store_state" required>
+                        <option value="">State</option>
+                        <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option>
+                        <option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option>
+                        <option value="CT">CT</option><option value="DE">DE</option><option value="FL">FL</option>
+                        <option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
+                        <option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option>
+                        <option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option>
+                        <option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option>
+                        <option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option>
+                        <option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option>
+                        <option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option>
+                        <option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option>
+                        <option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option>
+                        <option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option>
+                        <option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option>
+                        <option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option>
+                        <option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option>
+                        <option value="WI">WI</option><option value="WY">WY</option><option value="DC">DC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="store-zipcode">Zipcode *</label>
+                    <input type="text" id="store-zipcode" name="store_zipcode" placeholder="33301" maxlength="10" required>
+                </div>
+            </div>
+
+            <!-- Row 4: Manager Info -->
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+                <div class="form-group">
+                    <label for="manager-name">Store Manager Name *</label>
+                    <input type="text" id="manager-name" name="manager_name" placeholder="John Smith" required>
+                </div>
+                <div class="form-group">
+                    <label for="store-phone">Store Phone *</label>
+                    <input type="tel" id="store-phone" name="store_phone" placeholder="(954) 555-1234" required>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; align-items: center; gap: 16px;">
+                <button type="submit" class="btn-submit success" style="min-width: 160px;">Pair Screen</button>
+                <div id="pair-device-feedback" class="form-feedback" style="flex: 1;"></div>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="quick-actions">
-    <h3>⚡ Quick Actions</h3>
-    <div class="actions-grid">
-        <a href="/content" class="action-btn">
-            <span>📤</span>
-            Upload Content
-        </a>
-        <a href="/playlists" class="action-btn">
-            <span>➕</span>
-            Create Playlist
-        </a>
-        <a href="/devices" class="action-btn">
-            <span>🔗</span>
-            Pair Device
-        </a>
-        <a href="/devices" class="action-btn">
-            <span>🎯</span>
-            Assign Triggers
-        </a>
-    </div>
-</div>
-
-<!-- Activity Feed -->
-<div class="activity-section">
-    <h3>📊 Recent Activity</h3>
-    <div class="activity-item">
-        <div class="activity-time">Just now</div>
-        <div class="activity-text">✅ Dashboard loaded successfully</div>
-    </div>
-    <div class="activity-item">
-        <div class="activity-time">2 minutes ago</div>
-        <div class="activity-text">🎬 System ready for content management</div>
-    </div>
-    <div class="activity-item">
-        <div class="activity-time">5 minutes ago</div>
-        <div class="activity-text">📱 All devices synced</div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // Auto-refresh stats every 30 seconds
-    setInterval(() => {
-        location.reload();
-    }, 30000);
+// Hubs data for dynamic selection
+const hubsByNetwork = {
+    {% for network in networks %}
+    "{{ network.id }}": [
+        {% for hub in hubs if hub.network_id == network.id %}
+        { id: "{{ hub.id }}", code: "{{ hub.code }}", name: "{{ hub.name }}" }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+// Update hub select when network changes
+function updateHubSelect() {
+    const networkId = document.getElementById('pair-network').value;
+    const hubSelect = document.getElementById('pair-hub');
+
+    // Clear current options
+    hubSelect.innerHTML = '<option value="">Direct connection (no hub)</option>';
+
+    // Add hubs for selected network
+    if (networkId && hubsByNetwork[networkId]) {
+        hubsByNetwork[networkId].forEach(hub => {
+            const option = document.createElement('option');
+            option.value = hub.id;
+            option.textContent = `${hub.code} - ${hub.name}`;
+            hubSelect.appendChild(option);
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Pair Device Form
+    const pairDeviceForm = document.getElementById('pair-device-form');
+    const pairDeviceFeedback = document.getElementById('pair-device-feedback');
+
+    pairDeviceForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        pairDeviceFeedback.className = 'form-feedback';
+        pairDeviceFeedback.textContent = '';
+
+        // Collect all form values
+        const pairingCode = document.getElementById('pairing-code').value.trim().toUpperCase();
+        const networkId = document.getElementById('pair-network').value;
+        const hubId = document.getElementById('pair-hub').value;
+        const storeName = document.getElementById('store-name').value.trim();
+        const screenLocation = document.getElementById('screen-location').value.trim();
+        const storeAddress = document.getElementById('store-address').value.trim();
+        const storeCity = document.getElementById('store-city').value.trim();
+        const storeState = document.getElementById('store-state').value;
+        const storeZipcode = document.getElementById('store-zipcode').value.trim();
+        const managerName = document.getElementById('manager-name').value.trim();
+        const storePhone = document.getElementById('store-phone').value.trim();
+
+        // Client-side validation
+        const missingFields = [];
+        if (!pairingCode) missingFields.push('Pairing Code');
+        if (!networkId) missingFields.push('Network');
+        if (!storeName) missingFields.push('Store Name');
+        if (!screenLocation) missingFields.push('Screen Location');
+        if (!storeAddress) missingFields.push('Address');
+        if (!storeCity) missingFields.push('City');
+        if (!storeState) missingFields.push('State');
+        if (!storeZipcode) missingFields.push('Zipcode');
+        if (!managerName) missingFields.push('Manager Name');
+        if (!storePhone) missingFields.push('Store Phone');
+
+        if (missingFields.length > 0) {
+            pairDeviceFeedback.className = 'form-feedback error';
+            pairDeviceFeedback.textContent = 'Missing required fields: ' + missingFields.join(', ');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/pairing/approve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pairing_code: pairingCode,
+                    network_id: networkId,
+                    hub_id: hubId || null,
+                    store_name: storeName,
+                    screen_location: screenLocation,
+                    store_address: storeAddress,
+                    store_city: storeCity,
+                    store_state: storeState,
+                    store_zipcode: storeZipcode,
+                    manager_name: managerName,
+                    store_phone: storePhone
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                pairDeviceFeedback.className = 'form-feedback success';
+                pairDeviceFeedback.textContent = 'Screen paired successfully! It will appear in the network shortly.';
+                pairDeviceForm.reset();
+                updateHubSelect(); // Reset hub select
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                pairDeviceFeedback.className = 'form-feedback error';
+                pairDeviceFeedback.textContent = data.error || 'Failed to pair device';
+            }
+        } catch (error) {
+            pairDeviceFeedback.className = 'form-feedback error';
+            pairDeviceFeedback.textContent = 'Network error. Please try again.';
+        }
+    });
+
+    // Add Hub Form
+    const addHubForm = document.getElementById('add-hub-form');
+    const addHubFeedback = document.getElementById('add-hub-feedback');
+
+    addHubForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        addHubFeedback.className = 'form-feedback';
+        addHubFeedback.textContent = '';
+
+        const code = document.getElementById('hub-code').value.trim().toUpperCase();
+        const name = document.getElementById('hub-name').value.trim();
+        const networkId = document.getElementById('hub-network').value;
+
+        if (!code || code.length < 2 || code.length > 4) {
+            addHubFeedback.className = 'form-feedback error';
+            addHubFeedback.textContent = 'Hub code must be 2-4 letters';
+            return;
+        }
+
+        if (!name) {
+            addHubFeedback.className = 'form-feedback error';
+            addHubFeedback.textContent = 'Please enter a hub name';
+            return;
+        }
+
+        if (!networkId) {
+            addHubFeedback.className = 'form-feedback error';
+            addHubFeedback.textContent = 'Please select a network';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/v1/hubs/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    code: code,
+                    name: name,
+                    network_id: networkId
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                addHubFeedback.className = 'form-feedback success';
+                addHubFeedback.textContent = `Hub "${name}" (${code}) created successfully!`;
+                addHubForm.reset();
+            } else {
+                addHubFeedback.className = 'form-feedback error';
+                addHubFeedback.textContent = data.error || 'Failed to create hub';
+            }
+        } catch (error) {
+            addHubFeedback.className = 'form-feedback error';
+            addHubFeedback.textContent = 'Network error. Please try again.';
+        }
+    });
+
+    // Create Network Form
+    const createNetworkForm = document.getElementById('create-network-form');
+    const createNetworkFeedback = document.getElementById('create-network-feedback');
+
+    createNetworkForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        createNetworkFeedback.className = 'form-feedback';
+        createNetworkFeedback.textContent = '';
+
+        const name = document.getElementById('network-name').value.trim();
+
+        if (!name) {
+            createNetworkFeedback.className = 'form-feedback error';
+            createNetworkFeedback.textContent = 'Please enter a network name';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/v1/networks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                createNetworkFeedback.className = 'form-feedback success';
+                createNetworkFeedback.textContent = `Network "${name}" created successfully!`;
+                createNetworkForm.reset();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                createNetworkFeedback.className = 'form-feedback error';
+                createNetworkFeedback.textContent = data.error || 'Failed to create network';
+            }
+        } catch (error) {
+            createNetworkFeedback.className = 'form-feedback error';
+            createNetworkFeedback.textContent = 'Network error. Please try again.';
+        }
+    });
+});
 </script>
 {% endblock %}

@@ -12,7 +12,7 @@ Blueprint for web page rendering:
 from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify, send_from_directory, current_app
 from flask_login import login_required
 
-from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment
+from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment, Folder
 from cms.routes.locations import Location
 from cms.models.device_assignment import TRIGGER_TYPES
 from cms.models.synced_content import SyncedContent
@@ -35,26 +35,90 @@ def dashboard():
     """
     Dashboard page showing system overview.
 
-    Displays counts of devices, hubs, content items, and playlists
-    for a quick system status overview.
+    Displays:
+    - System health/alerts
+    - Networks with their screens
+    - Screen layouts and current content
 
     Returns:
-        Rendered dashboard.html template with stats
+        Rendered dashboard.html template with data
     """
-    device_count = Device.query.count()
-    hub_count = Hub.query.count()
-    content_count = Content.query.count()
-    playlist_count = Playlist.query.count()
-    network_count = Network.query.count()
+    from cms.models.layout import ScreenLayout
+
+    # Get all networks with their devices
+    networks = Network.query.order_by(Network.name).all()
+
+    # Build network data with screens
+    network_data = []
+    system_alerts = []
+    total_screens = 0
+    online_screens = 0
+
+    for network in networks:
+        devices = Device.query.filter_by(network_id=network.id).filter(Device.status != 'pending').all()
+        screen_list = []
+
+        for device in devices:
+            total_screens += 1
+            if device.status == 'active':
+                online_screens += 1
+            elif device.status == 'offline':
+                system_alerts.append({
+                    'type': 'warning',
+                    'message': f'Screen "{device.name or device.device_id}" is offline',
+                    'device_id': device.device_id
+                })
+
+            # Get layout info
+            layout = None
+            if device.layout_id:
+                layout = db.session.get(ScreenLayout, device.layout_id)
+
+            # Get current playlist (first assignment)
+            current_playlist = None
+            assignment = DeviceAssignment.query.filter_by(device_id=device.id).first()
+            if assignment and assignment.playlist:
+                current_playlist = assignment.playlist.name
+
+            screen_list.append({
+                'id': device.id,
+                'device_id': device.device_id,
+                'name': device.name or device.device_id,
+                'status': device.status,
+                'last_seen': device.last_seen,
+                'layout_name': layout.name if layout else 'No layout',
+                'layout_id': device.layout_id,
+                'current_playlist': current_playlist or 'No playlist',
+                'description': f'{device.mode} mode'
+            })
+
+        network_data.append({
+            'id': network.id,
+            'name': network.name,
+            'description': getattr(network, 'description', None),
+            'screen_count': len(screen_list),
+            'online_count': sum(1 for s in screen_list if s['status'] == 'active'),
+            'screens': screen_list
+        })
+
+    # System health summary
+    system_health = {
+        'status': 'healthy' if not system_alerts else 'warning',
+        'total_screens': total_screens,
+        'online_screens': online_screens,
+        'offline_screens': total_screens - online_screens,
+        'alerts': system_alerts
+    }
+
+    # Get all hubs for pairing
+    hubs = Hub.query.order_by(Hub.name).all()
 
     return render_template(
         'dashboard.html',
         active_page='dashboard',
-        device_count=device_count,
-        hub_count=hub_count,
-        content_count=content_count,
-        playlist_count=playlist_count,
-        network_count=network_count
+        networks=network_data,
+        hubs=hubs,
+        system_health=system_health
     )
 
 
@@ -69,21 +133,120 @@ def devices_page():
     - Associated hub and network
     - Last seen timestamp
 
+    Supports filtering by hub via ?hub=<hub_id> query parameter.
+
     Returns:
         Rendered devices.html template with device list
     """
+    from cms.models.layout import ScreenLayout
+
+    # Check for hub filter
+    hub_filter = request.args.get('hub')
+    filtered_hub = None
+
+    if hub_filter:
+        filtered_hub = Hub.query.get(hub_filter)
+
     devices = Device.query.filter(Device.status != 'pending').order_by(Device.created_at.desc()).all()
     hubs = Hub.query.order_by(Hub.name).all()
-    networks = Network.query.order_by(Network.name).all()
     playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
     locations = Location.query.all()
+
+    # If filtering by hub, only show devices for that hub
+    if filtered_hub:
+        hub_devices = Device.query.filter_by(hub_id=filtered_hub.id).filter(Device.status != 'pending').all()
+        hub_screen_list = []
+
+        for device in hub_devices:
+            layout = None
+            if device.layout_id:
+                layout = db.session.get(ScreenLayout, device.layout_id)
+
+            current_playlist = None
+            assignment = DeviceAssignment.query.filter_by(device_id=device.id).first()
+            if assignment and assignment.playlist:
+                current_playlist = assignment.playlist.name
+
+            hub_screen_list.append({
+                'id': device.id,
+                'device_id': device.device_id,
+                'name': device.name or device.device_id,
+                'status': device.status,
+                'last_seen': device.last_seen,
+                'layout_name': layout.name if layout else 'No layout',
+                'layout_id': device.layout_id,
+                'current_playlist': current_playlist or 'No playlist',
+                'mode': device.mode or 'hub'
+            })
+
+        return render_template(
+            'devices.html',
+            active_page='devices',
+            devices=devices,
+            hubs=hubs,
+            networks=[],
+            unassigned_devices=[],
+            filtered_hub=filtered_hub,
+            hub_screens=hub_screen_list,
+            playlists=playlists,
+            locations=locations
+        )
+
+    # Build network data with screens (same as dashboard)
+    networks_raw = Network.query.order_by(Network.name).all()
+    network_data = []
+
+    for network in networks_raw:
+        network_devices = Device.query.filter_by(network_id=network.id).filter(Device.status != 'pending').all()
+        screen_list = []
+
+        for device in network_devices:
+            # Get layout info
+            layout = None
+            if device.layout_id:
+                layout = db.session.get(ScreenLayout, device.layout_id)
+
+            # Get current playlist (first assignment)
+            current_playlist = None
+            assignment = DeviceAssignment.query.filter_by(device_id=device.id).first()
+            if assignment and assignment.playlist:
+                current_playlist = assignment.playlist.name
+
+            screen_list.append({
+                'id': device.id,
+                'device_id': device.device_id,
+                'name': device.name or device.device_id,
+                'status': device.status,
+                'last_seen': device.last_seen,
+                'layout_name': layout.name if layout else 'No layout',
+                'layout_id': device.layout_id,
+                'current_playlist': current_playlist or 'No playlist',
+            })
+
+        network_data.append({
+            'id': network.id,
+            'name': network.name,
+            'description': getattr(network, 'description', None),
+            'screen_count': len(screen_list),
+            'online_count': sum(1 for s in screen_list if s['status'] == 'active'),
+            'screens': screen_list
+        })
+
+    # Get unassigned devices (not part of any network)
+    unassigned_devices = Device.query.filter(
+        Device.network_id.is_(None),
+        Device.status != 'pending'
+    ).order_by(Device.created_at.desc()).all()
 
     return render_template(
         'devices.html',
         active_page='devices',
         devices=devices,
         hubs=hubs,
-        networks=networks,
+        networks=network_data,
+        unassigned_devices=unassigned_devices,
+        filtered_hub=None,
+        hub_screens=[],
         playlists=playlists,
         locations=locations
     )
@@ -128,9 +291,9 @@ def content_page():
     """
     Content management page with 16:9 aspect ratio preview.
 
-    Lists synced content from Content Catalog and local uploads:
-    - Synced content with full metadata (status, partner, thumbnails)
-    - Local uploads marked as "Local Upload"
+    Lists approved content synced from the Content Catalog.
+    All content must go through the Content Catalog approval workflow
+    before appearing here - no direct uploads allowed.
 
     Returns:
         Rendered content.html template with content list and filter options
@@ -150,6 +313,9 @@ def content_page():
 
     # Add synced content with full metadata
     for item in synced_items:
+        # Get folder info if content is in a folder
+        folder = Folder.query.get(item.folder_id) if item.folder_id else None
+
         content.append({
             'id': item.id,
             'filename': item.filename,
@@ -164,10 +330,10 @@ def content_page():
             'content_type': item.content_type,
             'status': item.status,
             'thumbnail_url': item.thumbnail_url,
-            'folder_id': None,
-            'folder_name': None,
-            'folder_color': None,
-            'folder_icon': None,
+            'folder_id': item.folder_id,
+            'folder_name': folder.name if folder else None,
+            'folder_color': folder.color if folder else None,
+            'folder_icon': folder.icon if folder else None,
         })
 
     # Add local content (uploaded directly to CMS)
@@ -208,7 +374,7 @@ def content_page():
         content=content,
         networks=networks,
         organizations=organizations,  # Partner filter options
-        folders=[]  # Empty folders list for now
+        folders=Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
     )
 
 
@@ -231,13 +397,15 @@ def playlists_page():
     playlists = Playlist.query.order_by(Playlist.created_at.desc()).all()
     content = Content.query.order_by(Content.original_name).all()
     networks = Network.query.order_by(Network.name).all()
+    folders = Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
 
     return render_template(
         'playlists.html',
         active_page='playlists',
         playlists=playlists,
         content=content,
-        networks=networks
+        networks=networks,
+        folders=folders
     )
 
 
@@ -276,7 +444,8 @@ def device_detail_page(device_id):
                 'playlist_id': assignment.playlist.id,
                 'playlist_name': assignment.playlist.name,
                 'trigger_type': assignment.trigger_type,
-                'priority': assignment.priority
+                'priority': assignment.priority,
+                'is_enabled': assignment.is_enabled if hasattr(assignment, 'is_enabled') else True
             })
 
     # Get all available playlists for assignment dropdown
@@ -296,12 +465,17 @@ def device_detail_page(device_id):
         {'value': 'ncmec_alert', 'label': 'NCMEC Alert', 'description': 'Plays during NCMEC alert', 'icon': '🚨'},
     ]
 
+    # Get all available layouts for assignment (exclude templates)
+    from cms.models.layout import ScreenLayout
+    all_layouts = ScreenLayout.query.filter_by(is_template=False).order_by(ScreenLayout.name).all()
+
     return render_template(
         'device_detail.html',
         active_page='devices',
         device=device,
         device_playlists=device_playlists,
         all_playlists=all_playlists,
+        all_layouts=all_layouts,
         trigger_types=trigger_info
     )
 
@@ -348,25 +522,196 @@ def web_login():
 @web_bp.route('/api/admin/pairing/approve', methods=['POST'])
 @login_required
 def approve_pairing():
-    """Approve a device by its pairing code"""
+    """
+    Approve a device by its pairing code and assign to network/hub.
+
+    Required fields for pairing:
+    - pairing_code: The device's pairing code
+    - network_id: Network to assign the device to
+    - store_name: Store name or number
+    - store_address: Street address
+    - store_city: City
+    - store_state: State
+    - store_zipcode: Zipcode
+    - screen_location: Location within the store
+    - manager_name: Store manager's name
+    - store_phone: Store phone number
+
+    Optional fields:
+    - hub_id: Hub to assign the device to (sets mode to 'hub')
+    - name: Device display name
+    """
     data = request.get_json()
     pairing_code = data.get('pairing_code')
-    location_id = data.get('location_id')
-    
+
     if not pairing_code:
         return jsonify({'error': 'Pairing code is required'}), 400
-    
+
     device = Device.query.filter_by(pairing_code=pairing_code).first()
     if not device:
         return jsonify({'error': 'Device not found with that pairing code'}), 404
-    
+
+    # Validate required fields
+    required_fields = {
+        'network_id': 'Network',
+        'store_name': 'Store Name',
+        'store_address': 'Address',
+        'store_city': 'City',
+        'store_state': 'State',
+        'store_zipcode': 'Zipcode',
+        'screen_location': 'Screen Location',
+        'manager_name': 'Manager Name',
+        'store_phone': 'Store Phone'
+    }
+
+    missing_fields = []
+    for field, label in required_fields.items():
+        value = data.get(field)
+        if not value or str(value).strip() == '':
+            missing_fields.append(label)
+
+    if missing_fields:
+        return jsonify({
+            'error': 'Missing required fields',
+            'missing_fields': missing_fields
+        }), 400
+
+    # Activate device and set all fields
     device.status = 'active'
-    if location_id:
-        device.location_id = location_id
-    
+    device.network_id = data.get('network_id')
+    device.store_name = data.get('store_name')
+    device.store_address = data.get('store_address')
+    device.store_city = data.get('store_city')
+    device.store_state = data.get('store_state')
+    device.store_zipcode = data.get('store_zipcode')
+    device.screen_location = data.get('screen_location')
+    device.manager_name = data.get('manager_name')
+    device.store_phone = data.get('store_phone')
+
+    # Optional: set device name
+    if data.get('name'):
+        device.name = data.get('name')
+
+    # Assign to hub (if provided)
+    hub_id = data.get('hub_id')
+    if hub_id:
+        device.hub_id = hub_id
+        device.mode = 'hub'
+    else:
+        device.mode = 'direct'
+
     db.session.commit()
-    
+
     return jsonify({
         'message': 'Device paired successfully',
         'device': device.to_dict()
     })
+
+
+# ============================================
+# FOLDER ROUTES
+# ============================================
+
+@web_bp.route('/folders', methods=['GET'])
+@login_required
+def list_folders():
+    """Get all folders as a nested tree structure."""
+    # Get root folders (no parent)
+    root_folders = Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
+    return jsonify([f.to_dict(include_children=True) for f in root_folders])
+
+
+@web_bp.route('/folders', methods=['POST'])
+@login_required
+def create_folder():
+    """Create a new folder."""
+    data = request.get_json()
+    
+    if not data.get('name'):
+        return jsonify({'error': 'Folder name is required'}), 400
+    
+    folder = Folder(
+        name=data['name'],
+        icon=data.get('icon', '📁'),
+        color=data.get('color', '#667eea'),
+        parent_id=data.get('parent_id')  # None for root folders
+    )
+    
+    db.session.add(folder)
+    db.session.commit()
+    
+    return jsonify(folder.to_dict()), 201
+
+
+@web_bp.route('/folders/<folder_id>', methods=['DELETE'])
+@login_required
+def delete_folder(folder_id):
+    """Delete a folder and optionally its contents."""
+    folder = Folder.query.get(folder_id)
+    
+    if not folder:
+        return jsonify({'error': 'Folder not found'}), 404
+    
+    # Delete all child folders recursively
+    def delete_children(parent):
+        for child in parent.children:
+            delete_children(child)
+            db.session.delete(child)
+    
+    delete_children(folder)
+    db.session.delete(folder)
+    db.session.commit()
+    
+    return jsonify({'message': 'Folder deleted successfully'})
+
+
+@web_bp.route('/folders/<folder_id>', methods=['PUT'])
+@login_required
+def update_folder(folder_id):
+    """Update a folder's name, icon, color, or parent."""
+    folder = Folder.query.get(folder_id)
+    
+    if not folder:
+        return jsonify({'error': 'Folder not found'}), 404
+    
+    data = request.get_json()
+    
+    if 'name' in data:
+        folder.name = data['name']
+    if 'icon' in data:
+        folder.icon = data['icon']
+    if 'color' in data:
+        folder.color = data['color']
+    if 'parent_id' in data:
+        folder.parent_id = data['parent_id']
+    
+    db.session.commit()
+    
+    return jsonify(folder.to_dict())
+
+
+@web_bp.route('/content/<content_id>/move', methods=['POST'])
+@login_required
+def move_content_to_folder(content_id):
+    """Move content to a folder. Supports both SyncedContent and Content models."""
+    data = request.get_json()
+    folder_id = data.get('folder_id')  # None to remove from folder
+
+    # Try SyncedContent first, then Content
+    content = SyncedContent.query.get(content_id)
+    if not content:
+        content = Content.query.get(content_id)
+
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+
+    # Verify folder exists if provided
+    if folder_id:
+        folder = Folder.query.get(folder_id)
+        if not folder:
+            return jsonify({'error': 'Folder not found'}), 404
+
+    content.folder_id = folder_id
+    db.session.commit()
+
+    return jsonify({'message': 'Content moved successfully', 'folder_id': folder_id})
