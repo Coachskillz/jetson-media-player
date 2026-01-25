@@ -656,6 +656,45 @@ def get_asset(asset_id):
     return jsonify(asset.to_dict()), 200
 
 
+@assets_bp.route('/uuid/<asset_uuid>', methods=['GET'])
+def get_asset_by_uuid(asset_uuid):
+    """
+    Get a specific content asset by UUID.
+
+    Args:
+        asset_uuid: The content asset UUID
+
+    Returns:
+        200: Content asset data
+            { asset data }
+        404: Asset not found
+    """
+    asset = ContentAsset.query.filter_by(uuid=asset_uuid).first()
+
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+
+    # Include additional metadata for display
+    result = asset.to_dict()
+
+    # Add uploader info if available
+    if asset.uploader:
+        result['uploader_name'] = asset.uploader.name
+        result['uploader_email'] = asset.uploader.email
+
+    # Add approver info if available
+    if asset.approver:
+        result['approver_name'] = asset.approver.name
+        result['approver_email'] = asset.approver.email
+
+    # Add tenant info if available
+    if asset.tenant:
+        result['tenant_name'] = asset.tenant.name
+        result['tenant_slug'] = asset.tenant.slug
+
+    return jsonify(result), 200
+
+
 @assets_bp.route('/<int:asset_id>', methods=['PUT'])
 @jwt_required()
 def update_asset(asset_id):

@@ -607,15 +607,15 @@
             registerButton.textContent = 'Creating account...';
             errorMessage.classList.add('hidden');
 
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
             const formData = {
-                token: '{{ token }}',
-                first_name: document.getElementById('firstName').value,
-                last_name: document.getElementById('lastName').value,
+                name: firstName + ' ' + lastName,
                 password: password
             };
 
             try {
-                const response = await fetch('/api/v1/invitations/accept', {
+                const response = await fetch('/api/v1/invitations/{{ token }}/accept', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

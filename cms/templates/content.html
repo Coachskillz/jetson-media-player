@@ -281,6 +281,18 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.folder-btn.drag-over {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    border-color: #667eea !important;
+    background: #eef2ff;
+}
+
+.content-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
 .folder-btn.active {
     border-color: currentColor;
     background: white;
@@ -940,140 +952,6 @@
     background: rgba(102, 126, 234, 0.05) !important;
 }
 
-/* Upload Button */
-.upload-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.upload-section h3 {
-    font-size: 18px;
-    color: #1e293b;
-    font-weight: 700;
-    margin: 0;
-}
-
-.upload-actions {
-    display: flex;
-    gap: 12px;
-}
-
-.upload-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-}
-
-.upload-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-/* Upload Modal */
-.upload-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-    align-items: center;
-    justify-content: center;
-}
-
-.upload-modal.active {
-    display: flex;
-}
-
-.upload-modal-content {
-    background: white;
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.upload-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-}
-
-.upload-modal-header h3 {
-    font-size: 22px;
-    color: #1e293b;
-    font-weight: 700;
-    margin: 0;
-}
-
-.upload-close-btn {
-    background: none;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    color: #64748b;
-}
-
-.upload-form-group {
-    margin-bottom: 20px;
-}
-
-.upload-form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #475569;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.upload-form-group input,
-.upload-form-group select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
-.upload-form-group input:focus,
-.upload-form-group select:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-.upload-submit-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 14px 28px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    width: 100%;
-}
-
 {% endblock %}
 
 {% block content %}
@@ -1082,17 +960,6 @@
 <div class="layout">
     <div class="main-content">
         <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📁 Content Library</h2>
-
-        <!-- Upload Section -->
-        <div class="upload-section">
-            <h3>📤 Add Content</h3>
-            <div class="upload-actions">
-                <button class="upload-btn" onclick="openUploadModal()">
-                    <span>📁</span> Upload Local File
-                </button>
-                <span style="color: #64748b; font-size: 14px;">or drag from Content Catalog</span>
-            </div>
-        </div>
 
         <!-- Sync Section -->
         <div class="sync-section">
@@ -1193,15 +1060,23 @@
                 </button>
             </div>
             <div class="folders-grid">
-                <button class="folder-btn active" style="color: #64748b;" onclick="filterFolder(null)">
+                <button class="folder-btn active" style="color: #64748b;" onclick="filterFolder(null)"
+                        data-folder-id=""
+                        ondragover="handleFolderDragOver(event)"
+                        ondragleave="handleFolderDragLeave(event)"
+                        ondrop="handleFolderDrop(event, null)">
                     📂 All Content
                     <span class="count" id="count-all">{{ content|length }}</span>
                 </button>
                 {% for folder in folders %}
-                <button class="folder-btn" style="color: {{ folder.color }};" onclick="filterFolder({{ folder.id }})">
+                <button class="folder-btn" style="color: {{ folder.color }};" onclick="filterFolder('{{ folder.id }}')"
+                        data-folder-id="{{ folder.id }}"
+                        ondragover="handleFolderDragOver(event)"
+                        ondragleave="handleFolderDragLeave(event)"
+                        ondrop="handleFolderDrop(event, '{{ folder.id }}')">
                     {{ folder.icon }} {{ folder.name }}
                     <span class="count" id="count-{{ folder.id }}">0</span>
-                    <button class="delete-folder" onclick="event.stopPropagation(); deleteFolder({{ folder.id }}, '{{ folder.name }}')">×</button>
+                    <button class="delete-folder" onclick="event.stopPropagation(); deleteFolder('{{ folder.id }}', '{{ folder.name }}')">×</button>
                 </button>
                 {% endfor %}
             </div>
@@ -1215,6 +1090,9 @@
             <div class="content-grid" id="contentGrid">
                 {% for item in content %}
                 <div class="content-card" data-id="{{ item.id }}" data-folder="{{ item.folder_id or '' }}" data-networks='{{ item.network_ids|default([])|tojson|safe }}' data-organization="{{ item.organization_id or '' }}" data-content-type="{{ item.content_type or 'video' }}" data-status="{{ item.status or '' }}"
+                     draggable="true"
+                     ondragstart="handleContentDragStart(event, '{{ item.id }}')"
+                     ondragend="handleContentDragEnd(event)"
                      onclick="previewContent('{{ item.id }}', '{{ item.local_filename|default(item.filename) }}', '{{ item.title }}', {{ item.duration }}, {{ item.file_size }})">
                     <!-- Thumbnail with Status Badge -->
                     <div class="content-thumbnail">
@@ -1248,10 +1126,6 @@
                         <div class="partner-badge">
                             🏢 {{ item.organization_name }}
                         </div>
-                        {% else %}
-                        <div class="partner-badge no-partner">
-                            📤 Local Upload
-                        </div>
                         {% endif %}
                     </div>
                     <span class="badge">ID: {{ item.id }}</span>
@@ -1265,6 +1139,58 @@
                 <p>Content will appear here when added to the catalog.</p>
             </div>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Panel: Asset Editor -->
+    <div class="preview-panel" id="assetEditorPanel" style="display: none;">
+        <div class="player-box">
+            <h3>🎬 Asset Preview</h3>
+            <div class="player-container" id="previewContainer">
+                <div class="no-preview">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <span>Select content to preview</span>
+                </div>
+            </div>
+            <div class="player-info" id="playerInfo" style="display: none;">
+                <div class="player-title" id="playerTitle">-</div>
+                <div class="player-meta">
+                    <div class="meta-item">
+                        <div class="meta-label">Duration</div>
+                        <div class="meta-value" id="playerDuration">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Size</div>
+                        <div class="meta-value" id="playerSize">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Editor Section -->
+        <div class="player-box" style="margin-top: 20px;" id="assetEditorSection">
+            <h3>✏️ Edit Asset</h3>
+            <div class="form-group">
+                <label>Display Duration (seconds)</label>
+                <input type="number" id="editDuration" min="1" max="3600" placeholder="Duration in seconds">
+                <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">
+                    For images, this sets how long to display. For videos, this is informational.
+                </small>
+            </div>
+            <div class="form-group">
+                <label>Folder</label>
+                <select id="editFolder">
+                    <option value="">No Folder</option>
+                    {% for folder in folders %}
+                    <option value="{{ folder.id }}">{{ folder.icon }} {{ folder.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveAssetChanges()" style="width: 100%;">
+                💾 Save Changes
+            </button>
         </div>
     </div>
 
@@ -1329,34 +1255,12 @@
     </div>
 </div>
 
-<!-- Upload Modal -->
-<div class="upload-modal" id="uploadModal">
-    <div class="upload-modal-content">
-        <div class="upload-modal-header">
-            <h3>Upload Content</h3>
-            <button class="upload-close-btn" onclick="closeUploadModal()">&times;</button>
-        </div>
-        <form id="uploadForm" enctype="multipart/form-data">
-            <div class="upload-form-group">
-                <label>File *</label>
-                <input type="file" name="file" id="uploadFile" required accept=".mp4,.mov,.avi,.jpg,.jpeg,.png,.gif,.webp">
-            </div>
-            <div class="upload-form-group">
-                <label>Title</label>
-                <input type="text" name="title" id="uploadTitle" placeholder="Content title (optional)">
-            </div>
-            <div class="upload-form-group">
-                <label>Duration (seconds)</label>
-                <input type="number" name="duration" id="uploadDuration" placeholder="Auto-detected for videos" min="1">
-            </div>
-            <button type="submit" class="upload-submit-btn">Upload Content</button>
-        </form>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+    // Pass folders data from template to JavaScript
+    window.foldersData = [ {% for f in folders %}{{ f.to_dict()|tojson|safe }}{% if not loop.last %},{% endif %}{% endfor %} ];
     let currentPreviewId = null;
     let currentFolder = null;
     let currentNetwork = null;
@@ -1769,7 +1673,7 @@
         const name = document.getElementById('folderName').value;
 
         try {
-            const response = await fetch('/api/folders', {
+            const response = await fetch('/folders', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -1798,7 +1702,7 @@
         }
 
         try {
-            const response = await fetch(`/api/folders/${folderId}`, {
+            const response = await fetch(`/folders/${folderId}`, {
                 method: 'DELETE'
             });
 
@@ -1812,7 +1716,7 @@
         }
     }
 
-    // Video preview
+    // Video preview and asset editor
     function previewContent(id, filename, title, duration, fileSize) {
         document.querySelectorAll(".content-card").forEach(card => {
             card.classList.remove("active");
@@ -1822,70 +1726,183 @@
         if (card) card.classList.add("active");
         currentPreviewId = id;
 
-        // Open video in new popup window
-        const videoUrl = '/cms/uploads/' + filename;
-        window.open(videoUrl, "VideoPreview", "width=900,height=600,resizable=yes");
+        // Show the asset editor panel
+        const panel = document.getElementById('assetEditorPanel');
+        panel.style.display = 'block';
 
-        // Also update the info panel
+        // Update the preview container based on content type
+        const previewContainer = document.getElementById('previewContainer');
+        const contentType = card.dataset.contentType || 'video';
+        const videoUrl = '/cms/uploads/' + filename;
+
+        if (contentType === 'video') {
+            previewContainer.innerHTML = `
+                <video controls style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; object-fit: contain;">
+                    <source src="${videoUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+        } else if (contentType === 'image') {
+            previewContainer.innerHTML = `
+                <img src="${videoUrl}" alt="${title}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; object-fit: contain;">
+            `;
+        } else {
+            previewContainer.innerHTML = `
+                <div class="no-preview" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                    <span style="font-size: 48px;">📄</span>
+                    <span>${contentType.toUpperCase()}</span>
+                </div>
+            `;
+        }
+
+        // Update the info panel
         document.getElementById("playerTitle").textContent = title;
         document.getElementById("playerDuration").textContent = duration + "s";
         document.getElementById("playerSize").textContent = (fileSize / 1024 / 1024).toFixed(1) + " MB";
         document.getElementById("playerInfo").style.display = "block";
+
+        // Update the editor fields
+        document.getElementById("editDuration").value = duration;
+        document.getElementById("editFolder").value = card.dataset.folder || '';
+    }
+
+    // Save asset changes
+    async function saveAssetChanges() {
+        if (!currentPreviewId) {
+            showToast(false, 'No Selection', 'Please select content first');
+            return;
+        }
+
+        const duration = document.getElementById('editDuration').value;
+        const folderId = document.getElementById('editFolder').value || null;
+        const card = document.querySelector(`.content-card[data-id="${currentPreviewId}"]`);
+
+        try {
+            // Move to folder if changed
+            if (card && card.dataset.folder !== (folderId || '')) {
+                const moveResponse = await fetch(`/content/${currentPreviewId}/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folder_id: folderId })
+                });
+
+                if (moveResponse.ok && card) {
+                    card.dataset.folder = folderId || '';
+                    updateFolderCounts();
+                    applyFilters();
+                }
+            }
+
+            showToast(true, 'Saved', 'Asset changes saved successfully');
+        } catch (error) {
+            showToast(false, 'Error', 'Failed to save changes: ' + error.message);
+        }
     }
 
     // ==========================================================================
-    // UPLOAD FUNCTIONALITY
+    // DRAG & DROP: Content to Folders
     // ==========================================================================
-    
-    function openUploadModal() {
-        document.getElementById('uploadModal').classList.add('active');
+
+    let draggedContentId = null;
+
+    function handleContentDragStart(event, contentId) {
+        draggedContentId = contentId;
+        event.dataTransfer.setData('text/plain', contentId);
+        event.dataTransfer.effectAllowed = 'move';
+        event.target.classList.add('dragging');
     }
-    
-    function closeUploadModal() {
-        document.getElementById('uploadModal').classList.remove('active');
-        document.getElementById('uploadForm').reset();
+
+    function handleContentDragEnd(event) {
+        event.target.classList.remove('dragging');
+        draggedContentId = null;
+        // Remove drag-over class from all folder buttons
+        document.querySelectorAll('.folder-btn').forEach(btn => {
+            btn.classList.remove('drag-over');
+        });
     }
-    
-    document.getElementById('uploadModal').addEventListener('click', function(e) {
-        if (e.target === this) closeUploadModal();
-    });
-    
-    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData();
-        const fileInput = document.getElementById('uploadFile');
-        const titleInput = document.getElementById('uploadTitle');
-        const durationInput = document.getElementById('uploadDuration');
-        
-        if (!fileInput.files[0]) {
-            showToast(false, 'No File', 'Please select a file to upload');
-            return;
-        }
-        
-        formData.append('file', fileInput.files[0]);
-        if (titleInput.value) formData.append('title', titleInput.value);
-        if (durationInput.value) formData.append('duration', durationInput.value);
-        
+
+    function handleFolderDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        event.currentTarget.classList.add('drag-over');
+    }
+
+    function handleFolderDragLeave(event) {
+        event.currentTarget.classList.remove('drag-over');
+    }
+
+    async function handleFolderDrop(event, folderId) {
+        event.preventDefault();
+        event.currentTarget.classList.remove('drag-over');
+
+        const contentId = event.dataTransfer.getData('text/plain') || draggedContentId;
+        if (!contentId) return;
+
         try {
-            const response = await fetch('/api/v1/content/upload', {
+            const response = await fetch(`/content/${contentId}/move`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder_id: folderId })
             });
-            
-            const result = await response.json();
-            
+
             if (response.ok) {
-                showToast(true, 'Upload Complete!', `"${result.title || fileInput.files[0].name}" uploaded`);
-                closeUploadModal();
-                setTimeout(() => location.reload(), 1500);
+                // Update the content card's data-folder attribute
+                const card = document.querySelector(`.content-card[data-id="${contentId}"]`);
+                if (card) {
+                    card.dataset.folder = folderId || '';
+                }
+
+                // Update folder counts
+                updateFolderCounts();
+
+                // Re-apply filters to show/hide the moved content
+                applyFilters();
+
+                // Show success toast
+                showToast(true, 'Content Moved', folderId ? 'Content moved to folder' : 'Content removed from folder');
             } else {
-                showToast(false, 'Upload Failed', result.error || 'Unknown error');
+                const data = await response.json();
+                showToast(false, 'Move Failed', data.error || 'Failed to move content');
             }
         } catch (error) {
-            console.error('Upload error:', error);
-            showToast(false, 'Upload Error', 'Could not upload file');
+            showToast(false, 'Error', 'Failed to move content: ' + error.message);
         }
+    }
+
+    // Toast notification function
+    function showToast(success, title, message) {
+        // Remove existing toast
+        const existingToast = document.querySelector('.drop-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `drop-toast ${success ? 'success' : 'error'}`;
+        toast.innerHTML = `
+            <div class="toast-icon">${success ? '✅' : '❌'}</div>
+            <div class="toast-content">
+                <h4>${title}</h4>
+                <p>${message}</p>
+            </div>
+        `;
+        document.body.appendChild(toast);
+
+        // Show toast
+        setTimeout(() => toast.classList.add('show'), 10);
+
+        // Hide and remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // ==========================================================================
+    // PAGE INITIALIZATION
+    // ==========================================================================
+
+    // Load sync status when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSyncStatus();
     });
 
 </script>

@@ -117,6 +117,38 @@
             min-width: 250px;
         }
 
+        /* Brand Section */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .brand-logo {
+            flex-shrink: 0;
+        }
+
+        .brand-logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+        }
+
+        .brand-text h1 {
+            font-size: 28px;
+            margin-bottom: 2px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-text .subtitle {
+            font-size: 13px;
+            opacity: 0.85;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
         .header-right {
             display: flex;
             align-items: center;
@@ -789,14 +821,27 @@
     <div class="header">
         <div class="header-content">
             <div class="header-left">
-                <h1>{% block header_title %}Skillz Media Screens CMS{% endblock %}</h1>
-                <p class="subtitle">{% block header_subtitle %}Manage your media screens and content{% endblock %}</p>
+                <div class="brand">
+                    <div class="brand-logo" id="brand-logo">
+                        <!-- Logo placeholder - replace with actual logo -->
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="40" height="40" rx="10" fill="white" fill-opacity="0.2"/>
+                            <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" fill="none"/>
+                            <path d="M20 10V30M12 14L28 26M28 14L12 26" stroke="white" stroke-width="1.5" opacity="0.5"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>{% block header_title %}Skillz Media{% endblock %}</h1>
+                        <p class="subtitle">{% block header_subtitle %}Content Management System{% endblock %}</p>
+                    </div>
+                </div>
                 <nav class="nav">
                     <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+                    <a href="/hubs" class="{% if request.path == '/hubs' %}active{% endif %}">Hubs</a>
                     <a href="/devices" class="{% if request.path == '/devices' or request.path.startswith('/devices/') %}active{% endif %}">Screens</a>
                     <a href="/content" class="{% if request.path == '/content' %}active{% endif %}">Content</a>
                     <a href="/playlists" class="{% if request.path == '/playlists' %}active{% endif %}">Playlists</a>
-                    <a href="/hubs" class="{% if request.path == '/hubs' %}active{% endif %}">Hubs</a>
+                    <a href="/layouts" class="{% if request.path == '/layouts' or request.path.startswith('/layouts/') %}active{% endif %}">Layouts</a>
 {% block nav_items %}{% endblock %}
                 </nav>
             </div>

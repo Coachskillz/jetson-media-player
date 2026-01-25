@@ -5,155 +5,300 @@
 
 {% block header_actions %}
 <div style="display: flex; align-items: center; gap: 12px;">
-    
+    <input type="text" id="quickSearch" placeholder="Quick search..." class="filter-input" style="width: 200px;" oninput="filterAssets(this.value)">
 </div>
 {% endblock %}
 
 {% block content %}
-<!-- Stats Cards -->
-<div class="stats-row">
-    <div class="stat-card">
-        <div class="stat-icon">📦</div>
-        <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-label">Ready to Use</div>
-    </div>
-    <div class="stat-card success">
-        <div class="stat-icon">✓</div>
-        <div class="stat-value">{{ stats.approved }}</div>
-        <div class="stat-label">Approved</div>
-    </div>
-    <div class="stat-card published">
-        <div class="stat-icon">🚀</div>
-        <div class="stat-value">{{ stats.published }}</div>
-        <div class="stat-label">Published</div>
-    </div>
-</div>
-
-<!-- Filters -->
-<div class="filters-bar">
-    <form method="GET" class="filters-form">
-        <select name="tenant" class="filter-select" onchange="this.form.submit()">
-            <option value="">All Retail Partners</option>
-            {% for tenant in tenants %}
-            <option value="{{ tenant.id }}" {% if tenant_filter == tenant.id|string %}selected{% endif %}>{{ tenant.name }}</option>
-            {% endfor %}
-        </select>
-        <input type="text" name="search" value="{{ search }}" placeholder="Search approved assets..." class="filter-input">
-        <button type="submit" class="btn btn-secondary">Filter</button>
-    </form>
-</div>
-
-<!-- Assets Grid -->
-<div class="assets-grid">
-    {% if assets %}
-        {% for asset in assets %}
-        <div class="asset-card draggable-asset" 
-             draggable="true"
-             data-asset-uuid="{{ asset.uuid }}"
-             data-asset-title="{{ asset.title }}"
-             data-asset-filename="{{ asset.filename or asset.file_path }}"
-             data-asset-format="{{ asset.format or 'video' }}"
-             data-asset-size="{{ asset.file_size or 0 }}"
-             data-asset-duration="{{ asset.duration or 0 }}"
-             data-asset-status="{{ asset.status }}"
-             data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}"
-             data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}">
-            <div class="asset-card-header">
-                <span class="status-badge status-{{ asset.status|lower }}">{{ asset.status }}</span>
-                <span class="drag-handle">⠿</span>
-            </div>
-            <div class="asset-card-body">
-                <div class="asset-icon">
-                    {% if asset.format in ['mp4', 'mov', 'avi', 'video'] %}🎬
-                    {% elif asset.format in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'image'] %}🖼️
-                    {% elif asset.format in ['mp3', 'wav', 'audio'] %}🎵
-                    {% else %}📄{% endif %}
-                </div>
-                <div class="asset-title">{{ asset.title }}</div>
-                <div class="asset-meta">
-                    {% if asset.tenant %}
-                    <span class="tenant-tag">🏢 {{ asset.tenant.name }}</span>
-                    {% endif %}
-                    <span class="size-tag">{{ (asset.file_size / 1024 / 1024)|round(1) if asset.file_size else 0 }} MB</span>
-                </div>
-            </div>
+<div class="approved-content-layout">
+    <!-- Folder Tree Sidebar -->
+    <div class="folder-sidebar">
+        <div class="folder-header">
+            <span class="folder-icon">&#128193;</span>
+            <span>Networks / Partners</span>
         </div>
+
+        <!-- All Assets -->
+        <a href="?tenant=" class="folder-item {% if not tenant_filter %}active{% endif %}">
+            <span class="folder-expand">&#128194;</span>
+            <span class="folder-name">All Networks</span>
+            <span class="folder-count">{{ stats.total }}</span>
+        </a>
+
+        <!-- Network Folders -->
+        {% for tenant in tenants %}
+        {% set tenant_count = tenant_asset_counts.get(tenant.id, 0) if tenant_asset_counts else 0 %}
+        <a href="?tenant={{ tenant.id }}" class="folder-item {% if tenant_filter == tenant.id|string %}active{% endif %}">
+            <span class="folder-expand">&#128193;</span>
+            <span class="folder-name">{{ tenant.name }}</span>
+            <span class="folder-count">{{ tenant_count }}</span>
+        </a>
         {% endfor %}
-    {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <div class="empty-text">No approved content yet</div>
-            <p>Assets will appear here once they are approved</p>
+
+        <!-- Sync Status Section -->
+        <div class="folder-header" style="margin-top: 20px;">
+            <span class="folder-icon">&#128259;</span>
+            <span>Sync Status</span>
         </div>
-    {% endif %}
+        <a href="?synced=true&tenant={{ tenant_filter }}" class="folder-item {% if request.args.get('synced') == 'true' %}active{% endif %}">
+            <span class="folder-expand" style="color: #10b981;">&#10003;</span>
+            <span class="folder-name">Synced to CMS</span>
+            <span class="folder-count">{{ stats.synced or 0 }}</span>
+        </a>
+        <a href="?synced=false&tenant={{ tenant_filter }}" class="folder-item {% if request.args.get('synced') == 'false' %}active{% endif %}">
+            <span class="folder-expand" style="color: #f59e0b;">&#9203;</span>
+            <span class="folder-name">Not Synced</span>
+            <span class="folder-count">{{ stats.not_synced or 0 }}</span>
+        </a>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="?tenant=">All Networks</a>
+            {% if tenant_filter and current_tenant %}
+            <span class="breadcrumb-sep">&#8250;</span>
+            <span class="breadcrumb-current">{{ current_tenant.name }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon">&#128230;</div>
+                <div class="stat-value">{{ stats.total }}</div>
+                <div class="stat-label">Ready to Use</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-icon">&#10003;</div>
+                <div class="stat-value">{{ stats.approved }}</div>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-card published">
+                <div class="stat-icon">&#128640;</div>
+                <div class="stat-value">{{ stats.published }}</div>
+                <div class="stat-label">Published</div>
+            </div>
+            <div class="stat-card synced">
+                <div class="stat-icon">&#128259;</div>
+                <div class="stat-value">{{ stats.synced or 0 }}</div>
+                <div class="stat-label">Synced to CMS</div>
+            </div>
+        </div>
+
+        <!-- Assets Grid -->
+        <div class="assets-grid" id="assetsGrid">
+            {% if assets %}
+                {% for asset in assets %}
+                <div class="asset-card draggable-asset"
+                     draggable="true"
+                     data-asset-uuid="{{ asset.uuid }}"
+                     data-asset-title="{{ asset.title }}"
+                     data-asset-filename="{{ asset.filename or asset.file_path }}"
+                     data-asset-format="{{ asset.format or 'video' }}"
+                     data-asset-size="{{ asset.file_size or 0 }}"
+                     data-asset-duration="{{ asset.duration or 0 }}"
+                     data-asset-status="{{ asset.status }}"
+                     data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}"
+                     data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}"
+                     data-asset-synced="{{ 'true' if asset.synced_to_cms else 'false' }}">
+                    <div class="asset-card-header">
+                        <span class="status-badge status-{{ asset.status|lower }}">{{ asset.status }}</span>
+                        <div class="asset-badges">
+                            {% if asset.synced_to_cms %}
+                            <span class="sync-badge synced" title="Synced to CMS">&#10003;</span>
+                            {% else %}
+                            <span class="sync-badge not-synced" title="Not synced">&#9203;</span>
+                            {% endif %}
+                            <span class="drag-handle">&#9783;</span>
+                        </div>
+                    </div>
+                    <div class="asset-card-body">
+                        <div class="asset-icon">
+                            {% if asset.format in ['mp4', 'mov', 'avi', 'video', 'mkv', 'webm'] %}&#127909;
+                            {% elif asset.format in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'image'] %}&#128247;
+                            {% elif asset.format in ['mp3', 'wav', 'audio'] %}&#127925;
+                            {% else %}&#128196;{% endif %}
+                        </div>
+                        <div class="asset-title" title="{{ asset.title }}">{{ asset.title }}</div>
+                        <div class="asset-meta">
+                            {% if asset.tenant %}
+                            <span class="tenant-tag">&#127970; {{ asset.tenant.name }}</span>
+                            {% endif %}
+                            <span class="size-tag">{{ (asset.file_size / 1024 / 1024)|round(1) if asset.file_size else 0 }} MB</span>
+                        </div>
+                        <div class="asset-dates">
+                            <span title="Uploaded">&#128197; {{ asset.created_at.strftime('%b %d') if asset.created_at else 'N/A' }}</span>
+                            {% if asset.approved_at %}
+                            <span title="Approved">&#10003; {{ asset.approved_at.strftime('%b %d') }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="asset-card-footer">
+                        <button class="btn-small" onclick="viewAssetDetails('{{ asset.uuid }}')" title="View Details">&#128065;</button>
+                        <button class="btn-small" onclick="window.open('/api/v1/assets/{{ asset.id }}/preview', 'Preview', 'width=900,height=600')" title="Preview">&#9658;</button>
+                        {% if not asset.synced_to_cms %}
+                        <button class="btn-small btn-sync" onclick="syncToCMS('{{ asset.uuid }}')" title="Sync to CMS">&#128259;</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">&#128237;</div>
+                    <div class="empty-text">No approved content {% if current_tenant %}for {{ current_tenant.name }}{% endif %}</div>
+                    <p>Assets will appear here once they are approved</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.prev_num }}&search={{ search }}&tenant={{ tenant_filter }}" class="page-link">&laquo; Prev</a>
+            {% endif %}
+            <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.next_num }}&search={{ search }}&tenant={{ tenant_filter }}" class="page-link">Next &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
 </div>
 
-<!-- Pagination -->
-{% if pagination and pagination.pages > 1 %}
-<div class="pagination">
-    {% if pagination.has_prev %}
-    <a href="?page={{ pagination.prev_num }}&search={{ search }}&tenant={{ tenant_filter }}" class="page-link">&laquo; Prev</a>
-    {% endif %}
-    <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
-    {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_num }}&search={{ search }}&tenant={{ tenant_filter }}" class="page-link">Next &raquo;</a>
-    {% endif %}
+<!-- Asset Details Modal -->
+<div id="assetDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Asset Details</h2>
+            <button class="modal-close" onclick="closeAssetModal()">&times;</button>
+        </div>
+        <div id="assetDetailsContent" class="asset-details-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
 </div>
-{% endif %}
 
 <style>
-/* Drag Banner */
-.drag-banner {
-    background: linear-gradient(135deg, rgba(0, 212, 170, 0.15), rgba(0, 184, 148, 0.15));
-    border: 1px solid rgba(0, 212, 170, 0.3);
+/* Layout with Folder Sidebar */
+.approved-content-layout {
+    display: flex;
+    gap: 24px;
+    min-height: calc(100vh - 200px);
+}
+
+/* Folder Sidebar */
+.folder-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
+    padding: 16px 0;
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.folder-header {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
 }
 
-.drag-banner-icon {
-    font-size: 32px;
-}
+.folder-icon { font-size: 16px; }
 
-.drag-banner-text {
+.folder-item {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
 }
 
-.drag-banner-text strong {
+.folder-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.folder-item.active {
+    background: rgba(0, 212, 170, 0.1);
+    border-left-color: #00D4AA;
     color: #00D4AA;
-    font-size: 15px;
 }
 
-.drag-banner-text span {
-    color: rgba(255,255,255,0.7);
-    font-size: 13px;
+.folder-expand { font-size: 14px; width: 20px; }
+.folder-name { flex: 1; font-size: 14px; }
+.folder-count {
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: rgba(255,255,255,0.6);
+}
+
+.folder-item.active .folder-count {
+    background: rgba(0, 212, 170, 0.2);
+    color: #00D4AA;
+}
+
+/* Content Area */
+.content-area {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.breadcrumb a {
+    color: #00D4AA;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover { text-decoration: underline; }
+
+.breadcrumb-sep {
+    color: rgba(255,255,255,0.3);
+}
+
+.breadcrumb-current {
+    color: rgba(255,255,255,0.8);
 }
 
 /* Stats */
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; text-align: center; }
 .stat-card.success { border-color: rgba(16, 185, 129, 0.3); }
 .stat-card.published { border-color: rgba(59, 130, 246, 0.3); }
-.stat-icon { font-size: 24px; margin-bottom: 8px; }
-.stat-value { font-size: 28px; font-weight: 700; color: #fff; }
-.stat-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+.stat-card.synced { border-color: rgba(168, 85, 247, 0.3); }
+.stat-icon { font-size: 20px; margin-bottom: 6px; }
+.stat-value { font-size: 24px; font-weight: 700; color: #fff; }
+.stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; }
 
 /* Filters */
-.filters-bar { margin-bottom: 24px; }
-.filters-form { display: flex; gap: 12px; flex-wrap: wrap; }
-.filter-input, .filter-select { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 16px; color: #fff; font-size: 14px; }
-.filter-input { flex: 1; min-width: 200px; }
-.filter-select { min-width: 180px; }
+.filter-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 16px; color: #fff; font-size: 14px; }
 
 /* Assets Grid */
 .assets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
 }
 
@@ -161,9 +306,11 @@
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px;
-    padding: 16px;
+    padding: 14px;
     cursor: grab;
     transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .asset-card:hover {
@@ -182,7 +329,33 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+}
+
+.asset-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sync-badge {
+    font-size: 12px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.sync-badge.synced {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.sync-badge.not-synced {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
 }
 
 .status-badge {
@@ -197,7 +370,7 @@
 .status-published { background: rgba(16, 185, 129, 0.2); color: #10b981; }
 
 .drag-handle {
-    font-size: 18px;
+    font-size: 16px;
     color: rgba(255,255,255,0.3);
     cursor: grab;
 }
@@ -208,15 +381,16 @@
 
 .asset-card-body {
     text-align: center;
+    flex: 1;
 }
 
 .asset-icon {
-    font-size: 40px;
+    font-size: 36px;
     margin-bottom: 8px;
 }
 
 .asset-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: #fff;
     margin-bottom: 8px;
@@ -228,16 +402,60 @@
 .asset-meta {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
+    margin-bottom: 8px;
 }
 
 .tenant-tag, .size-tag {
-    font-size: 11px;
-    padding: 2px 8px;
+    font-size: 10px;
+    padding: 2px 6px;
     border-radius: 4px;
     background: rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.6);
+}
+
+.asset-dates {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+}
+
+.asset-card-footer {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.btn-small {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-small:hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+.btn-small.btn-sync {
+    background: rgba(168, 85, 247, 0.2);
+    color: #a855f7;
+}
+
+.btn-small.btn-sync:hover {
+    background: rgba(168, 85, 247, 0.4);
 }
 
 /* Empty State */
@@ -252,6 +470,57 @@
 .page-link:hover { background: rgba(0,212,170,0.1); }
 .page-info { color: rgba(255,255,255,0.5); }
 
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.modal-header h2 { font-size: 18px; font-weight: 600; }
+.modal-close { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; }
+
+.asset-details-content {
+    padding: 24px;
+}
+
+.preview-container {
+    margin-bottom: 20px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.preview-video {
+    width: 100%;
+    max-height: 300px;
+    display: block;
+}
+
+.preview-image {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    display: block;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.detail-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+}
+
+.detail-value {
+    color: #fff;
+    font-size: 13px;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+}
+
 /* Button styles */
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
 .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
@@ -263,7 +532,7 @@
 document.querySelectorAll('.draggable-asset').forEach(card => {
     card.addEventListener('dragstart', function(e) {
         this.classList.add('dragging');
-        
+
         const assetData = {
             uuid: this.dataset.assetUuid,
             title: this.dataset.assetTitle,
@@ -276,17 +545,155 @@ document.querySelectorAll('.draggable-asset').forEach(card => {
             tenant_id: this.dataset.assetTenantId,
             source: "content_catalog"
         };
-        
+
         e.dataTransfer.setData('application/json', JSON.stringify(assetData));
         e.dataTransfer.setData('text/plain', JSON.stringify(assetData));
         e.dataTransfer.effectAllowed = 'copy';
-        
+
         console.log('Dragging asset:', assetData.title);
     });
-    
+
     card.addEventListener('dragend', function(e) {
         this.classList.remove('dragging');
     });
 });
+
+// Quick search filter
+function filterAssets(query) {
+    const cards = document.querySelectorAll('.asset-card');
+    const lowerQuery = query.toLowerCase();
+
+    cards.forEach(card => {
+        const title = card.dataset.assetTitle.toLowerCase();
+        const tenant = card.dataset.assetTenant.toLowerCase();
+
+        if (title.includes(lowerQuery) || tenant.includes(lowerQuery)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// View asset details modal
+function viewAssetDetails(uuid) {
+    fetch('/api/v1/assets/uuid/' + uuid)
+        .then(r => r.json())
+        .then(asset => {
+            const content = document.getElementById('assetDetailsContent');
+            const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'video'].includes((asset.format || '').toLowerCase());
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'image'].includes((asset.format || '').toLowerCase());
+
+            let previewHtml = '';
+            if (isVideo) {
+                previewHtml = `
+                    <div class="preview-container">
+                        <video controls autoplay muted class="preview-video">
+                            <source src="/api/v1/assets/${asset.id}/preview" type="video/${asset.format || 'mp4'}">
+                            Your browser does not support video playback.
+                        </video>
+                    </div>`;
+            } else if (isImage) {
+                previewHtml = `
+                    <div class="preview-container">
+                        <img src="/api/v1/assets/${asset.id}/preview" class="preview-image" alt="${asset.title}">
+                    </div>`;
+            }
+
+            content.innerHTML = `
+                ${previewHtml}
+                <div class="detail-row">
+                    <span class="detail-label">Title</span>
+                    <span class="detail-value">${asset.title || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Original Filename</span>
+                    <span class="detail-value">${asset.original_filename || asset.filename || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Format</span>
+                    <span class="detail-value">${(asset.format || 'N/A').toUpperCase()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">File Size</span>
+                    <span class="detail-value">${asset.file_size ? (asset.file_size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">${asset.status}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Network/Partner</span>
+                    <span class="detail-value">${asset.tenant_name || 'Unassigned'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Uploaded</span>
+                    <span class="detail-value">${asset.created_at ? new Date(asset.created_at).toLocaleString() : 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Uploaded By</span>
+                    <span class="detail-value">${asset.uploader_email || asset.uploaded_by || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Approved</span>
+                    <span class="detail-value">${asset.approved_at ? new Date(asset.approved_at).toLocaleString() : 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Approved By</span>
+                    <span class="detail-value">${asset.approver_email || asset.approved_by || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Synced to CMS</span>
+                    <span class="detail-value">${asset.synced_to_cms ? '&#10003; Yes' : '&#10007; No'}</span>
+                </div>
+                ${asset.synced_at ? `
+                <div class="detail-row">
+                    <span class="detail-label">Synced At</span>
+                    <span class="detail-value">${new Date(asset.synced_at).toLocaleString()}</span>
+                </div>` : ''}
+                <div class="detail-row">
+                    <span class="detail-label">UUID</span>
+                    <span class="detail-value" style="font-family: monospace; font-size: 11px;">${asset.uuid}</span>
+                </div>
+            `;
+            document.getElementById('assetDetailsModal').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Error fetching asset:', err);
+            alert('Failed to load asset details');
+        });
+}
+
+function closeAssetModal() {
+    document.getElementById('assetDetailsModal').style.display = 'none';
+}
+
+// Close modal on outside click
+document.getElementById('assetDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAssetModal();
+});
+
+// Sync to CMS
+function syncToCMS(uuid) {
+    if (!confirm('Sync this asset to CMS?')) return;
+
+    fetch('/admin/api/assets/' + uuid + '/sync-to-cms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            alert('Asset synced to CMS successfully!');
+            location.reload();
+        } else {
+            alert('Sync failed: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        console.error('Sync error:', err);
+        alert('Sync failed: Network error');
+    });
+}
 </script>
 {% endblock %}

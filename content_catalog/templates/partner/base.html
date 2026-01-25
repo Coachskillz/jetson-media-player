@@ -17,7 +17,12 @@
         <div class="sidebar-header">
             <div class="logo">
                 <span class="logo-icon">PP</span>
-                <span class="logo-text">Partner Portal</span>
+                <div class="logo-text-group">
+                    <span class="logo-text">Partner Portal</span>
+                    {% if partner_tenants %}
+                    <span class="logo-tenant">{{ partner_tenants[0].name if partner_tenants|length == 1 else partner_tenants|length ~ ' Networks' }}</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
@@ -50,18 +55,6 @@
                 <a href="{{ url_for('partner.approvals') }}" class="nav-link {% if active_page == 'approvals' %}active{% endif %}">
                     <span class="nav-icon">&#10003;</span>
                     <span>Approvals</span>
-                </a>
-            </div>
-
-            <div class="nav-section">
-                <span class="nav-section-title">Analytics</span>
-                <a href="{{ url_for('partner.analytics') }}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
-                    <span class="nav-icon">&#9650;</span>
-                    <span>Performance</span>
-                </a>
-                <a href="{{ url_for('partner.revenue') }}" class="nav-link {% if active_page == 'revenue' %}active{% endif %}">
-                    <span class="nav-icon">&#36;</span>
-                    <span>Revenue</span>
                 </a>
             </div>
 

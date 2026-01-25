@@ -40,6 +40,7 @@ from content_catalog.models.content import ContentAsset, ContentApprovalRequest,
 from content_catalog.models.checkout import CheckoutToken, ApprovalTask
 from content_catalog.models.catalog import Catalog, Category
 from content_catalog.models.tenant import Tenant
+from content_catalog.models.content_venue_approval import ContentVenueApproval
 
 __all__ = [
     'db',
@@ -58,4 +59,5 @@ __all__ = [
     'Catalog',
     'Category',
     'Tenant',
+    'ContentVenueApproval',
 ]

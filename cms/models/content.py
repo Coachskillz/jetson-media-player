@@ -70,8 +70,12 @@ class Content(db.Model):
     catalog_asset_uuid = db.Column(db.String(36), nullable=True, index=True)
     source = db.Column(db.String(20), nullable=True)  # 'upload' or 'catalog'
 
+    # Folder organization
+    folder_id = db.Column(db.String(36), db.ForeignKey('folders.id'), nullable=True, index=True)
+
     # Relationships
     network = db.relationship('Network', backref=db.backref('content', lazy='dynamic'))
+    folder = db.relationship('Folder', backref=db.backref('content_items', lazy='dynamic'))
 
     def to_dict(self):
         """
@@ -93,7 +97,11 @@ class Content(db.Model):
             'network_id': self.network_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'catalog_asset_uuid': self.catalog_asset_uuid,
-            'source': self.source
+            'source': self.source,
+            'folder_id': self.folder_id,
+            'folder_name': self.folder.name if self.folder else None,
+            'folder_icon': self.folder.icon if self.folder else None,
+            'folder_color': self.folder.color if self.folder else None
         }
 
     def to_manifest_item(self):

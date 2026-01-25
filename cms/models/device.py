@@ -63,6 +63,7 @@ class Device(db.Model):
     connection_mode = db.Column(db.String(20), nullable=False, default='direct')
     hub_url = db.Column(db.String(500), nullable=True)  # e.g., http://192.168.1.100:5000
     cms_url = db.Column(db.String(500), nullable=True)  # e.g., http://cms.skillzmedia.com:5002
+    ip_address = db.Column(db.String(50), nullable=True)  # Device's IP address for remote access
     pairing_code = db.Column(db.String(6), nullable=True, index=True)
 
     # Pairing code for device registration workflow
@@ -112,6 +113,7 @@ class Device(db.Model):
             'connection_mode': self.connection_mode,
             'hub_url': self.hub_url,
             'cms_url': self.cms_url,
+            'ip_address': self.ip_address,
             'pairing_code': self.pairing_code,
             'layout_id': self.layout_id,
             'layout_name': self.layout.name if self.layout else None,

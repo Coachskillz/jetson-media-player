@@ -136,6 +136,22 @@
     margin-top: 4px;
 }
 
+/* Drag and Drop styles for content items */
+.content-browser-item[draggable="true"] {
+    cursor: grab;
+}
+
+.content-browser-item[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.content-browser-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    border-color: #667eea;
+    background: #eef2ff;
+}
+
 .content-browser-empty {
     text-align: center;
     padding: 40px 20px;
@@ -196,6 +212,18 @@
 .playlist-items-container.drag-over {
     border-color: #667eea;
     background: #f8f9ff;
+}
+
+.playlist-items-container.awaiting-drop {
+    border-color: #10b981;
+    background: #f0fdf4;
+    border-style: solid;
+    animation: pulse-border 1s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
 }
 
 .playlist-item-drag-handle {
@@ -892,10 +920,101 @@
         opacity: 0;
     }
 }
+/* Playlist Catalog Card Styles */
+.playlist-catalog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #667eea;
+}
+
+.playlist-catalog-card:active {
+    transform: translateY(-2px);
+}
 {% endblock %}
 
 {% block content %}
-<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📋 Playlist Builder</h2>
+<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📋 Playlists</h2>
+
+<!-- Playlist Catalog Section -->
+<div class="playlist-catalog" style="margin-bottom: 30px;">
+    <div class="catalog-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: white; font-size: 18px; font-weight: 600; margin: 0;">All Playlists</h3>
+        <button class="btn btn-primary" onclick="openCreatePlaylistModal()">+ Create New Playlist</button>
+    </div>
+
+    {% if playlists %}
+    <div class="playlists-catalog-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+        {% for playlist in playlists %}
+        <div class="playlist-catalog-card" onclick="selectPlaylistFromCatalog({{ playlist.id|tojson }})" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); cursor: pointer; transition: all 0.3s; border: 2px solid transparent;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                    <h4 style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0;">{{ playlist.name }}</h4>
+                    {% if playlist.description %}
+                    <p style="font-size: 13px; color: #64748b; margin: 0; line-height: 1.4;">{{ playlist.description[:60] }}{% if playlist.description|length > 60 %}...{% endif %}</p>
+                    {% endif %}
+                </div>
+                <span class="playlist-status-badge" style="background: {% if playlist.is_active %}#d1fae5{% else %}#fee2e2{% endif %}; color: {% if playlist.is_active %}#065f46{% else %}#991b1b{% endif %}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                    {% if playlist.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700; color: #667eea;" id="catalog-items-{{ playlist.id }}">--</div>
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Items</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700; color: #667eea;" id="catalog-duration-{{ playlist.id }}">--</div>
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Duration</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                    <div style="font-size: 12px; font-weight: 600; color: #1e293b;">
+                        {% if playlist.trigger_type == 'manual' %}
+                        🔄 Default
+                        {% elif playlist.trigger_type == 'time' %}
+                        📅 Scheduled
+                        {% elif playlist.trigger_type == 'event' %}
+                            {% if playlist.trigger_config and 'age' in (playlist.trigger_config|default('', true)) %}
+                            👤 Age Targeted
+                            {% elif playlist.trigger_config and 'loyalty' in (playlist.trigger_config|default('', true)) %}
+                            ⭐ Loyalty
+                            {% else %}
+                            ⚡ Event
+                            {% endif %}
+                        {% else %}
+                        🔄 Default
+                        {% endif %}
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Trigger</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn" onclick="event.stopPropagation(); selectPlaylistFromCatalog({{ playlist.id|tojson }})" style="flex: 1; padding: 8px 12px; font-size: 12px; background: #667eea; color: white; border-radius: 8px;">
+                    Edit
+                </button>
+                <button class="btn" onclick="event.stopPropagation(); previewPlaylistFromCatalog({{ playlist.id|tojson }}, {{ playlist.name|tojson }})" style="flex: 1; padding: 8px 12px; font-size: 12px; background: #64748b; color: white; border-radius: 8px;">
+                    Preview
+                </button>
+                <button class="btn" onclick="event.stopPropagation(); deletePlaylistFromCatalog({{ playlist.id|tojson }}, {{ playlist.name|tojson }})" style="padding: 8px 12px; font-size: 12px; background: #fee2e2; color: #ef4444; border-radius: 8px;">
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="background: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 40px; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+        <h4 style="color: #1e293b; font-size: 18px; margin-bottom: 8px;">No Playlists Yet</h4>
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Create your first playlist to start organizing your content.</p>
+        <button class="btn btn-primary" onclick="openCreatePlaylistModal()">+ Create New Playlist</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Playlist Builder Section -->
+<h3 style="color: white; font-size: 18px; font-weight: 600; margin: 30px 0 15px 0;">Playlist Builder</h3>
 
 <div class="layout">
     <!-- Left Panel: Content Browser -->
@@ -905,7 +1024,7 @@
                 <h3>📂 Content Library</h3>
             </div>
 
-            <!-- Content Filters -->
+            <!-- Content Type Filters -->
             <div class="content-browser-filters">
                 <button class="filter-btn active" data-type="all" onclick="filterContent('all', this)">All</button>
                 <button class="filter-btn" data-type="video" onclick="filterContent('video', this)">🎬 Video</button>
@@ -913,6 +1032,18 @@
                 <button class="filter-btn" data-type="audio" onclick="filterContent('audio', this)">🎵 Audio</button>
                 <input type="text" class="search-input" id="contentSearch" placeholder="🔍 Search content..." oninput="searchContent(this.value)">
             </div>
+
+            <!-- Folder Filters -->
+            {% if folders %}
+            <div class="content-browser-filters" style="margin-top: 10px;">
+                <button class="filter-btn folder-filter active" data-folder="" onclick="filterFolder(null, this)">📂 All Folders</button>
+                {% for folder in folders %}
+                <button class="filter-btn folder-filter" data-folder="{{ folder.id }}" onclick="filterFolder('{{ folder.id }}', this)" style="color: {{ folder.color }};">
+                    {{ folder.icon }} {{ folder.name }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             <!-- Content Grid -->
             <div class="content-browser-grid" id="contentBrowserGrid">
@@ -926,7 +1057,7 @@
         <div class="info-box" style="margin-top: 20px;">
             <p><strong>💡 How to Build a Playlist:</strong></p>
             <p><strong>1.</strong> Select a playlist from the dropdown on the right (or create a new one)</p>
-            <p><strong>2.</strong> Click on content items above to add them to the playlist</p>
+            <p><strong>2.</strong> <strong>Drag content</strong> from above into the playlist, or click to add</p>
             <p><strong>3.</strong> Drag items to reorder, set durations, then save</p>
         </div>
     </div>
@@ -1119,6 +1250,7 @@
     let currentPlaylistItems = []; // Items in the current playlist being edited
     let currentTypeFilter = 'all';
     let currentSearchQuery = '';
+    let currentFolderFilter = null;
 
     const triggerValues = {
         age: ['Adult (27-61)', 'Senior (61+)'],
@@ -1169,9 +1301,26 @@
 
         const name = document.getElementById('playlistName').value;
         const description = document.getElementById('playlistDescription').value;
-        const triggerType = document.getElementById('triggerType').value;
-        const triggerValue = triggerType === 'default' ? '' : document.getElementById('triggerValue').value;
+        const formTriggerType = document.getElementById('triggerType').value;
+        const triggerValue = formTriggerType === 'default' ? '' : document.getElementById('triggerValue').value;
         const statusDiv = document.getElementById('createStatus');
+
+        // Map form trigger types to valid API trigger types
+        // API accepts: 'manual', 'time', 'event'
+        // Form has: 'default' (always playing), 'age' (demographic), 'loyalty' (facial recognition)
+        let apiTriggerType = 'manual';
+        let triggerConfig = null;
+
+        if (formTriggerType === 'default') {
+            apiTriggerType = 'manual';
+            triggerConfig = null;
+        } else if (formTriggerType === 'age') {
+            apiTriggerType = 'event';
+            triggerConfig = JSON.stringify({ type: 'age', value: triggerValue });
+        } else if (formTriggerType === 'loyalty') {
+            apiTriggerType = 'event';
+            triggerConfig = JSON.stringify({ type: 'loyalty', value: triggerValue });
+        }
 
         try {
             const response = await fetch('/api/v1/playlists', {
@@ -1180,8 +1329,8 @@
                 body: JSON.stringify({
                     name,
                     description,
-                    trigger_type: triggerType,
-                    trigger_config: triggerValue || null
+                    trigger_type: apiTriggerType,
+                    trigger_config: triggerConfig
                 })
             });
 
@@ -1197,7 +1346,7 @@
                 statusDiv.style.display = 'block';
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = '❌ Failed to create playlist';
+                statusDiv.textContent = '❌ ' + (data.error || 'Failed to create playlist');
             }
         } catch (error) {
             statusDiv.style.display = 'block';
@@ -1218,28 +1367,47 @@
         grid.innerHTML = '<div class="content-browser-empty"><p>Loading approved content...</p></div>';
 
         try {
-            // Build query params for server-side filtering
-            const params = new URLSearchParams();
-            if (currentTypeFilter !== 'all') {
-                params.append('type', currentTypeFilter);
-            }
-            if (currentSearchQuery) {
-                params.append('search', currentSearchQuery);
-            }
-
-            const queryString = params.toString();
-            const url = '/api/v1/playlists/approved-content' + (queryString ? '?' + queryString : '');
-
-            const response = await fetch(url);
+            const response = await fetch('/api/v1/playlists/approved-content');
             if (!response.ok) throw new Error('Failed to load content');
 
             const data = await response.json();
             // API returns { content: [...], count: N }
-            approvedContent = data.content || [];
-            renderContentBrowser();
+            // Store all content, then filter client-side
+            allApprovedContent = data.content || [];
+            applyContentFilters();
         } catch (error) {
             grid.innerHTML = `<div class="content-browser-empty"><p>Failed to load content: ${error.message}</p></div>`;
         }
+    }
+
+    // Store all content for client-side filtering
+    let allApprovedContent = [];
+
+    function applyContentFilters() {
+        // Filter content based on type, search, and folder
+        approvedContent = allApprovedContent.filter(item => {
+            // Type filter
+            if (currentTypeFilter !== 'all') {
+                const itemType = item.content_type || getContentTypeFromFilename(item);
+                if (itemType !== currentTypeFilter) return false;
+            }
+
+            // Search filter
+            if (currentSearchQuery) {
+                const searchLower = currentSearchQuery.toLowerCase();
+                const name = (item.original_name || item.filename || '').toLowerCase();
+                if (!name.includes(searchLower)) return false;
+            }
+
+            // Folder filter
+            if (currentFolderFilter) {
+                if (item.folder_id !== currentFolderFilter) return false;
+            }
+
+            return true;
+        });
+
+        renderContentBrowser();
     }
 
     function renderContentBrowser() {
@@ -1262,8 +1430,23 @@
             const duration = item.duration ? formatDuration(item.duration) : (item.content_type === 'image' ? '10s' : '--');
             // Escape the display name for title attribute
             const escapedName = displayName.replace(/"/g, '&quot;');
+            // JSON encode the item data for drag transfer
+            const itemDataJson = JSON.stringify({
+                id: item.id,
+                filename: item.filename,
+                original_name: item.original_name,
+                content_type: item.content_type,
+                duration: item.duration
+            }).replace(/"/g, '&quot;');
             return `
-                <div class="content-browser-item" onclick="addContentToPlaylist('${item.id}')" title="${escapedName}">
+                <div class="content-browser-item"
+                     draggable="true"
+                     data-content-id="${item.id}"
+                     data-content-json="${itemDataJson}"
+                     onclick="addContentToPlaylist('${item.id}')"
+                     ondragstart="handleContentDragStart(event, '${item.id}')"
+                     ondragend="handleContentDragEnd(event)"
+                     title="${escapedName} - Click or drag to add">
                     <div class="content-icon">${icon}</div>
                     <div class="content-name">${escapeHtml(displayName)}</div>
                     <div class="content-duration">${duration}</div>
@@ -1300,18 +1483,26 @@
 
     function filterContent(type, btn) {
         currentTypeFilter = type;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-btn[data-type]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        // Reload from server with new filter
-        loadApprovedContent();
+        // Apply client-side filter
+        applyContentFilters();
+    }
+
+    function filterFolder(folderId, btn) {
+        currentFolderFilter = folderId;
+        document.querySelectorAll('.folder-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Apply client-side filter
+        applyContentFilters();
     }
 
     function searchContent(query) {
-        // Debounce search to avoid excessive API calls
+        // Debounce search
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => {
             currentSearchQuery = query.trim();
-            loadApprovedContent();
+            applyContentFilters();
         }, 300);
     }
 
@@ -1625,12 +1816,25 @@
 
     function addContentToPlaylist(contentId) {
         if (!currentPlaylistId) {
-            alert('Please select a playlist first');
+            showNotification('Please select a playlist first from the dropdown above', 'warning');
+            // Highlight the playlist selector
+            const selector = document.getElementById('playlistSelect');
+            if (selector) {
+                selector.style.border = '2px solid #f59e0b';
+                selector.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.3)';
+                setTimeout(() => {
+                    selector.style.border = '';
+                    selector.style.boxShadow = '';
+                }, 2000);
+            }
             return;
         }
 
         const content = approvedContent.find(c => c.id === contentId);
-        if (!content) return;
+        if (!content) {
+            showNotification('Content not found', 'error');
+            return;
+        }
 
         // Determine default duration: use content duration, or 10s for images
         const defaultDuration = content.duration || (content.content_type === 'image' ? 10 : null);
@@ -1649,6 +1853,9 @@
         renderPlaylistItems();
         document.getElementById('previewPlaylistBtn').disabled = false;
         markPlaylistDirty();
+
+        // Show success feedback
+        showNotification(`Added "${newItem.title}" to playlist`, 'success');
     }
 
     function removePlaylistItem(index) {
@@ -1704,9 +1911,48 @@
 
     let draggedIndex = null;
     let dragOverIndex = null;
+    let draggedContentId = null;  // For content browser drag
+
+    // =====================================================
+    // Content Browser Drag Handlers
+    // =====================================================
+
+    function handleContentDragStart(event, contentId) {
+        draggedContentId = contentId;
+        draggedIndex = null;  // Clear playlist item drag
+        event.dataTransfer.setData('application/content-id', contentId);
+        event.dataTransfer.effectAllowed = 'copy';
+
+        // Visual feedback
+        event.target.classList.add('dragging');
+
+        // Highlight the drop zone
+        const container = document.getElementById('playlistItemsContainer');
+        container.classList.add('awaiting-drop');
+    }
+
+    function handleContentDragEnd(event) {
+        event.target.classList.remove('dragging');
+        draggedContentId = null;
+
+        // Remove drop zone highlight
+        const container = document.getElementById('playlistItemsContainer');
+        container.classList.remove('awaiting-drop');
+        container.classList.remove('drag-over');
+
+        // Remove all drag indicators
+        document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
+            el.classList.remove('visible');
+        });
+    }
+
+    // =====================================================
+    // Playlist Item Drag Handlers (for reordering)
+    // =====================================================
 
     function handleDragStart(event, index) {
         draggedIndex = index;
+        draggedContentId = null;  // Clear content drag
         event.dataTransfer.setData('text/plain', index.toString());
         event.dataTransfer.effectAllowed = 'move';
         // Add dragging class after a small delay for visual feedback
@@ -1789,12 +2035,22 @@
         event.preventDefault();
         const container = document.getElementById('playlistItemsContainer');
         container.classList.remove('drag-over');
+        container.classList.remove('awaiting-drop');
 
         // Hide all drag indicators
         document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
             el.classList.remove('visible');
         });
 
+        // Check if this is a content drop from the browser
+        const contentId = event.dataTransfer.getData('application/content-id');
+        if (contentId) {
+            // This is new content being dropped from the browser
+            handleContentDrop(contentId);
+            return;
+        }
+
+        // Otherwise, this is a reorder of existing playlist items
         const fromIndex = parseInt(event.dataTransfer.getData('text/plain'), 10);
 
         if (isNaN(fromIndex) || dragOverIndex === null || dragOverIndex === undefined) {
@@ -1821,6 +2077,57 @@
 
         // Mark as dirty (unsaved changes)
         markPlaylistDirty();
+    }
+
+    function handleContentDrop(contentId) {
+        // Handle dropping content from the browser into the playlist
+        if (!currentPlaylistId) {
+            showNotification('Please select a playlist first', 'warning');
+            // Highlight the playlist selector
+            const selector = document.getElementById('playlistSelect');
+            if (selector) {
+                selector.style.border = '2px solid #f59e0b';
+                selector.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.3)';
+                setTimeout(() => {
+                    selector.style.border = '';
+                    selector.style.boxShadow = '';
+                }, 2000);
+            }
+            return;
+        }
+
+        const content = approvedContent.find(c => c.id === contentId);
+        if (!content) {
+            showNotification('Content not found', 'error');
+            return;
+        }
+
+        // Determine default duration
+        const defaultDuration = content.duration || (content.content_type === 'image' ? 10 : null);
+
+        // Create new item
+        const newItem = {
+            content_id: contentId,
+            title: content.original_name || content.filename || 'Unknown',
+            filename: content.filename,
+            content_type: content.content_type,
+            duration: defaultDuration,
+            duration_override: null
+        };
+
+        // Add at the drop position or at the end
+        if (dragOverIndex !== null && dragOverIndex !== undefined) {
+            currentPlaylistItems.splice(dragOverIndex, 0, newItem);
+        } else {
+            currentPlaylistItems.push(newItem);
+        }
+
+        renderPlaylistItems();
+        document.getElementById('previewPlaylistBtn').disabled = false;
+        markPlaylistDirty();
+
+        // Show success feedback
+        showNotification(`Added "${newItem.title}" to playlist`, 'success');
     }
 
     function markPlaylistDirty() {
@@ -1942,6 +2249,9 @@
 
             // Reload the playlist to get fresh data from server
             await loadPlaylistForEdit(currentPlaylistId);
+
+            // Update catalog stats for this playlist
+            await updateSinglePlaylistStats(currentPlaylistId);
 
         } catch (error) {
             showNotification('Failed to save playlist: ' + error.message, 'error');
@@ -2313,12 +2623,282 @@
     }
 
     // =====================================================
+    // Catalog Functions
+    // =====================================================
+
+    async function loadCatalogStats() {
+        // Load stats for each playlist in the catalog
+        const playlistIds = [{% for playlist in playlists %}{{ playlist.id|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+        for (const playlistId of playlistIds) {
+            try {
+                const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const itemCount = data.item_count || 0;
+                    const totalDuration = data.total_duration || 0;
+
+                    const itemsEl = document.getElementById(`catalog-items-${playlistId}`);
+                    const durationEl = document.getElementById(`catalog-duration-${playlistId}`);
+
+                    if (itemsEl) itemsEl.textContent = itemCount;
+                    if (durationEl) durationEl.textContent = formatDuration(totalDuration);
+                }
+            } catch (error) {
+                console.error(`Failed to load stats for playlist ${playlistId}:`, error);
+            }
+        }
+    }
+
+    async function updateSinglePlaylistStats(playlistId) {
+        try {
+            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
+            if (response.ok) {
+                const data = await response.json();
+                const itemCount = data.item_count || 0;
+                const totalDuration = data.total_duration || 0;
+
+                const itemsEl = document.getElementById(`catalog-items-${playlistId}`);
+                const durationEl = document.getElementById(`catalog-duration-${playlistId}`);
+
+                if (itemsEl) itemsEl.textContent = itemCount;
+                if (durationEl) durationEl.textContent = formatDuration(totalDuration);
+            }
+        } catch (error) {
+            console.error(`Failed to update stats for playlist ${playlistId}:`, error);
+        }
+    }
+
+    function selectPlaylistFromCatalog(playlistId) {
+        // Scroll to the builder section
+        document.querySelector('.layout').scrollIntoView({ behavior: 'smooth' });
+
+        // Select the playlist in the dropdown
+        const playlistSelect = document.getElementById('playlistSelect');
+        playlistSelect.value = playlistId;
+
+        // Trigger the load
+        loadPlaylistForEdit(playlistId);
+    }
+
+    async function previewPlaylistFromCatalog(playlistId, playlistName) {
+        try {
+            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
+            if (!response.ok) throw new Error('Failed to load playlist');
+
+            const data = await response.json();
+            const items = data.items || [];
+
+            if (items.length === 0) {
+                showNotification('This playlist is empty. Add content first.', 'warning');
+                return;
+            }
+
+            // Build the preview queue
+            playlistQueue = items.map(item => ({
+                filename: item.content ? item.content.filename : '',
+                title: item.content ? (item.content.original_name || item.content.filename) : 'Unknown',
+                duration: item.effective_duration || item.content?.duration || 10,
+                content_type: item.content ? item.content.content_type : 'video'
+            }));
+
+            currentVideoIndex = 0;
+            currentPlaylistName = playlistName;
+
+            // Open preview modal
+            openPreviewModal();
+        } catch (error) {
+            showNotification('Failed to preview playlist: ' + error.message, 'error');
+        }
+    }
+
+    async function deletePlaylistFromCatalog(playlistId, playlistName) {
+        if (!confirm(`Are you sure you want to delete "${playlistName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/playlists/${playlistId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showNotification('Playlist deleted successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const data = await response.json();
+                showNotification(data.error || 'Failed to delete playlist', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to delete playlist: ' + error.message, 'error');
+        }
+    }
+
+    // =====================================================
+    // Device Sync Functions
+    // =====================================================
+
+    async function pushPlaylistToDevices(playlistId, playlistName) {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '🔄 Pushing...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/v1/playlists/${playlistId}/push`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification(`Pushing "${playlistName}" to ${data.device_count || 0} devices...`, 'success');
+
+                // Show sync info panel
+                const syncInfoEl = document.getElementById(`sync-info-${playlistId}`);
+                if (syncInfoEl) {
+                    syncInfoEl.style.display = 'block';
+                }
+
+                // Update sync progress
+                updateSyncProgress(playlistId, data);
+
+                // Start polling for sync status
+                pollSyncStatus(playlistId);
+            } else {
+                showNotification(data.error || 'Failed to push playlist', 'error');
+            }
+        } catch (error) {
+            showNotification('Failed to push playlist: ' + error.message, 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function updateSyncProgress(playlistId, data) {
+        const deviceCount = data.device_count || 0;
+        const syncedCount = data.synced_count || 0;
+        const progress = deviceCount > 0 ? (syncedCount / deviceCount) * 100 : 0;
+
+        const countEl = document.getElementById(`device-count-${playlistId}`);
+        const progressEl = document.getElementById(`sync-progress-${playlistId}`);
+        const labelEl = document.getElementById(`sync-label-${playlistId}`);
+        const lastSyncEl = document.getElementById(`last-sync-${playlistId}`);
+
+        if (countEl) countEl.textContent = deviceCount;
+        if (progressEl) progressEl.style.width = `${progress}%`;
+        if (labelEl) labelEl.textContent = `${syncedCount} of ${deviceCount} synced`;
+        if (lastSyncEl && data.last_synced_at) {
+            const date = new Date(data.last_synced_at);
+            lastSyncEl.textContent = `Last: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+        }
+
+        // Show the sync info panel
+        const syncInfoEl = document.getElementById(`sync-info-${playlistId}`);
+        if (syncInfoEl && deviceCount > 0) {
+            syncInfoEl.style.display = 'block';
+        }
+    }
+
+    async function pollSyncStatus(playlistId) {
+        // Poll sync status for this playlist
+        let attempts = 0;
+        const maxAttempts = 30; // Poll for max 30 seconds
+
+        const poll = async () => {
+            try {
+                const response = await fetch(`/api/v1/playlists/${playlistId}/sync-status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateSyncProgress(playlistId, data);
+
+                    // Update sync badge
+                    updateSyncBadge(playlistId, data.sync_status);
+
+                    // Continue polling if still syncing
+                    if (data.sync_status === 'syncing' && attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(poll, 1000);
+                    } else if (data.sync_status === 'synced') {
+                        showNotification('All devices synced successfully!', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to poll sync status:', error);
+            }
+        };
+
+        poll();
+    }
+
+    function updateSyncBadge(playlistId, syncStatus) {
+        // Find the sync badge for this playlist and update it
+        const card = document.querySelector(`[onclick*="selectPlaylistFromCatalog('${playlistId}')"], [onclick*='selectPlaylistFromCatalog("${playlistId}")']`);
+        if (!card) return;
+
+        const badge = card.querySelector('.sync-status-badge');
+        if (!badge) return;
+
+        // Update badge based on status
+        let badgeText = '';
+        let badgeStyle = '';
+
+        switch (syncStatus) {
+            case 'synced':
+                badgeText = '✓ Synced';
+                badgeStyle = 'background: #d1fae5; color: #065f46;';
+                break;
+            case 'pending':
+                badgeText = '⏳ Pending Sync';
+                badgeStyle = 'background: #fef3c7; color: #92400e;';
+                break;
+            case 'syncing':
+                badgeText = '🔄 Syncing...';
+                badgeStyle = 'background: #dbeafe; color: #1e40af;';
+                break;
+            case 'error':
+                badgeText = '⚠ Sync Error';
+                badgeStyle = 'background: #fee2e2; color: #991b1b;';
+                break;
+            default:
+                badgeText = '📝 Draft';
+                badgeStyle = 'background: #f1f5f9; color: #64748b;';
+        }
+
+        badge.textContent = badgeText;
+        badge.style.cssText = `padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; ${badgeStyle}`;
+    }
+
+    async function loadAllDeviceSyncInfo() {
+        // Load sync info for all playlists in the catalog
+        const playlistIds = [{% for playlist in playlists %}{{ playlist.id|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+        for (const playlistId of playlistIds) {
+            try {
+                const response = await fetch(`/api/v1/playlists/${playlistId}/sync-status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.device_count > 0) {
+                        updateSyncProgress(playlistId, data);
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to load sync info for playlist ${playlistId}:`, error);
+            }
+        }
+    }
+
+    // =====================================================
     // Page Initialization
     // =====================================================
 
     // Load approved content for the content browser on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadApprovedContent();
+        loadCatalogStats();
+        loadAllDeviceSyncInfo();
     });
 </script>
 {% endblock %}

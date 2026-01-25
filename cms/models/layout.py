@@ -268,8 +268,17 @@ class ScreenLayer(db.Model):
     is_visible = db.Column(db.Boolean, nullable=False, default=True)
     is_locked = db.Column(db.Boolean, nullable=False, default=False)
 
-    # Content configuration (JSON string)
+    # Content source configuration
+    content_source = db.Column(db.String(50), nullable=False, default='none')  # 'none', 'playlist', 'static', 'widget'
+    playlist_id = db.Column(db.String(36), db.ForeignKey('playlists.id', ondelete='SET NULL'), nullable=True, index=True)
+    content_id = db.Column(db.String(36), nullable=True, index=True)  # Can reference Content or SyncedContent
+    is_primary = db.Column(db.Boolean, nullable=False, default=False)  # Primary layer for triggered content
+
+    # Content configuration (JSON string for widget settings)
     content_config = db.Column(db.Text, nullable=True)
+
+    # Relationships
+    playlist = db.relationship('Playlist', backref=db.backref('layers', lazy='dynamic'))
 
     # Timestamps
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -282,6 +291,15 @@ class ScreenLayer(db.Model):
         Returns:
             Dictionary containing all layer fields
         """
+        import json
+        # Parse content_config from JSON string to dict if present
+        content_config = None
+        if self.content_config:
+            try:
+                content_config = json.loads(self.content_config)
+            except (json.JSONDecodeError, TypeError):
+                content_config = self.content_config  # Keep as-is if not valid JSON
+
         return {
             'id': self.id,
             'layout_id': self.layout_id,
@@ -297,7 +315,12 @@ class ScreenLayer(db.Model):
             'background_color': self.background_color,
             'is_visible': self.is_visible,
             'is_locked': self.is_locked,
-            'content_config': self.content_config,
+            'content_source': self.content_source,
+            'playlist_id': self.playlist_id,
+            'content_id': self.content_id,
+            'is_primary': self.is_primary,
+            'playlist_name': self.playlist.name if self.playlist else None,
+            'content_config': content_config,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -793,6 +816,7 @@ class DeviceLayout(db.Model):
     start_date = db.Column(db.DateTime, nullable=True)
     end_date = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_pushed_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
     device = db.relationship('Device', backref=db.backref('layout_assignments', lazy='dynamic', cascade='all, delete-orphan'))
@@ -812,7 +836,8 @@ class DeviceLayout(db.Model):
             'priority': self.priority,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_pushed_at': self.last_pushed_at.isoformat() if self.last_pushed_at else None
         }
 
     def to_dict_with_relations(self):

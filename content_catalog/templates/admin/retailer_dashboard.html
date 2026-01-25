@@ -100,8 +100,15 @@
     <div class="stat-card pending {% if tab == 'pending' %}active{% endif %}" onclick="location.href='?tab=pending'">
         <div class="stat-icon">⏳</div>
         <div class="stat-value">{{ stats.pending }}</div>
-        <div class="stat-label">Pending Approval</div>
+        <div class="stat-label">Pending Review</div>
     </div>
+    {% if stats.venue_pending > 0 %}
+    <div class="stat-card pending {% if tab == 'venue_pending' %}active{% endif %}" onclick="location.href='?tab=venue_pending'" style="border-color: rgba(139, 92, 246, 0.5);">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">{{ stats.venue_pending }}</div>
+        <div class="stat-label">Awaiting Your Approval</div>
+    </div>
+    {% endif %}
     <div class="stat-card success {% if tab == 'approved' %}active{% endif %}" onclick="location.href='?tab=approved'">
         <div class="stat-icon">✓</div>
         <div class="stat-value">{{ stats.approved }}</div>
@@ -113,6 +120,51 @@
         <div class="stat-label">Published</div>
     </div>
 </div>
+
+<!-- Pending VENUE Approval Section - Content from Skillz awaiting your approval -->
+{% if pending_venue_approvals %}
+<div class="section" style="border-color: rgba(139, 92, 246, 0.3);">
+    <div class="section-header" style="background: rgba(139, 92, 246, 0.1);">
+        <h3>🎯 Awaiting Your Approval <span class="section-badge" style="background: #8b5cf6;">{{ pending_venue_approvals|length }}</span></h3>
+        <span style="font-size: 12px; color: rgba(255,255,255,0.5);">Content approved by Skillz Media - review and approve for your screens</span>
+    </div>
+    <div class="section-content">
+        <div class="assets-grid">
+            {% for approval in pending_venue_approvals[:6] %}
+            {% set asset = approval.content_asset %}
+            <div class="asset-card" style="border-color: rgba(139, 92, 246, 0.3);">
+                <div class="asset-preview">
+                    {% if asset.format in ['mp4', 'mov', 'avi', 'webm'] %}
+                    <video src="/api/v1/assets/{{ asset.id }}/preview" muted></video>
+                    <span class="asset-type">VIDEO</span>
+                    {% else %}
+                    <img src="/api/v1/assets/{{ asset.id }}/preview" alt="{{ asset.title }}">
+                    <span class="asset-type">IMAGE</span>
+                    {% endif %}
+                    <span class="asset-status" style="background: rgba(139, 92, 246, 0.9); color: #fff;">NEEDS APPROVAL</span>
+                </div>
+                <div class="asset-info">
+                    <h4>{{ asset.title }}</h4>
+                    <div class="asset-meta">From Skillz Media • {{ approval.skillz_approved_at.strftime('%b %d') if approval.skillz_approved_at else '' }}</div>
+                </div>
+                {% if can_approve %}
+                <div class="asset-actions">
+                    <button class="btn btn-sm btn-success" onclick="venueApprove({{ approval.id }})">✓ Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="venueReject({{ approval.id }})">✗ Reject</button>
+                    <button class="btn btn-sm btn-ghost" onclick="previewAsset({{ asset.id }})">Preview</button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if pending_venue_approvals|length > 6 %}
+        <div style="text-align: center; margin-top: 16px;">
+            <a href="?tab=venue_pending" class="btn btn-secondary">View All {{ pending_venue_approvals|length }} Pending</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Pending Approval Section -->
 {% if pending_assets %}
@@ -376,6 +428,41 @@ async function rejectAsset(uuid) {
         });
         if (res.ok) location.reload(); else alert('Failed to reject');
     } catch (e) { alert('Error: ' + e.message); }
+}
+
+// Venue approval for content from Skillz
+async function venueApprove(approvalId) {
+    if (!confirm('Approve this content for your screens? It will be synced to the CMS.')) return;
+    try {
+        const res = await fetch('/admin/venue-approval/' + approvalId + '/approve', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('Content approved and synced to CMS!');
+            location.reload();
+        } else {
+            alert('Failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function venueReject(approvalId) {
+    const reason = prompt('Rejection reason (optional):');
+    if (reason === null) return;
+    try {
+        const res = await fetch('/admin/venue-approval/' + approvalId + '/reject', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+        });
+        if (res.ok) {
+            alert('Content rejected.');
+            location.reload();
+        } else {
+            alert('Failed to reject');
+        }
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+function previewAsset(assetId) {
+    window.open('/api/v1/assets/' + assetId + '/preview', 'Preview', 'width=900,height=600');
 }
 
 async function addUser(e) {

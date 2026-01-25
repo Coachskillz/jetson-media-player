@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from sqlalchemy import or_, func
 
 # CMS imports
-from cms.models import db as cms_db, Content, Playlist, PlaylistContent
+from cms.models import db as cms_db, Content, Playlist, PlaylistItem
 
 # Content Catalog imports (cross-module)
 try:
@@ -294,12 +294,12 @@ def add_catalog_asset_to_playlist(asset_uuid):
     if position is None:
         # Get current max position in playlist
         max_position = cms_db.session.query(
-            func.max(PlaylistContent.position)
+            func.max(PlaylistItem.position)
         ).filter_by(playlist_id=playlist_id).scalar()
         position = (max_position or 0) + 1
 
     # Create playlist-content link
-    playlist_content = PlaylistContent(
+    playlist_content = PlaylistItem(
         playlist_id=playlist_id,
         content_id=cms_content.id,
         position=position,

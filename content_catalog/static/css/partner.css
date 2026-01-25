@@ -157,6 +157,12 @@ h1, h2, h3, h4, h5, h6 {
     flex-shrink: 0;
 }
 
+.logo-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .logo-text {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 18px;
@@ -168,7 +174,20 @@ h1, h2, h3, h4, h5, h6 {
     background-clip: text;
 }
 
-.sidebar.collapsed .logo-text {
+.logo-tenant {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .logo-text-group,
+.sidebar.collapsed .logo-tenant {
     display: none;
 }
 

@@ -412,6 +412,7 @@ class UserInvitation(db.Model):
     email = db.Column(db.String(255), nullable=False, index=True)
     role = db.Column(db.String(50), nullable=False)
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True, index=True)
+    tenant_ids = db.Column(db.Text, nullable=True)  # JSON array of tenant IDs
 
     # Invitation source
     invited_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
@@ -451,12 +452,38 @@ class UserInvitation(db.Model):
             'email': self.email,
             'role': self.role,
             'organization_id': self.organization_id,
+            'tenant_ids': self.tenant_ids,
             'invited_by': self.invited_by,
             'status': self.status,
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
             'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+    def get_tenant_ids_list(self):
+        """
+        Get the list of tenant IDs for this invitation.
+
+        Returns:
+            List of tenant IDs, or empty list if not set
+        """
+        import json
+        if not self.tenant_ids:
+            return []
+        try:
+            return json.loads(self.tenant_ids)
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    def set_tenant_ids_list(self, tenant_ids):
+        """
+        Set the list of tenant IDs for this invitation.
+
+        Args:
+            tenant_ids: List of tenant IDs
+        """
+        import json
+        self.tenant_ids = json.dumps(tenant_ids) if tenant_ids else None
 
     def is_expired(self):
         """
@@ -465,7 +492,12 @@ class UserInvitation(db.Model):
         Returns:
             True if invitation is expired, False otherwise
         """
-        return datetime.now(timezone.utc) > self.expires_at
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        # Handle timezone-naive expires_at from database
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return now > expires
 
     def is_valid(self):
         """
@@ -750,7 +782,12 @@ class AdminSession(db.Model):
         Returns:
             True if session is expired, False otherwise
         """
-        return datetime.now(timezone.utc) > self.expires_at
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        # Handle timezone-naive expires_at from database
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return now > expires
 
     def is_valid(self):
         """

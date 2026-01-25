@@ -79,6 +79,8 @@
             this.fabricExtensions = null;
             this.saveTimeout = null;
             this.layerCounter = 0;
+            this.gridVisible = false;
+            this.snapEnabled = false;
 
             this._init();
         }
@@ -104,6 +106,21 @@
             this._updateZoomButtonStates();
             this._setTool(TOOLS.SELECT);
 
+            // Auto-fit canvas to available space on load
+            // Use requestAnimationFrame to ensure DOM is fully rendered
+            requestAnimationFrame(() => {
+                this._zoomFit();
+            });
+
+            // Re-fit when window is resized
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    this._zoomFit();
+                }, 150);
+            });
+
             // Warn before leaving with unsaved changes
             window.addEventListener('beforeunload', (e) => {
                 if (this.isDirty) {
@@ -111,6 +128,8 @@
                     e.returnValue = '';
                 }
             });
+
+            console.log('Layout Designer initialized successfully');
         }
 
         /**
@@ -218,6 +237,10 @@
         _createLayerFromData(data) {
             const fill = this._getLayerFill(data);
 
+            // Determine if this is a transparent overlay layer
+            const bgType = data.background_type || 'none';
+            const isTransparent = bgType === 'none' || bgType === 'transparent';
+
             const rect = this.fabricExtensions.createLayerRect({
                 x: data.x || 0,
                 y: data.y || 0,
@@ -230,6 +253,11 @@
                 layerName: data.name,
                 layerData: data
             });
+
+            // Set dashed border for transparent overlay layers (visible in editor only)
+            if (isTransparent) {
+                rect.set('strokeDashArray', [5, 5]);
+            }
 
             // Apply opacity
             rect.set('opacity', data.opacity !== undefined ? data.opacity : 1.0);
@@ -278,23 +306,28 @@
          * @private
          */
         _getLayerFill(data) {
-            const bgType = data.background_type || 'transparent';
+            const bgType = data.background_type || 'none';
             const bgColor = data.background_color;
             const bgOpacity = data.background_opacity !== undefined ? data.background_opacity : 1.0;
 
-            if (bgType === 'transparent' || !bgColor || bgColor === 'transparent') {
-                return 'rgba(0, 212, 170, 0.1)'; // Subtle indicator for transparent layers
+            // True transparent for overlays (QR codes, weather widgets, etc.)
+            if (bgType === 'none' || bgType === 'transparent') {
+                return 'transparent';
             }
 
-            // Apply background opacity
-            if (bgOpacity < 1) {
-                const rgb = FabricExtensions.utils.hexToRgb(bgColor);
-                if (rgb) {
-                    return FabricExtensions.utils.toRgba({ ...rgb, a: bgOpacity });
+            // Solid color background
+            if (bgType === 'solid' && bgColor) {
+                // Apply background opacity
+                if (bgOpacity < 1) {
+                    const rgb = FabricExtensions.utils.hexToRgb(bgColor);
+                    if (rgb) {
+                        return FabricExtensions.utils.toRgba({ ...rgb, a: bgOpacity });
+                    }
                 }
+                return bgColor;
             }
 
-            return bgColor;
+            return 'transparent';
         }
 
         // =====================================================================
@@ -863,6 +896,21 @@
                 zoomFit.addEventListener('click', () => this._zoomFit());
             }
 
+            // Grid controls
+            const toggleGrid = document.getElementById('toggle-grid');
+            const toggleSnap = document.getElementById('toggle-snap');
+            const gridSize = document.getElementById('grid-size');
+
+            if (toggleGrid) {
+                toggleGrid.addEventListener('click', () => this._toggleGrid());
+            }
+            if (toggleSnap) {
+                toggleSnap.addEventListener('click', () => this._toggleSnap());
+            }
+            if (gridSize) {
+                gridSize.addEventListener('change', (e) => this._setGridSize(parseInt(e.target.value)));
+            }
+
             // Layer controls
             const layerFront = document.getElementById('layer-front');
             const layerBack = document.getElementById('layer-back');
@@ -887,6 +935,89 @@
             if (saveBtn) {
                 saveBtn.addEventListener('click', () => this._saveLayout());
             }
+
+            // Canvas preset selector
+            const canvasPreset = document.getElementById('canvas-preset');
+            if (canvasPreset) {
+                canvasPreset.addEventListener('change', (e) => this._changeCanvasPreset(e.target.value));
+            }
+        }
+
+        /**
+         * Change canvas size based on preset
+         * @param {string} preset - Preset value (e.g., "1920x1080")
+         * @private
+         */
+        async _changeCanvasPreset(preset) {
+            if (preset === 'custom') {
+                // TODO: Show custom size dialog
+                return;
+            }
+
+            const [width, height] = preset.split('x').map(Number);
+            if (!width || !height) return;
+
+            try {
+                // Update via API
+                await CMS.api.put(this.apiEndpoints.layout, {
+                    canvas_width: width,
+                    canvas_height: height
+                });
+
+                // Update local data
+                this.layoutData.canvasWidth = width;
+                this.layoutData.canvasHeight = height;
+
+                // Resize canvas
+                this._resizeCanvas(width, height);
+
+                // Update dimensions display
+                const dimsEl = document.getElementById('canvas-dimensions');
+                if (dimsEl) {
+                    dimsEl.textContent = `${width} x ${height}`;
+                }
+
+                this._showStatus('success', `Canvas resized to ${width}x${height}`);
+            } catch (error) {
+                this._showStatus('error', 'Failed to resize canvas: ' + error.message);
+            }
+        }
+
+        /**
+         * Resize the canvas
+         * @param {number} width - New width
+         * @param {number} height - New height
+         * @private
+         */
+        _resizeCanvas(width, height) {
+            // Update canvas dimensions
+            this.canvas.setWidth(width);
+            this.canvas.setHeight(height);
+
+            // Update checkerboard background
+            const checkerboard = document.getElementById('canvas-checkerboard');
+            if (checkerboard) {
+                checkerboard.style.width = width + 'px';
+                checkerboard.style.height = height + 'px';
+            }
+
+            // Update screen label
+            const screenLabel = document.getElementById('screen-label');
+            if (screenLabel) {
+                screenLabel.textContent = `Screen: ${width} x ${height}`;
+            }
+
+            // Update dimension labels
+            const dimWidth = document.getElementById('dim-width');
+            const dimHeight = document.getElementById('dim-height');
+            if (dimWidth) dimWidth.textContent = `${width}px`;
+            if (dimHeight) dimHeight.textContent = `${height}px`;
+
+            // Re-render
+            this.canvas.renderAll();
+
+            // Fit to window if canvas is larger than viewport
+            this._zoomFit();
         }
 
         /**
@@ -906,6 +1037,14 @@
                         break;
                     case 'd':
                         this._setTool(TOOLS.DRAW);
+                        break;
+                    case 'g':
+                        this._toggleGrid();
+                        break;
+                    case 's':
+                        if (!e.ctrlKey && !e.metaKey) {
+                            this._toggleSnap();
+                        }
                         break;
                     case 'delete':
                     case 'backspace':
@@ -1026,10 +1165,8 @@
          * @private
          */
         _setZoom(level) {
-            // Clamp zoom level to valid range
-            const minZoom = ZOOM_LEVELS[0];
-            const maxZoom = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
-            level = Math.max(minZoom, Math.min(maxZoom, level));
+            // Clamp zoom level to valid range (10% to 200%)
+            level = Math.max(0.1, Math.min(2.0, level));
             this.currentZoom = level;
 
             // Apply zoom via CSS transform on the canvas wrapper
@@ -1037,6 +1174,12 @@
             if (wrapper) {
                 wrapper.style.transform = 'scale(' + level + ')';
                 wrapper.style.transformOrigin = 'center center';
+            }
+
+            // Update info bar zoom display
+            const infoZoom = document.getElementById('info-zoom');
+            if (infoZoom) {
+                infoZoom.textContent = Math.round(level * 100) + '%';
             }
 
             // Update zoom select dropdown
@@ -1145,32 +1288,77 @@
             const container = document.getElementById('canvas-container');
             if (!container) return;
 
-            // Calculate available space (accounting for padding)
-            const padding = 80;
+            // Calculate available space (accounting for padding, labels, and info bar)
+            const padding = 120;
             const containerWidth = container.clientWidth - padding;
             const containerHeight = container.clientHeight - padding;
 
             if (containerWidth <= 0 || containerHeight <= 0) return;
 
-            // Calculate scale to fit canvas in container
+            // Calculate scale to fit canvas in container while maintaining aspect ratio
             const scaleX = containerWidth / this.layoutData.canvasWidth;
             const scaleY = containerHeight / this.layoutData.canvasHeight;
             const scale = Math.min(scaleX, scaleY);
 
-            // Clamp to valid zoom range (allow fitting smaller canvases to larger too)
-            const minZoom = ZOOM_LEVELS[0];
-            const maxZoom = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
-            const clampedScale = Math.max(minZoom, Math.min(maxZoom, scale));
+            // Clamp to reasonable range (10% to 200%)
+            const clampedScale = Math.max(0.1, Math.min(2.0, scale));
 
-            // Find the closest standard zoom level that fits
-            let fitZoom = minZoom;
-            for (const z of ZOOM_LEVELS) {
-                if (z <= clampedScale) {
-                    fitZoom = z;
-                }
+            // Use exact scale for perfect fit
+            this._setZoom(clampedScale);
+        }
+
+        // =====================================================================
+        // Grid Controls
+        // =====================================================================
+
+        /**
+         * Toggle grid visibility
+         * @private
+         */
+        _toggleGrid() {
+            this.gridVisible = !this.gridVisible;
+            this.fabricExtensions.toggleGrid(this.gridVisible, 'rgba(255, 255, 255, 0.15)');
+
+            // Update button state
+            const btn = document.getElementById('toggle-grid');
+            if (btn) {
+                btn.classList.toggle('active', this.gridVisible);
             }
 
-            this._setZoom(fitZoom);
+            this._showStatus('info', this.gridVisible ? 'Grid visible' : 'Grid hidden');
+        }
+
+        /**
+         * Toggle snap to grid
+         * @private
+         */
+        _toggleSnap() {
+            this.snapEnabled = !this.snapEnabled;
+            this.fabricExtensions.setSnapToGrid(this.snapEnabled);
+
+            // Update button state
+            const btn = document.getElementById('toggle-snap');
+            if (btn) {
+                btn.classList.toggle('active', this.snapEnabled);
+            }
+
+            this._showStatus('info', this.snapEnabled ? 'Snap to grid enabled' : 'Snap to grid disabled');
+        }
+
+        /**
+         * Set grid size
+         * @param {number} size - Grid size in pixels
+         * @private
+         */
+        _setGridSize(size) {
+            this.fabricExtensions.setSnapToGrid(this.snapEnabled, size);
+
+            // Redraw grid if visible
+            if (this.gridVisible) {
+                this.fabricExtensions.toggleGrid(true, 'rgba(255, 255, 255, 0.15)');
+            }
+
+            this._showStatus('info', 'Grid size: ' + size + 'px');
         }
 
         // =====================================================================
@@ -1300,10 +1488,35 @@
             this._bindPropertyInput('prop-height', 'height', parseInt);
             this._bindPropertyInput('prop-name', 'name', String);
             this._bindPropertyInput('prop-opacity-value', 'opacity', (v) => parseInt(v) / 100);
-            this._bindPropertyInput('prop-background', 'background_color', String);
             this._bindPropertyInput('prop-border-width', 'border_width', parseInt);
             this._bindPropertyInput('prop-border-color', 'border_color', String);
             this._bindPropertyInput('prop-border-radius', 'border_radius', parseInt);
+
+            // Background type selector
+            const bgType = document.getElementById('prop-background-type');
+            const bgColorRow = document.getElementById('background-color-row');
+            const bgColor = document.getElementById('prop-background');
+
+            if (bgType) {
+                bgType.addEventListener('change', (e) => {
+                    const type = e.target.value;
+                    // Show/hide color picker
+                    if (bgColorRow) {
+                        bgColorRow.style.display = type === 'solid' ? 'flex' : 'none';
+                    }
+                    // Update layer
+                    this._updateLayerProperty('background_type', type);
+                    if (type === 'none') {
+                        this._updateLayerProperty('background_color', null);
+                    }
+                });
+            }
+
+            if (bgColor) {
+                bgColor.addEventListener('change', (e) => {
+                    this._updateLayerProperty('background_color', e.target.value);
+                });
+            }
 
             // Opacity slider
             const opacitySlider = document.getElementById('prop-opacity');
@@ -1337,6 +1550,251 @@
                     this._setContentMode(mode);
                 });
             });
+
+            // Layer type selector
+            const layerType = document.getElementById('prop-layer-type');
+            if (layerType) {
+                layerType.addEventListener('change', (e) => {
+                    this._setLayerType(e.target.value);
+                });
+            }
+
+            // Content source selector
+            const contentSource = document.getElementById('prop-content-source');
+            if (contentSource) {
+                contentSource.addEventListener('change', (e) => {
+                    this._setContentSource(e.target.value);
+                });
+            }
+
+            // Playlist selector
+            const playlistId = document.getElementById('prop-playlist-id');
+            if (playlistId) {
+                playlistId.addEventListener('change', (e) => {
+                    this._updateLayerProperty('playlist_id', e.target.value || null);
+                });
+            }
+
+            // Content selector
+            const contentId = document.getElementById('prop-content-id');
+            if (contentId) {
+                contentId.addEventListener('change', (e) => {
+                    this._updateLayerProperty('content_id', e.target.value || null);
+                });
+            }
+
+            // Primary layer toggle
+            const isPrimary = document.getElementById('prop-is-primary');
+            if (isPrimary) {
+                isPrimary.addEventListener('change', (e) => {
+                    this._setPrimaryLayer(e.target.checked);
+                });
+            }
+
+            // Widget configuration inputs
+            this._bindWidgetConfigInputs();
+        }
+
+        /**
+         * Set content source for the selected layer
+         * @param {string} source - Content source ('none', 'playlist', 'static', 'widget')
+         * @private
+         */
+        _setContentSource(source) {
+            // Show/hide appropriate selectors
+            const playlistRow = document.getElementById('playlist-selector-row');
+            const contentRow = document.getElementById('content-selector-row');
+
+            if (playlistRow) playlistRow.style.display = source === 'playlist' ? 'flex' : 'none';
+            if (contentRow) contentRow.style.display = source === 'static' ? 'flex' : 'none';
+
+            // Update layer property
+            this._updateLayerProperty('content_source', source);
+
+            // Clear the non-relevant ID
+            if (source !== 'playlist') {
+                this._updateLayerProperty('playlist_id', null);
+            }
+            if (source !== 'static') {
+                this._updateLayerProperty('content_id', null);
+            }
+        }
+
+        /**
+         * Set the selected layer as primary
+         * @param {boolean} isPrimary - Whether this layer is primary
+         * @private
+         */
+        async _setPrimaryLayer(isPrimary) {
+            if (!this.selectedLayerId) return;
+
+            try {
+                await this._updateLayer(this.selectedLayerId, { is_primary: isPrimary });
+
+                // Update local layer data
+                const layer = this.layers.get(this.selectedLayerId);
+                if (layer) {
+                    layer.data.is_primary = isPrimary;
+                }
+
+                // If setting as primary, clear primary from other layers locally
+                if (isPrimary) {
+                    this.layers.forEach((otherLayer, id) => {
+                        if (id !== this.selectedLayerId) {
+                            otherLayer.data.is_primary = false;
+                        }
+                    });
+                }
+
+                // Update layer list to show primary indicator
+                this._updateLayerList();
+
+                this._showStatus('success', isPrimary ? 'Set as primary layer' : 'Removed primary status');
+            } catch (error) {
+                this._showStatus('error', 'Failed to update primary layer: ' + error.message);
+                // Revert checkbox
+                const checkbox = document.getElementById('prop-is-primary');
+                if (checkbox) checkbox.checked = !isPrimary;
+            }
+        }
+
+        /**
+         * Bind widget configuration input handlers
+         * @private
+         */
+        _bindWidgetConfigInputs() {
+            // Weather widget
+            this._bindWidgetInput('weather-location', 'weather', 'location');
+            this._bindWidgetInput('weather-units', 'weather', 'units');
+            this._bindWidgetInput('weather-display', 'weather', 'display');
+            this._bindWidgetInput('weather-style', 'weather', 'style');
+
+            // RSS Ticker widget
+            this._bindWidgetInput('ticker-feed-url', 'ticker', 'feed_url');
+            this._bindWidgetInput('ticker-speed', 'ticker', 'speed');
+            this._bindWidgetInput('ticker-direction', 'ticker', 'direction');
+            this._bindWidgetInput('ticker-max-items', 'ticker', 'max_items', parseInt);
+            this._bindWidgetInput('ticker-separator', 'ticker', 'separator');
+            this._bindWidgetInput('ticker-font-size', 'ticker', 'font_size', parseInt);
+            this._bindWidgetInput('ticker-text-color', 'ticker', 'text_color');
+
+            // Clock widget
+            this._bindWidgetInput('clock-format', 'clock', 'format');
+            this._bindWidgetInput('clock-show', 'clock', 'show');
+            this._bindWidgetInput('clock-timezone', 'clock', 'timezone');
+            this._bindWidgetInput('clock-font-size', 'clock', 'font_size', parseInt);
+            this._bindWidgetInput('clock-text-color', 'clock', 'text_color');
+
+            // Text widget
+            this._bindWidgetInput('text-content', 'text', 'content');
+            this._bindWidgetInput('text-font-size', 'text', 'font_size', parseInt);
+            this._bindWidgetInput('text-font-family', 'text', 'font_family');
+            this._bindWidgetInput('text-color', 'text', 'color');
+            this._bindWidgetInput('text-align', 'text', 'align');
+
+            // HTML widget
+            this._bindWidgetInput('html-content', 'html', 'content');
+            this._bindWidgetInput('html-refresh', 'html', 'refresh_interval', parseInt);
+        }
+
+        /**
+         * Bind a widget configuration input
+         * @param {string} elementId - Input element ID
+         * @param {string} widgetType - Widget type name
+         * @param {string} configKey - Configuration key
+         * @param {Function} [parser] - Value parser function
+         * @private
+         */
+        _bindWidgetInput(elementId, widgetType, configKey, parser) {
+            const input = document.getElementById(elementId);
+            if (!input) return;
+
+            const eventType = input.tagName === 'SELECT' ? 'change' : 'change';
+            input.addEventListener(eventType, (e) => {
+                const value = parser ? parser(e.target.value) : e.target.value;
+                this._updateWidgetConfig(widgetType, configKey, value);
+            });
+        }
+
+        /**
+         * Update widget configuration
+         * @param {string} widgetType - Widget type
+         * @param {string} key - Configuration key
+         * @param {*} value - Configuration value
+         * @private
+         */
+        _updateWidgetConfig(widgetType, key, value) {
+            if (!this.selectedLayerId) return;
+
+            const layer = this.layers.get(this.selectedLayerId);
+            if (!layer) return;
+
+            // Initialize content_config if needed
+            if (!layer.data.content_config) {
+                layer.data.content_config = {};
+            }
+
+            // Update the config
+            layer.data.content_config[key] = value;
+
+            // Schedule API update
+            this._scheduleUpdate(this.selectedLayerId, {
+                content_config: layer.data.content_config
+            });
+        }
+
+        /**
+         * Set layer type and show appropriate config panel
+         * @param {string} type - Layer type
+         * @private
+         */
+        _setLayerType(type) {
+            if (!this.selectedLayerId) return;
+
+            const layer = this.layers.get(this.selectedLayerId);
+            if (!layer) return;
+
+            // Update layer type
+            layer.data.layer_type = type;
+
+            // Hide all widget config panels
+            document.querySelectorAll('.widget-config').forEach(panel => {
+                panel.style.display = 'none';
+            });
+
+            // Show the appropriate config panel
+            const configPanel = document.getElementById('config-' + type);
+            if (configPanel) {
+                configPanel.style.display = 'block';
+            }
+
+            // Update canvas layer appearance based on type
+            this._updateLayerAppearanceForType(layer, type);
+
+            // Schedule API update
+            this._scheduleUpdate(this.selectedLayerId, { layer_type: type });
+        }
+
+        /**
+         * Update layer visual appearance based on type
+         * @param {Object} layer - Layer object
+         * @param {string} type - Layer type
+         * @private
+         */
+        _updateLayerAppearanceForType(layer, type) {
+            const obj = layer.fabricObject;
+            const typeColors = {
+                content: '#00D4AA',
+                weather: '#FFB800',
+                ticker: '#FF6B6B',
+                clock: '#A78BFA',
+                text: '#60A5FA',
+                html: '#F472B6'
+            };
+
+            const color = typeColors[type] || '#00D4AA';
+            obj.set('stroke', color);
+            this.canvas.renderAll();
         }
 
         /**
@@ -1395,8 +1853,22 @@
                 case 'opacity':
                     obj.set('opacity', value);
                     break;
+                case 'background_type':
+                    if (value === 'none') {
+                        // True transparent - just show a subtle dashed border for editing
+                        obj.set('fill', 'transparent');
+                        obj.set('strokeDashArray', [5, 5]);
+                    } else {
+                        obj.set('strokeDashArray', null);
+                        // Use the current background_color or default
+                        const bgColor = layer.data.background_color || '#000000';
+                        obj.set('fill', bgColor);
+                    }
+                    break;
                 case 'background_color':
-                    obj.set('fill', value || 'rgba(0, 212, 170, 0.1)');
+                    if (layer.data.background_type === 'solid') {
+                        obj.set('fill', value || '#000000');
+                    }
                     break;
             }
 
@@ -1578,12 +2050,109 @@
             this._setPropertyValue('prop-name', data.name || '');
             this._setPropertyValue('prop-opacity', Math.round((data.opacity || 1) * 100));
             this._setPropertyValue('prop-opacity-value', Math.round((data.opacity || 1) * 100));
-            this._setPropertyValue('prop-background', data.background_color || 'transparent');
+
+            // Background type and color
+            const bgType = data.background_type || (data.background_color ? 'solid' : 'none');
+            this._setPropertyValue('prop-background-type', bgType);
+            this._setPropertyValue('prop-background', data.background_color || '#000000');
+
+            // Show/hide color picker based on type
+            const bgColorRow = document.getElementById('background-color-row');
+            if (bgColorRow) {
+                bgColorRow.style.display = bgType === 'solid' ? 'flex' : 'none';
+            }
+
             this._setPropertyValue('prop-border-width', data.border_width || 0);
             this._setPropertyValue('prop-border-color', data.border_color || '#333333');
             this._setPropertyValue('prop-border-radius', data.border_radius || 0);
             this._setPropertyValue('prop-z-index', data.z_index || 0);
             this._setPropertyValue('prop-fit-mode', data.fit_mode || 'cover');
+
+            // Set layer type and show appropriate config panel
+            const layerType = data.layer_type || 'content';
+            this._setPropertyValue('prop-layer-type', layerType);
+
+            // Hide all widget config panels
+            document.querySelectorAll('.widget-config').forEach(panel => {
+                panel.style.display = 'none';
+            });
+
+            // Show the appropriate config panel
+            const configPanel = document.getElementById('config-' + layerType);
+            if (configPanel) {
+                configPanel.style.display = 'block';
+            }
+
+            // Populate widget configuration values
+            this._populateWidgetConfig(layerType, data.content_config || {});
+
+            // Set content source and show appropriate selectors
+            const contentSource = data.content_source || 'none';
+            this._setPropertyValue('prop-content-source', contentSource);
+
+            const playlistRow = document.getElementById('playlist-selector-row');
+            const contentRow = document.getElementById('content-selector-row');
+
+            if (playlistRow) playlistRow.style.display = contentSource === 'playlist' ? 'flex' : 'none';
+            if (contentRow) contentRow.style.display = contentSource === 'static' ? 'flex' : 'none';
+
+            // Set playlist and content selections
+            this._setPropertyValue('prop-playlist-id', data.playlist_id || '');
+            this._setPropertyValue('prop-content-id', data.content_id || '');
+
+            // Set primary layer toggle
+            const isPrimaryCheckbox = document.getElementById('prop-is-primary');
+            if (isPrimaryCheckbox) {
+                isPrimaryCheckbox.checked = data.is_primary === true;
+            }
+        }
+
+        /**
+         * Populate widget configuration inputs with stored values
+         * @param {string} type - Widget type
+         * @param {Object} config - Configuration values
+         * @private
+         */
+        _populateWidgetConfig(type, config) {
+            switch (type) {
+                case 'weather':
+                    this._setPropertyValue('weather-location', config.location || '');
+                    this._setPropertyValue('weather-units', config.units || 'imperial');
+                    this._setPropertyValue('weather-display', config.display || 'current');
+                    this._setPropertyValue('weather-style', config.style || 'minimal');
+                    break;
+
+                case 'ticker':
+                    this._setPropertyValue('ticker-feed-url', config.feed_url || '');
+                    this._setPropertyValue('ticker-speed', config.speed || 'medium');
+                    this._setPropertyValue('ticker-direction', config.direction || 'left');
+                    this._setPropertyValue('ticker-max-items', config.max_items || 10);
+                    this._setPropertyValue('ticker-separator', config.separator || ' • ');
+                    this._setPropertyValue('ticker-font-size', config.font_size || 24);
+                    this._setPropertyValue('ticker-text-color', config.text_color || '#FFFFFF');
+                    break;
+
+                case 'clock':
+                    this._setPropertyValue('clock-format', config.format || '12h');
+                    this._setPropertyValue('clock-show', config.show || 'both');
+                    this._setPropertyValue('clock-timezone', config.timezone || 'local');
+                    this._setPropertyValue('clock-font-size', config.font_size || 48);
+                    this._setPropertyValue('clock-text-color', config.text_color || '#FFFFFF');
+                    break;
+
+                case 'text':
+                    this._setPropertyValue('text-content', config.content || '');
+                    this._setPropertyValue('text-font-size', config.font_size || 32);
+                    this._setPropertyValue('text-font-family', config.font_family || 'Arial, sans-serif');
+                    this._setPropertyValue('text-color', config.color || '#FFFFFF');
+                    this._setPropertyValue('text-align', config.align || 'left');
+                    break;
+
+                case 'html':
+                    this._setPropertyValue('html-content', config.content || '');
+                    this._setPropertyValue('html-refresh', config.refresh_interval || 0);
+                    break;
+            }
         }
 
         /**
@@ -1802,21 +2371,45 @@
      * Initialize layout designer when DOM is ready
      */
     function init() {
+        console.log('Layout Designer: Checking initialization requirements...');
+
         // Check if we have layout data
         if (!window.LAYOUT_DATA || !window.API_ENDPOINTS) {
+            console.error('Layout Designer: Missing LAYOUT_DATA or API_ENDPOINTS');
             return;
         }
+        console.log('Layout Designer: Layout data found', window.LAYOUT_DATA);
 
         // Wait for dependencies
-        if (typeof fabric === 'undefined' || typeof FabricExtensions === 'undefined') {
+        if (typeof fabric === 'undefined') {
+            console.error('Layout Designer: Fabric.js not loaded');
             return;
         }
+        console.log('Layout Designer: Fabric.js loaded');
 
-        // Create designer instance
-        window.layoutDesigner = new LayoutDesigner(
-            window.LAYOUT_DATA,
-            window.API_ENDPOINTS
-        );
+        if (typeof FabricExtensions === 'undefined') {
+            console.error('Layout Designer: FabricExtensions not loaded');
+            return;
+        }
+        console.log('Layout Designer: FabricExtensions loaded');
+
+        // Check if CMS.api is available
+        if (typeof CMS === 'undefined' || !CMS.api) {
+            console.error('Layout Designer: CMS.api not available');
+            return;
+        }
+        console.log('Layout Designer: CMS.api available');
+
+        try {
+            // Create designer instance
+            window.layoutDesigner = new LayoutDesigner(
+                window.LAYOUT_DATA,
+                window.API_ENDPOINTS
+            );
+            console.log('Layout Designer: Instance created successfully');
+        } catch (error) {
+            console.error('Layout Designer: Failed to initialize', error);
+        }
     }
 
     // Initialize when DOM is ready
@@ -1824,7 +2417,7 @@
         document.addEventListener('DOMContentLoaded', init);
     } else {
         // Small delay to ensure all scripts are loaded
-        setTimeout(init, 0);
+        setTimeout(init, 100);
     }
 
     // =========================================================================

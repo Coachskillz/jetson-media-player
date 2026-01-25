@@ -58,6 +58,11 @@ class Tenant(db.Model):
     # Status
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
+
+    # Content Approval Settings
+    # TRUE: Venue must approve content before it plays on their screens
+    # FALSE: Skillz-approved content auto-plays (trusted venue)
+    requires_content_approval = db.Column(db.Boolean, default=True, nullable=False)
     # Timestamps
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(
@@ -84,6 +89,7 @@ class Tenant(db.Model):
             'slug': self.slug,
             'description': self.description,
             'is_active': self.is_active,
+            'requires_content_approval': self.requires_content_approval,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

@@ -552,9 +552,22 @@
             <div class="approval-meta">
                 <span>&#128196; {{ asset.format|upper if asset.format else 'Unknown' }}</span>
                 <span>&#128290; {{ (asset.file_size / 1024 / 1024)|round(1) }} MB</span>
-                <span>&#9787; Uploaded by: {{ asset.uploader.name if asset.uploader else 'Unknown' }}</span>
+                <span>&#9787; Uploaded by: {{ asset.uploader.name if asset.uploader else 'Unknown' }}
+                    {% if asset.uploader %}
+                    <span class="role-badge role-{{ asset.uploader.role }}" style="margin-left: 4px; font-size: 9px; padding: 2px 6px;">{{ asset.uploader.role|replace('_', ' ') }}</span>
+                    {% endif %}
+                </span>
                 <span>&#128197; {{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
             </div>
+            {% if asset.venue_approvals %}
+            <div class="approval-meta" style="margin-top: 8px;">
+                <span>&#127760; <strong>Target Networks:</strong>
+                    {% for va in asset.venue_approvals %}
+                    <span class="role-badge" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; margin-left: 4px;">{{ va.tenant.name if va.tenant else 'Unknown' }}</span>
+                    {% endfor %}
+                </span>
+            </div>
+            {% endif %}
 
             {% if asset.description %}
             <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">
@@ -672,15 +685,13 @@
             <button type="button" class="btn btn-secondary btn-sm" onclick="selectNoVenues()">Select None</button>
         </div>
         
-        {% if current_user and current_user.role == 'super_admin' %}
         <div class="override-section">
             <label>
                 <input type="checkbox" id="overrideVenueApproval">
                 Override venue approval requirement
             </label>
-            <p>Content will be sent directly to CMS without venue approval</p>
+            <p>Check this to sync content directly to CMS</p>
         </div>
-        {% endif %}
         
         <div class="venue-modal-actions">
             <button class="btn btn-secondary" onclick="closeApprovalModal()">Cancel</button>

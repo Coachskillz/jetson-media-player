@@ -10,28 +10,33 @@
 {% endblock %}
 
 {% block content %}
-<!-- Stats Cards -->
+<!-- Stats Cards - Clickable Filters -->
 <div class="stats-row">
-    <div class="stat-card">
+    <a href="{{ url_for('admin.assets') }}" class="stat-card {% if not status_filter %}active{% endif %}">
         <div class="stat-icon">&#128193;</div>
         <div class="stat-value">{{ stats.total }}</div>
         <div class="stat-label">Total Assets</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('admin.assets', status='draft') }}" class="stat-card {% if status_filter == 'draft' %}active{% endif %}">
         <div class="stat-icon">&#9998;</div>
         <div class="stat-value">{{ stats.draft }}</div>
         <div class="stat-label">Drafts</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('admin.assets', status='pending_review') }}" class="stat-card {% if status_filter == 'pending_review' %}active{% endif %}">
         <div class="stat-icon">&#9203;</div>
         <div class="stat-value">{{ stats.pending }}</div>
         <div class="stat-label">Pending Review</div>
-    </div>
-    <div class="stat-card success">
+    </a>
+    <a href="{{ url_for('admin.assets', status='approved') }}" class="stat-card {% if status_filter == 'approved' %}active{% endif %}">
         <div class="stat-icon">&#10003;</div>
+        <div class="stat-value">{{ stats.approved or 0 }}</div>
+        <div class="stat-label">Approved</div>
+    </a>
+    <a href="{{ url_for('admin.assets', status='published') }}" class="stat-card success {% if status_filter == 'published' %}active{% endif %}">
+        <div class="stat-icon">&#128640;</div>
         <div class="stat-value">{{ stats.published }}</div>
         <div class="stat-label">Published</div>
-    </div>
+    </a>
 </div>
 
 <!-- Filters -->
@@ -46,10 +51,10 @@
         <input type="text" name="search" value="{{ search }}" placeholder="Search assets..." class="filter-input">
         <select name="status" class="filter-select">
             <option value="">All Statuses</option>
-            <option value="DRAFT" {% if status_filter == 'DRAFT' %}selected{% endif %}>Draft</option>
-            <option value="PENDING_REVIEW" {% if status_filter == 'PENDING_REVIEW' %}selected{% endif %}>Pending Review</option>
-            <option value="APPROVED" {% if status_filter == 'APPROVED' %}selected{% endif %}>Approved</option>
-            <option value="PUBLISHED" {% if status_filter == 'PUBLISHED' %}selected{% endif %}>Published</option>
+            <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+            <option value="pending_review" {% if status_filter == 'pending_review' %}selected{% endif %}>Pending Review</option>
+            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
         </select>
         <button type="submit" class="btn btn-secondary">Filter</button>
     </form>
@@ -72,7 +77,9 @@
         <tbody>
             {% if assets %}
                 {% for asset in assets %}
-                <tr class="asset-row {% if asset.status in ['APPROVED', 'PUBLISHED'] %}draggable-asset{% endif %}" {% if asset.status in ['APPROVED', 'PUBLISHED'] %}draggable="true" data-asset-uuid="{{ asset.uuid }}" data-asset-title="{{ asset.title }}" data-asset-filename="{{ asset.filename or asset.file_path }}" data-asset-format="{{ asset.format or 'video' }}" data-asset-size="{{ asset.file_size or 0 }}" data-asset-duration="{{ asset.duration or 0 }}" data-asset-status="{{ asset.status }}" data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}" data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}"{% endif %}>
+                <tr class="asset-row {% if asset.status in ['approved', 'published'] %}draggable-asset{% endif %} {% if asset.status == 'pending_review' %}clickable-row{% endif %}"
+                    {% if asset.status in ['approved', 'published'] %}draggable="true" data-asset-uuid="{{ asset.uuid }}" data-asset-title="{{ asset.title }}" data-asset-filename="{{ asset.filename or asset.file_path }}" data-asset-format="{{ asset.format or 'video' }}" data-asset-size="{{ asset.file_size or 0 }}" data-asset-duration="{{ asset.duration or 0 }}" data-asset-status="{{ asset.status }}" data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}" data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}"{% endif %}
+                    {% if asset.status == 'pending_review' %}onclick="window.location='{{ url_for('admin.approvals', tab='content') }}'" style="cursor: pointer;"{% endif %}>
                     <td>
                         <div class="asset-title">{{ asset.title }}</div>
                         {% if asset.description %}
@@ -92,8 +99,8 @@
                     <td>{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'N/A' }}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-icon" title="Preview" onclick="window.open('/api/v1/assets/{{ asset.id }}/preview', 'VideoPreview', 'width=900,height=600,resizable=yes')">&#9658;</button>
-                            <button class="btn-icon" title="Download">&#8595;</button>
+                            <button class="btn-icon" title="Preview" onclick="openPreviewModal({{ asset.id }}, '{{ asset.title|e }}', '{{ asset.format or 'video' }}')">&#9658;</button>
+                            <button class="btn-icon" title="Download" onclick="window.location='/api/v1/assets/{{ asset.id }}/download'">&#8595;</button>
                             <button class="btn-icon" title="Edit">&#9998;</button>
                         </div>
                     </td>
@@ -104,7 +111,7 @@
                     <td colspan="7" class="empty-state">
                         <div class="empty-icon">&#128193;</div>
                         <div class="empty-text">No assets found</div>
-                        <button class="btn btn-primary" onclick="openUploadModal()">Upload Your First Asset</button>
+                        <button class="btn btn-primary" onclick="openUploadModal()">Upload Asset</button>
                     </td>
                 </tr>
             {% endif %}
@@ -127,12 +134,12 @@
 
 <!-- Upload Modal -->
 <div id="uploadModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 600px;">
         <div class="modal-header">
-            <h2>Upload New Asset</h2>
+            <h2>Upload Assets</h2>
             <button class="modal-close" onclick="closeUploadModal()">&times;</button>
         </div>
-        <form method="POST" action="{{ url_for('admin.upload_asset') }}" enctype="multipart/form-data">
+        <form id="uploadForm" method="POST" action="{{ url_for('admin.upload_assets_multi') }}" enctype="multipart/form-data">
             <div class="form-group">
                 <label class="form-label">Retail Partner *</label>
                 <div class="tenant-select-wrapper">
@@ -149,17 +156,23 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">File *</label>
-                <input type="file" name="file" required accept=".mp4,.mov,.avi,.jpg,.jpeg,.png,.gif,.webp" class="form-input">
-                <small class="form-help">Supported: MP4, MOV, AVI, JPG, PNG, GIF (max 500MB)</small>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Title</label>
-                <input type="text" name="title" placeholder="Asset title (optional, uses filename if empty)" class="form-input">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Description</label>
-                <textarea name="description" rows="3" placeholder="Brief description..." class="form-input"></textarea>
+                <label class="form-label">Files *</label>
+                <div class="file-drop-zone" id="fileDropZone">
+                    <input type="file" name="files" id="fileInput" multiple accept=".mp4,.mov,.avi,.mkv,.webm,.jpg,.jpeg,.png,.gif,.webp" class="file-input-hidden">
+                    <div class="drop-zone-content">
+                        <span class="drop-icon">&#128193;</span>
+                        <span class="drop-text">Drag files here or click to browse</span>
+                        <span class="drop-hint">MP4, MOV, AVI, JPG, PNG, GIF (max 500MB each)</span>
+                    </div>
+                </div>
+                <!-- Selected files list -->
+                <div id="selectedFilesList" class="selected-files-list" style="display:none;">
+                    <div class="files-header">
+                        <span id="filesCount">0 files selected</span>
+                        <button type="button" class="btn-link" onclick="clearAllFiles()">Clear All</button>
+                    </div>
+                    <div id="filesContainer"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Category</label>
@@ -172,18 +185,53 @@
                     <option value="ncmec">NCMEC Alert</option>
                 </select>
             </div>
-            <div class="modal-actions">
+            <div class="form-group">
+                <label class="form-label">Description (applies to all files)</label>
+                <textarea name="description" rows="2" placeholder="Brief description..." class="form-input"></textarea>
+            </div>
+
+            <!-- Upload Progress -->
+            <div id="uploadProgress" style="display:none;">
+                <div class="progress-header">
+                    <span id="progressText">Uploading...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div id="uploadResults" class="upload-results" style="display:none;"></div>
+            </div>
+
+            <div class="modal-actions" id="modalActions">
                 <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">Upload Asset</button>
+                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                    <span id="uploadBtnText">Upload Assets</span>
+                </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Preview Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2 id="previewTitle">Preview</h2>
+            <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div id="previewContent" class="preview-modal-content">
+            <!-- Video/Image will be inserted here -->
+        </div>
+    </div>
+</div>
+
 <style>
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 24px; }
-.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; text-decoration: none; cursor: pointer; transition: all 0.2s; display: block; }
+.stat-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(0, 212, 170, 0.3); transform: translateY(-2px); }
+.stat-card.active { border-color: #00D4AA; background: rgba(0, 212, 170, 0.1); }
 .stat-card.success { border-color: rgba(16, 185, 129, 0.3); }
+.stat-card.success.active { border-color: #10b981; background: rgba(16, 185, 129, 0.15); }
 .stat-icon { font-size: 24px; margin-bottom: 8px; }
 .stat-value { font-size: 32px; font-weight: 700; color: #fff; }
 .stat-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
@@ -229,6 +277,9 @@
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
 .modal-content { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.preview-modal-content { padding: 0; background: #000; }
+.preview-modal-content video { width: 100%; max-height: 70vh; display: block; }
+.preview-modal-content img { width: 100%; max-height: 70vh; object-fit: contain; display: block; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .modal-header h2 { font-size: 18px; font-weight: 600; }
 .modal-close { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 24px; cursor: pointer; }
@@ -244,8 +295,122 @@ textarea.form-input { resize: vertical; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
 .btn-primary { background: linear-gradient(135deg, #00D4AA, #00B894); color: #000; }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,212,170,0.3); }
+.btn-primary:disabled { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.5); cursor: not-allowed; transform: none; box-shadow: none; }
 .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
 .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+.btn-link { background: none; border: none; color: #00D4AA; cursor: pointer; font-size: 13px; }
+.btn-link:hover { text-decoration: underline; }
+
+/* File Drop Zone */
+.file-drop-zone {
+    border: 2px dashed rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+.file-drop-zone:hover, .file-drop-zone.dragover {
+    border-color: #00D4AA;
+    background: rgba(0, 212, 170, 0.05);
+}
+.file-input-hidden {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+.drop-zone-content { pointer-events: none; z-index: 0; }
+.drop-icon { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.5; }
+.drop-text { display: block; font-size: 15px; color: rgba(255,255,255,0.8); margin-bottom: 8px; }
+.drop-hint { display: block; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+/* Selected Files List */
+.selected-files-list {
+    margin-top: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+}
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.file-item:last-child { border-bottom: none; }
+.file-item-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+.file-item-icon { font-size: 20px; }
+.file-item-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-item-size {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-left: 8px;
+}
+.file-item-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+}
+.file-item-remove:hover { color: #ef4444; }
+
+/* Progress Bar */
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+}
+.progress-bar-container {
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #00D4AA, #00B894);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+.upload-results {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    font-size: 13px;
+}
+.upload-result-success { color: #10b981; }
+.upload-result-error { color: #ef4444; }
 
 /* Drag and Drop Styles */
 .draggable-asset {
@@ -263,25 +428,168 @@ textarea.form-input { resize: vertical; }
     cursor: grabbing;
 }
 
-.asset-row:not(.draggable-asset) {
+.asset-row:not(.draggable-asset):not(.clickable-row) {
     opacity: 0.6;
+}
+
+.asset-row.clickable-row {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.asset-row.clickable-row:hover {
+    background: rgba(245, 158, 11, 0.1);
 }
 </style>
 
 <script>
+// ========== Multi-File Upload Logic ==========
+let selectedFiles = [];
+
 function openUploadModal() {
     document.getElementById('uploadModal').style.display = 'flex';
+    resetUploadForm();
 }
 
 function closeUploadModal() {
     document.getElementById('uploadModal').style.display = 'none';
+    resetUploadForm();
 }
+
+function resetUploadForm() {
+    selectedFiles = [];
+    document.getElementById('fileInput').value = '';
+    document.getElementById('selectedFilesList').style.display = 'none';
+    document.getElementById('filesContainer').innerHTML = '';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadResults').style.display = 'none';
+    document.getElementById('modalActions').style.display = 'flex';
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('uploadBtnText').textContent = 'Upload Assets';
+    document.getElementById('progressBar').style.width = '0%';
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return '&#127909;';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return '&#128247;';
+    return '&#128196;';
+}
+
+function updateFilesList() {
+    const container = document.getElementById('filesContainer');
+    const listDiv = document.getElementById('selectedFilesList');
+    const countSpan = document.getElementById('filesCount');
+
+    if (selectedFiles.length === 0) {
+        listDiv.style.display = 'none';
+        return;
+    }
+
+    listDiv.style.display = 'block';
+    countSpan.textContent = selectedFiles.length + ' file' + (selectedFiles.length > 1 ? 's' : '') + ' selected';
+
+    container.innerHTML = selectedFiles.map((file, idx) => `
+        <div class="file-item" data-index="${idx}">
+            <div class="file-item-info">
+                <span class="file-item-icon">${getFileIcon(file.name)}</span>
+                <span class="file-item-name">${file.name}</span>
+                <span class="file-item-size">${formatFileSize(file.size)}</span>
+            </div>
+            <button type="button" class="file-item-remove" onclick="removeFile(${idx})">&times;</button>
+        </div>
+    `).join('');
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    updateFilesList();
+    // Update the actual file input (can't modify directly, so we track in selectedFiles)
+}
+
+function clearAllFiles() {
+    selectedFiles = [];
+    document.getElementById('fileInput').value = '';
+    updateFilesList();
+}
+
+// File input change
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    selectedFiles = selectedFiles.concat(files);
+    updateFilesList();
+});
+
+// Drag and drop on drop zone
+const dropZone = document.getElementById('fileDropZone');
+const fileInput = document.getElementById('fileInput');
+
+// Prevent default drag behaviors on whole document
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    document.body.addEventListener(eventName, function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }, false);
+});
+
+// Highlight drop zone when dragging over it
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.add('dragover');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('dragover');
+    }, false);
+});
+
+// Handle dropped files
+dropZone.addEventListener('drop', function(e) {
+    const dt = e.dataTransfer;
+    const files = Array.from(dt.files);
+
+    if (files.length > 0) {
+        // Filter for allowed file types
+        const allowedExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+        const validFiles = files.filter(f => {
+            const ext = f.name.split('.').pop().toLowerCase();
+            return allowedExts.includes(ext);
+        });
+
+        if (validFiles.length > 0) {
+            selectedFiles = selectedFiles.concat(validFiles);
+            updateFilesList();
+        }
+
+        if (validFiles.length < files.length) {
+            alert('Some files were skipped (unsupported format)');
+        }
+    }
+}, false);
+
+// Click on drop zone triggers file input
+dropZone.addEventListener('click', function(e) {
+    if (e.target === fileInput) return; // Don't double-trigger
+    fileInput.click();
+});
 
 // Handle "Create New Retail Partner" option
 document.getElementById('tenantSelect').addEventListener('change', function() {
     const newFields = document.getElementById('newTenantFields');
     const newNameInput = document.getElementById('newTenantName');
-    
+
     if (this.value === '__new__') {
         newFields.style.display = 'block';
         newNameInput.required = true;
@@ -292,9 +600,163 @@ document.getElementById('tenantSelect').addEventListener('change', function() {
     }
 });
 
+// Form submission with XHR for progress
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (selectedFiles.length === 0) {
+        alert('Please select at least one file');
+        return;
+    }
+
+    const tenantId = document.getElementById('tenantSelect').value;
+    if (!tenantId) {
+        alert('Please select a Retail Partner');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('tenant_id', tenantId);
+    formData.append('new_tenant_name', document.getElementById('newTenantName').value);
+    formData.append('category', document.querySelector('select[name="category"]').value);
+    formData.append('description', document.querySelector('textarea[name="description"]').value);
+
+    selectedFiles.forEach((file, idx) => {
+        formData.append('files', file);
+    });
+
+    // Show progress
+    document.getElementById('uploadProgress').style.display = 'block';
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('uploadBtnText').textContent = 'Uploading...';
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = percent + '%';
+            document.getElementById('progressText').textContent = 'Uploading ' + selectedFiles.length + ' files...';
+        }
+    });
+
+    xhr.addEventListener('load', function() {
+        console.log('Upload response:', xhr.status, xhr.responseText);
+        if (xhr.status === 200) {
+            try {
+                const result = JSON.parse(xhr.responseText);
+                showUploadResults(result);
+            } catch (err) {
+                // Redirect on success if not JSON
+                window.location.href = '{{ url_for("admin.assets") }}';
+            }
+        } else if (xhr.status === 302 || xhr.status === 0 || xhr.responseURL.includes('/login')) {
+            // Session expired - redirect to login
+            document.getElementById('uploadResults').style.display = 'block';
+            document.getElementById('uploadResults').innerHTML = '<span class="upload-result-error">Session expired. Please <a href="{{ url_for("admin.login") }}" style="color:#60a5fa;">log in again</a>.</span>';
+            document.getElementById('uploadBtn').disabled = false;
+            document.getElementById('uploadBtnText').textContent = 'Retry Upload';
+        } else {
+            // Show actual error details
+            let errorMsg = 'Upload failed (HTTP ' + xhr.status + ')';
+            try {
+                const errResult = JSON.parse(xhr.responseText);
+                if (errResult.error) {
+                    errorMsg = errResult.error;
+                }
+            } catch (e) {
+                // Not JSON, use status text
+                if (xhr.statusText) {
+                    errorMsg += ': ' + xhr.statusText;
+                }
+            }
+            document.getElementById('uploadResults').style.display = 'block';
+            document.getElementById('uploadResults').innerHTML = '<span class="upload-result-error">' + errorMsg + '</span>';
+            document.getElementById('uploadBtn').disabled = false;
+            document.getElementById('uploadBtnText').textContent = 'Retry Upload';
+        }
+    });
+
+    xhr.addEventListener('error', function() {
+        console.error('Upload XHR error:', xhr.status, xhr.statusText);
+        document.getElementById('uploadResults').style.display = 'block';
+        document.getElementById('uploadResults').innerHTML = '<span class="upload-result-error">Network error. Check your connection and try again.</span>';
+        document.getElementById('uploadBtn').disabled = false;
+        document.getElementById('uploadBtnText').textContent = 'Retry Upload';
+    });
+
+    xhr.open('POST', '{{ url_for("admin.upload_assets_multi") }}');
+    xhr.send(formData);
+});
+
+function showUploadResults(result) {
+    const resultsDiv = document.getElementById('uploadResults');
+    resultsDiv.style.display = 'block';
+
+    let html = '';
+    if (result.success) {
+        html = `<div class="upload-result-success">
+            <strong>&#10003; ${result.uploaded_count} file${result.uploaded_count > 1 ? 's' : ''} uploaded successfully!</strong>
+            <p style="margin: 8px 0 0; opacity: 0.8;">Files are now pending review.</p>
+        </div>`;
+
+        // Refresh page after delay
+        setTimeout(() => {
+            window.location.href = '{{ url_for("admin.assets") }}?status=PENDING_REVIEW';
+        }, 1500);
+    } else {
+        html = `<div class="upload-result-error">
+            <strong>Upload failed</strong>
+            <p style="margin: 8px 0 0;">${result.error || 'Unknown error'}</p>
+        </div>`;
+        document.getElementById('uploadBtn').disabled = false;
+        document.getElementById('uploadBtnText').textContent = 'Retry Upload';
+    }
+
+    resultsDiv.innerHTML = html;
+}
+
 // Close modal on outside click
 document.getElementById('uploadModal').addEventListener('click', function(e) {
     if (e.target === this) closeUploadModal();
+});
+
+// Preview Modal Functions
+function openPreviewModal(assetId, title, format) {
+    document.getElementById('previewTitle').textContent = title || 'Preview';
+
+    const content = document.getElementById('previewContent');
+    const videoFormats = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'video'];
+    const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'image'];
+    const formatLower = (format || '').toLowerCase();
+
+    if (videoFormats.includes(formatLower)) {
+        content.innerHTML = `
+            <video controls autoplay style="width:100%; max-height:70vh;">
+                <source src="/api/v1/assets/${assetId}/preview" type="video/${formatLower === 'video' ? 'mp4' : formatLower}">
+                Your browser does not support video playback.
+            </video>`;
+    } else if (imageFormats.includes(formatLower)) {
+        content.innerHTML = `<img src="/api/v1/assets/${assetId}/preview" alt="${title}" style="width:100%; max-height:70vh; object-fit:contain;">`;
+    } else {
+        content.innerHTML = `<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.5);">Preview not available for this file type</div>`;
+    }
+
+    document.getElementById('previewModal').style.display = 'flex';
+}
+
+function closePreviewModal() {
+    const content = document.getElementById('previewContent');
+    // Stop video playback when closing
+    const video = content.querySelector('video');
+    if (video) video.pause();
+    content.innerHTML = '';
+    document.getElementById('previewModal').style.display = 'none';
+}
+
+document.getElementById('previewModal').addEventListener('click', function(e) {
+    if (e.target === this) closePreviewModal();
 });
 
 // ==========================================================================
@@ -304,7 +766,7 @@ document.getElementById('uploadModal').addEventListener('click', function(e) {
 document.querySelectorAll(".draggable-asset").forEach(row => {
     row.addEventListener("dragstart", function(e) {
         this.classList.add("dragging");
-        
+
         const assetData = {
             uuid: this.dataset.assetUuid,
             title: this.dataset.assetTitle,
@@ -317,14 +779,14 @@ document.querySelectorAll(".draggable-asset").forEach(row => {
             tenant_id: this.dataset.assetTenantId,
             source: "content_catalog"
         };
-        
+
         e.dataTransfer.setData("application/json", JSON.stringify(assetData));
         e.dataTransfer.setData("text/plain", JSON.stringify(assetData));
         e.dataTransfer.effectAllowed = "copy";
-        
+
         console.log("Dragging asset:", assetData.title);
     });
-    
+
     row.addEventListener("dragend", function(e) {
         this.classList.remove("dragging");
     });

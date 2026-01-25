@@ -54,6 +54,23 @@ class Priority(enum.Enum):
     INTERRUPT = 'interrupt'
 
 
+class SyncStatus(enum.Enum):
+    """Sync status enum for playlists.
+
+    Tracks the synchronization state of a playlist:
+    - DRAFT: Playlist is being edited, not ready for sync
+    - PENDING: Playlist has changes that need to be synced to devices
+    - SYNCING: Sync is currently in progress
+    - SYNCED: All assigned devices have the latest version
+    - ERROR: Sync failed for one or more devices
+    """
+    DRAFT = 'draft'
+    PENDING = 'pending'
+    SYNCING = 'syncing'
+    SYNCED = 'synced'
+    ERROR = 'error'
+
+
 class Playlist(db.Model):
     """
     SQLAlchemy model representing a playlist with trigger support.
@@ -74,6 +91,9 @@ class Playlist(db.Model):
         start_date: Optional start date for scheduled playback
         end_date: Optional end date for scheduled playback
         is_active: Whether the playlist is currently active
+        sync_status: Current sync state (draft/pending/syncing/synced/error)
+        version: Incremental version number for tracking changes
+        last_synced_at: Timestamp of last successful sync to devices
         created_at: Timestamp when the playlist was created
         updated_at: Timestamp when the playlist was last modified
     """
@@ -91,6 +111,10 @@ class Playlist(db.Model):
     start_date = db.Column(db.DateTime, nullable=True)
     end_date = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # Sync tracking fields
+    sync_status = db.Column(db.String(20), nullable=False, default=SyncStatus.DRAFT.value)
+    version = db.Column(db.Integer, nullable=False, default=1)
+    last_synced_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -123,10 +147,36 @@ class Playlist(db.Model):
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'is_active': self.is_active,
+            'sync_status': self.sync_status,
+            'version': self.version,
+            'last_synced_at': self.last_synced_at.isoformat() if self.last_synced_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'item_count': self.items.count() if self.items else 0
         }
+
+    def mark_pending_sync(self):
+        """Mark playlist as needing sync after changes are made."""
+        self.sync_status = SyncStatus.PENDING.value
+        self.version += 1
+
+    def mark_syncing(self):
+        """Mark playlist as currently syncing."""
+        self.sync_status = SyncStatus.SYNCING.value
+
+    def mark_synced(self):
+        """Mark playlist as successfully synced to all devices."""
+        self.sync_status = SyncStatus.SYNCED.value
+        self.last_synced_at = datetime.now(timezone.utc)
+
+    def mark_sync_error(self):
+        """Mark playlist sync as failed."""
+        self.sync_status = SyncStatus.ERROR.value
+
+    @property
+    def needs_sync(self):
+        """Check if playlist has pending changes that need to be synced."""
+        return self.sync_status in [SyncStatus.PENDING.value, SyncStatus.ERROR.value]
 
     def to_dict_with_items(self):
         """

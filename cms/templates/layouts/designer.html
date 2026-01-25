@@ -40,15 +40,107 @@ body {
     display: none;
 }
 
-/* Designer Layout */
+/* Designer Layout - Photoshop Style */
 .designer-wrapper {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 80px);
-    background: #050508;
+    background: #1a1a1f;
 }
 
-/* Toolbar */
+/* Top Menu Bar */
+.designer-menubar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: #2d2d35;
+    border-bottom: 1px solid #3d3d45;
+    flex-shrink: 0;
+    height: 44px;
+}
+
+.menubar-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menubar-divider {
+    width: 1px;
+    height: 24px;
+    background: #3d3d45;
+    margin: 0 8px;
+}
+
+.menubar-spacer {
+    flex-grow: 1;
+}
+
+/* Main Content Area (toolbar + canvas + panels) */
+.designer-content {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* Left Vertical Toolbar - Photoshop Style */
+.toolbar-vertical {
+    width: 48px;
+    background: #2d2d35;
+    border-right: 1px solid #3d3d45;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 4px;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.toolbar-vertical .tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+}
+
+.toolbar-vertical .tool-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.toolbar-vertical .tool-btn.active {
+    background: #00D4AA;
+    color: #1a1a1f;
+}
+
+.toolbar-vertical .tool-btn .shortcut {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 9px;
+    color: #666;
+}
+
+.toolbar-vertical .tool-btn.active .shortcut {
+    color: #1a1a1f;
+}
+
+.tool-divider {
+    height: 1px;
+    background: #3d3d45;
+    margin: 8px 4px;
+}
+
+/* Horizontal Toolbar (legacy support) */
 .designer-toolbar {
     display: flex;
     align-items: center;
@@ -330,34 +422,77 @@ body {
 .canvas-container {
     flex-grow: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     overflow: auto;
-    background: #050508;
+    background: #1a1a2e;
     position: relative;
+    padding: 40px;
+}
+
+/* Screen Label */
+.screen-label {
+    color: #667eea;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 /* Checkerboard Pattern for Transparency */
 .canvas-wrapper {
     position: relative;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 3px #667eea, 0 20px 60px rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
 }
 
+/* Screen base layer visual */
 .canvas-checkerboard {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image:
-        linear-gradient(45deg, #333 25%, transparent 25%),
-        linear-gradient(-45deg, #333 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #333 75%),
-        linear-gradient(-45deg, transparent 75%, #333 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
-    background-color: #222;
+    background: #000000;
     pointer-events: none;
+}
+
+/* Corner markers showing screen bounds */
+.canvas-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border: 1px dashed rgba(102, 126, 234, 0.3);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* Dimension labels on canvas */
+.canvas-dimension-label {
+    position: absolute;
+    font-size: 10px;
+    color: #667eea;
+    font-weight: 600;
+    background: rgba(26, 26, 46, 0.9);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.canvas-dimension-label.width {
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.canvas-dimension-label.height {
+    right: -40px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
 }
 
 #layout-canvas {
@@ -513,6 +648,59 @@ body {
     border-color: #00D4AA;
 }
 
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #888;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #00D4AA;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+    background-color: #fff;
+}
+
+.property-hint {
+    font-size: 11px;
+    color: #666;
+    margin-left: 8px;
+}
+
 /* Content Assignment */
 .content-mode-tabs {
     display: flex;
@@ -565,6 +753,18 @@ body {
 .content-preview-icon {
     font-size: 32px;
     margin-bottom: 8px;
+}
+
+/* Textarea styling */
+textarea.property-input {
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+}
+
+/* Widget config sections */
+.widget-config {
+    transition: opacity 0.2s;
 }
 
 /* Button Styles in Panels */
@@ -686,30 +886,43 @@ body {
 
 {% block content %}
 <div class="designer-wrapper">
-    <!-- Toolbar -->
-    <div class="designer-toolbar">
-        <div class="toolbar-group">
-            <a href="/layouts" class="toolbar-btn toolbar-btn-text" title="Back to Layouts">
-                <span>&#8592;</span> Back
+    <!-- Top Menu Bar - Photoshop Style -->
+    <div class="designer-menubar">
+        <div class="menubar-section">
+            <a href="/layouts" class="toolbar-btn" title="Back to Layouts" style="width: auto; padding: 0 12px; font-size: 14px;">
+                <span>&#8592;</span> Layouts
             </a>
         </div>
 
-        <div class="toolbar-group">
-            <span class="toolbar-label">Tool</span>
-            <button class="toolbar-btn active" id="tool-select" title="Select Tool (V)">
-                <span>&#9654;</span>
-            </button>
-            <button class="toolbar-btn" id="tool-draw" title="Draw Layer (D)">
-                <span>&#9633;</span>
-            </button>
+        <div class="menubar-divider"></div>
+
+        <div class="menubar-section">
+            <span style="color: #fff; font-weight: 500;">{{ layout.name }}</span>
         </div>
 
-        <div class="toolbar-group">
+        <div class="menubar-divider"></div>
+
+        <div class="menubar-section">
+            <span class="toolbar-label">Canvas</span>
+            <select class="toolbar-select" id="canvas-preset" style="min-width: 180px;">
+                <option value="1920x1080" {% if layout.canvas_width == 1920 and layout.canvas_height == 1080 %}selected{% endif %}>1920 x 1080 (16:9 HD)</option>
+                <option value="1920x725" {% if layout.canvas_width == 1920 and layout.canvas_height == 725 %}selected{% endif %}>1920 x 725 (2.65:1 Ultra-wide)</option>
+                <option value="725x1920" {% if layout.canvas_width == 725 and layout.canvas_height == 1920 %}selected{% endif %}>725 x 1920 (2.65:1 Portrait)</option>
+                <option value="3840x2160" {% if layout.canvas_width == 3840 and layout.canvas_height == 2160 %}selected{% endif %}>3840 x 2160 (4K)</option>
+                <option value="1080x1920" {% if layout.canvas_width == 1080 and layout.canvas_height == 1920 %}selected{% endif %}>1080 x 1920 (9:16 Portrait)</option>
+                <option value="1080x1080" {% if layout.canvas_width == 1080 and layout.canvas_height == 1080 %}selected{% endif %}>1080 x 1080 (Square)</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <span id="canvas-dimensions" style="color: #666; font-size: 12px; margin-left: 8px;">
+                {{ layout.canvas_width }} x {{ layout.canvas_height }}
+            </span>
+        </div>
+
+        <div class="menubar-divider"></div>
+
+        <div class="menubar-section">
             <span class="toolbar-label">Zoom</span>
-            <button class="toolbar-btn" id="zoom-out" title="Zoom Out (-)">
-                <span>&#8722;</span>
-            </button>
-            <select class="toolbar-select" id="zoom-level">
+            <select class="toolbar-select" id="zoom-level" style="min-width: 80px;">
                 <option value="0.25">25%</option>
                 <option value="0.50">50%</option>
                 <option value="0.75">75%</option>
@@ -717,45 +930,68 @@ body {
                 <option value="1.50">150%</option>
                 <option value="2.00">200%</option>
             </select>
-            <button class="toolbar-btn" id="zoom-in" title="Zoom In (+)">
-                <span>&#43;</span>
-            </button>
-            <button class="toolbar-btn" id="zoom-fit" title="Fit to Window">
+            <button class="toolbar-btn" id="zoom-fit" title="Fit to Window" style="width: 32px; height: 32px;">
                 <span>&#8596;</span>
             </button>
         </div>
 
-        <div class="toolbar-group">
-            <span class="toolbar-label">Layer</span>
-            <button class="toolbar-btn" id="layer-front" title="Bring to Front">
-                <span>&#8593;</span>
-            </button>
-            <button class="toolbar-btn" id="layer-back" title="Send to Back">
-                <span>&#8595;</span>
-            </button>
-            <button class="toolbar-btn" id="layer-delete" title="Delete Layer (Del)">
-                <span>&#128465;</span>
-            </button>
-        </div>
+        <div class="menubar-spacer"></div>
 
-        <div class="toolbar-spacer"></div>
-
-        <div class="toolbar-group">
-            <span class="toolbar-label">Canvas</span>
-            <span id="canvas-dimensions" style="color: #888; font-size: 13px;">
-                {{ layout.canvas_width }}x{{ layout.canvas_height }}
-            </span>
-        </div>
-
-        <div class="toolbar-group" style="border-right: none;">
-            <button class="toolbar-btn toolbar-btn-text btn-save" id="save-layout">
+        <div class="menubar-section">
+            <button class="toolbar-btn toolbar-btn-text btn-save" id="save-layout" style="height: 32px;">
                 <span>&#128190;</span> Save
             </button>
         </div>
     </div>
 
-    <!-- Main Designer Area -->
-    <div class="designer-main">
+    <!-- Main Content Area -->
+    <div class="designer-content">
+        <!-- Left Vertical Toolbar -->
+        <div class="toolbar-vertical">
+            <button class="tool-btn active" id="tool-select" title="Select (V)">
+                <span>&#9654;</span>
+                <span class="shortcut">V</span>
+            </button>
+            <button class="tool-btn" id="tool-draw" title="Draw Layer (D)">
+                <span>&#9633;</span>
+                <span class="shortcut">D</span>
+            </button>
+
+            <div class="tool-divider"></div>
+
+            <button class="tool-btn" id="zoom-in" title="Zoom In (+)">
+                <span>&#43;</span>
+            </button>
+            <button class="tool-btn" id="zoom-out" title="Zoom Out (-)">
+                <span>&#8722;</span>
+            </button>
+
+            <div class="tool-divider"></div>
+
+            <button class="tool-btn" id="toggle-grid" title="Toggle Grid (G)">
+                <span>&#9638;</span>
+                <span class="shortcut">G</span>
+            </button>
+            <button class="tool-btn" id="toggle-snap" title="Snap to Grid (S)">
+                <span>&#9883;</span>
+                <span class="shortcut">S</span>
+            </button>
+
+            <div class="tool-divider"></div>
+
+            <button class="tool-btn" id="layer-front" title="Bring to Front">
+                <span>&#8593;</span>
+            </button>
+            <button class="tool-btn" id="layer-back" title="Send to Back">
+                <span>&#8595;</span>
+            </button>
+            <button class="tool-btn" id="layer-delete" title="Delete Layer (Del)" style="color: #ff6b6b;">
+                <span>&#128465;</span>
+            </button>
+        </div>
+
+        <!-- Main Designer Area -->
+        <div class="designer-main" style="flex-grow: 1;">
         <!-- Left Panel - Layers -->
         <div class="panel-left">
             <div class="panel-header">
@@ -782,10 +1018,20 @@ body {
 
         <!-- Canvas Container -->
         <div class="canvas-container" id="canvas-container">
+            <!-- Screen Label -->
+            <div class="screen-label" id="screen-label">
+                Screen: {{ layout.canvas_width }} x {{ layout.canvas_height }}
+            </div>
+
             <div class="canvas-wrapper" id="canvas-wrapper">
+                <!-- Base screen layer (black background) -->
                 <div class="canvas-checkerboard" id="canvas-checkerboard"
                      style="width: {{ layout.canvas_width }}px; height: {{ layout.canvas_height }}px;"></div>
                 <canvas id="layout-canvas"></canvas>
+
+                <!-- Dimension labels -->
+                <div class="canvas-dimension-label width" id="dim-width">{{ layout.canvas_width }}px</div>
+                <div class="canvas-dimension-label height" id="dim-height">{{ layout.canvas_height }}px</div>
             </div>
 
             <!-- Canvas Info Bar -->
@@ -847,9 +1093,16 @@ body {
                             <input type="number" class="property-input property-input-sm" id="prop-opacity-value" value="100" min="0" max="100">
                         </div>
                         <div class="property-row">
-                            <span class="property-label">Background</span>
+                            <span class="property-label">Fill</span>
+                            <select class="property-select" id="prop-background-type" style="flex: 0 0 100px;">
+                                <option value="none">None (Overlay)</option>
+                                <option value="solid">Solid Color</option>
+                            </select>
+                        </div>
+                        <div class="property-row" id="background-color-row" style="display: none;">
+                            <span class="property-label">Color</span>
                             <div class="color-picker-wrapper">
-                                <input type="text" class="property-input" id="prop-background" value="transparent" placeholder="transparent">
+                                <input type="text" class="property-input" id="prop-background" value="#000000" placeholder="#000000">
                             </div>
                         </div>
                         <div class="property-row">
@@ -889,31 +1142,241 @@ body {
                         </div>
                     </div>
 
-                    <!-- Content Assignment -->
+                    <!-- Layer Type & Content -->
                     <div class="properties-section">
-                        <div class="section-title">Content</div>
-                        <div class="content-mode-tabs">
-                            <button class="content-mode-tab active" data-mode="static">Static</button>
-                            <button class="content-mode-tab" data-mode="playlist">Playlist</button>
+                        <div class="section-title">Layer Type</div>
+                        <div class="property-row">
+                            <select class="property-select" id="prop-layer-type" style="width: 100%;">
+                                <option value="content">📺 Media Content</option>
+                                <option value="weather">🌤️ Weather Widget</option>
+                                <option value="ticker">📰 RSS News Ticker</option>
+                                <option value="clock">🕐 Clock / Time</option>
+                                <option value="text">📝 Static Text</option>
+                                <option value="html">🌐 Custom HTML</option>
+                            </select>
                         </div>
-                        <div id="content-static">
-                            <div class="content-preview" id="content-file-picker">
-                                <div class="content-preview-icon">&#128194;</div>
-                                <div>Click to select file</div>
-                            </div>
+                    </div>
+
+                    <!-- Content Source Section -->
+                    <div class="properties-section" id="content-source-section">
+                        <div class="section-title">Content Source</div>
+                        <div class="property-row">
+                            <span class="property-label">Source</span>
+                            <select class="property-select" id="prop-content-source">
+                                <option value="none">None (Empty)</option>
+                                <option value="playlist">Playlist</option>
+                                <option value="static">Static Content</option>
+                                <option value="widget">Widget</option>
+                            </select>
                         </div>
-                        <div id="content-playlist" style="display: none;">
-                            <div class="content-preview playlist-preview" id="content-playlist-picker">
-                                <div class="content-preview-icon">🎬</div>
-                                <div>Click to assign playlists</div>
-                            </div>
+
+                        <!-- Playlist Selector (shown when source=playlist) -->
+                        <div id="playlist-selector-row" class="property-row" style="display: none;">
+                            <span class="property-label">Playlist</span>
+                            <select class="property-select" id="prop-playlist-id">
+                                <option value="">-- Select Playlist --</option>
+                                {% for playlist in playlists %}
+                                <option value="{{ playlist.id }}">{{ playlist.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Static Content Selector (shown when source=static) -->
+                        <div id="content-selector-row" class="property-row" style="display: none;">
+                            <span class="property-label">Content</span>
+                            <select class="property-select" id="prop-content-id">
+                                <option value="">-- Select Content --</option>
+                                {% for item in content %}
+                                <option value="{{ item.id }}">{{ item.original_name or item.filename }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Primary Layer Toggle -->
+                        <div class="property-row" id="primary-layer-row">
+                            <span class="property-label">Primary</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="prop-is-primary">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="property-hint">Responds to triggers</span>
+                        </div>
+                    </div>
+
+                    <!-- Weather Widget Config -->
+                    <div class="properties-section widget-config" id="config-weather" style="display: none;">
+                        <div class="section-title">Weather Settings</div>
+                        <div class="property-row">
+                            <span class="property-label">Location</span>
+                            <input type="text" class="property-input" id="weather-location" placeholder="City, State or ZIP">
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Units</span>
+                            <select class="property-select" id="weather-units">
+                                <option value="imperial">°F (Imperial)</option>
+                                <option value="metric">°C (Metric)</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Display</span>
+                            <select class="property-select" id="weather-display">
+                                <option value="current">Current Only</option>
+                                <option value="forecast">5-Day Forecast</option>
+                                <option value="detailed">Detailed (Humidity, Wind)</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Style</span>
+                            <select class="property-select" id="weather-style">
+                                <option value="minimal">Minimal</option>
+                                <option value="card">Card</option>
+                                <option value="full">Full Width</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- RSS Ticker Config -->
+                    <div class="properties-section widget-config" id="config-ticker" style="display: none;">
+                        <div class="section-title">News Ticker Settings</div>
+                        <div class="property-row">
+                            <span class="property-label">Feed URL</span>
+                            <input type="text" class="property-input" id="ticker-feed-url" placeholder="https://example.com/rss">
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Speed</span>
+                            <select class="property-select" id="ticker-speed">
+                                <option value="slow">Slow</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="fast">Fast</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Direction</span>
+                            <select class="property-select" id="ticker-direction">
+                                <option value="left">← Left</option>
+                                <option value="right">Right →</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Max Items</span>
+                            <input type="number" class="property-input property-input-sm" id="ticker-max-items" value="10" min="1" max="50">
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Separator</span>
+                            <input type="text" class="property-input property-input-sm" id="ticker-separator" value="•" style="width: 50px;">
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Font Size</span>
+                            <input type="number" class="property-input property-input-sm" id="ticker-font-size" value="24" min="12" max="72">
+                            <span style="color: #888;">px</span>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Text Color</span>
+                            <input type="text" class="property-input" id="ticker-text-color" value="#FFFFFF">
+                        </div>
+                    </div>
+
+                    <!-- Clock Widget Config -->
+                    <div class="properties-section widget-config" id="config-clock" style="display: none;">
+                        <div class="section-title">Clock Settings</div>
+                        <div class="property-row">
+                            <span class="property-label">Format</span>
+                            <select class="property-select" id="clock-format">
+                                <option value="12h">12-Hour (3:45 PM)</option>
+                                <option value="24h">24-Hour (15:45)</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Show</span>
+                            <select class="property-select" id="clock-show">
+                                <option value="time">Time Only</option>
+                                <option value="date">Date Only</option>
+                                <option value="both">Time & Date</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Timezone</span>
+                            <select class="property-select" id="clock-timezone">
+                                <option value="local">Local (Device)</option>
+                                <option value="America/New_York">Eastern</option>
+                                <option value="America/Chicago">Central</option>
+                                <option value="America/Denver">Mountain</option>
+                                <option value="America/Los_Angeles">Pacific</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Font Size</span>
+                            <input type="number" class="property-input property-input-sm" id="clock-font-size" value="48" min="12" max="200">
+                            <span style="color: #888;">px</span>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Text Color</span>
+                            <input type="text" class="property-input" id="clock-text-color" value="#FFFFFF">
+                        </div>
+                    </div>
+
+                    <!-- Static Text Config -->
+                    <div class="properties-section widget-config" id="config-text" style="display: none;">
+                        <div class="section-title">Text Settings</div>
+                        <div class="property-row" style="flex-direction: column; align-items: stretch;">
+                            <span class="property-label" style="margin-bottom: 8px;">Text Content</span>
+                            <textarea class="property-input" id="text-content" rows="3" placeholder="Enter your text here..."></textarea>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Font Size</span>
+                            <input type="number" class="property-input property-input-sm" id="text-font-size" value="32" min="8" max="200">
+                            <span style="color: #888;">px</span>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Font</span>
+                            <select class="property-select" id="text-font-family">
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="Helvetica, sans-serif">Helvetica</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="'Times New Roman', serif">Times New Roman</option>
+                                <option value="'Courier New', monospace">Courier New</option>
+                                <option value="Verdana, sans-serif">Verdana</option>
+                            </select>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Color</span>
+                            <input type="text" class="property-input" id="text-color" value="#FFFFFF">
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Align</span>
+                            <select class="property-select" id="text-align">
+                                <option value="left">Left</option>
+                                <option value="center">Center</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Custom HTML Config -->
+                    <div class="properties-section widget-config" id="config-html" style="display: none;">
+                        <div class="section-title">Custom HTML</div>
+                        <div class="property-row" style="flex-direction: column; align-items: stretch;">
+                            <span class="property-label" style="margin-bottom: 8px;">HTML URL or Embed Code</span>
+                            <textarea class="property-input" id="html-content" rows="4" placeholder="https://example.com/widget or &lt;iframe&gt;..."></textarea>
+                        </div>
+                        <div class="property-row">
+                            <span class="property-label">Refresh</span>
+                            <select class="property-select" id="html-refresh">
+                                <option value="0">Never</option>
+                                <option value="60">Every Minute</option>
+                                <option value="300">Every 5 Minutes</option>
+                                <option value="900">Every 15 Minutes</option>
+                                <option value="3600">Every Hour</option>
+                            </select>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    </div><!-- End designer-content -->
+</div><!-- End designer-wrapper -->
 {% endblock %}
 
 {% block extra_scripts %}
@@ -930,7 +1393,7 @@ body {
 <script>
     // Layout data from server
     window.LAYOUT_DATA = {
-        id: {{ layout.id }},
+        id: "{{ layout.id }}",
         name: "{{ layout.name }}",
         canvasWidth: {{ layout.canvas_width }},
         canvasHeight: {{ layout.canvas_height }},
@@ -947,6 +1410,9 @@ body {
         reorder: "/api/v1/layouts/{{ layout.id }}/layers/reorder"
     };
 </script>
+
+<!-- CMS API Helper (required for AJAX calls) -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 
 <!-- Fabric Extensions (custom behaviors) -->
 <script src="{{ url_for('static', filename='js/fabric-extensions.js') }}"></script>

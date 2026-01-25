@@ -23,10 +23,10 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 
-from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network, ContentStatus
+from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network, ContentStatus, DevicePlaylistSync, DeviceSyncStatus
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
-from cms.models.playlist import TriggerType, LoopMode, Priority
+from cms.models.playlist import TriggerType, LoopMode, Priority, SyncStatus
 
 
 # Create playlists blueprint
@@ -98,6 +98,11 @@ def list_approved_content():
     search = request.args.get('search')
     if search:
         query = query.filter(Content.original_name.ilike(f'%{search}%'))
+
+    # Filter by folder
+    folder_id = request.args.get('folder_id')
+    if folder_id:
+        query = query.filter_by(folder_id=folder_id)
 
     # Execute query
     content_list = query.order_by(Content.created_at.desc()).all()
@@ -509,6 +514,9 @@ def update_playlist(playlist_id):
         playlist.is_active = new_is_active
 
     try:
+        # Mark playlist as needing sync if any changes were made
+        if changes:
+            playlist.mark_pending_sync()
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -700,6 +708,8 @@ def add_playlist_item(playlist_id):
 
     try:
         db.session.add(playlist_item)
+        # Mark playlist as needing sync since content changed
+        playlist.mark_pending_sync()
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -794,6 +804,8 @@ def remove_playlist_item(playlist_id, item_id):
         for item in items_to_shift:
             item.position -= 1
 
+        # Mark playlist as needing sync since content changed
+        playlist.mark_pending_sync()
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -889,6 +901,8 @@ def reorder_playlist_items(playlist_id):
             if item:
                 item.position = position
 
+        # Mark playlist as needing sync since order changed
+        playlist.mark_pending_sync()
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -1325,3 +1339,255 @@ def list_playlist_assignments(playlist_id):
         'assignments': [a.to_dict_with_relations() for a in assignments],
         'count': len(assignments)
     }), 200
+
+
+@playlists_bp.route('/<playlist_id>/push', methods=['POST'])
+@login_required
+def push_playlist_to_devices(playlist_id):
+    """
+    Push a playlist to all assigned devices.
+
+    This triggers a sync operation to push the playlist and its content
+    to all devices that have this playlist assigned. Devices can be:
+    - Direct mode: Connected directly to the internet
+    - Hub mode: Connected through a local hub
+
+    For hub-connected devices, the content is pushed to the hub first,
+    which then distributes it to the devices on the local network.
+
+    Args:
+        playlist_id: Playlist UUID
+
+    Returns:
+        200: Sync initiated successfully
+            {
+                "message": "Sync initiated",
+                "playlist_id": "uuid",
+                "device_count": 5,
+                "synced_count": 0,
+                "direct_devices": 2,
+                "hub_devices": 3
+            }
+        404: Playlist not found
+    """
+    # Validate playlist_id format
+    if not isinstance(playlist_id, str) or len(playlist_id) > 64:
+        return jsonify({
+            'error': 'Invalid playlist_id format'
+        }), 400
+
+    playlist = db.session.get(Playlist, playlist_id)
+
+    if not playlist:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    # Get all device assignments for this playlist
+    assignments = DeviceAssignment.query.filter_by(playlist_id=playlist_id).all()
+
+    if not assignments:
+        return jsonify({
+            'error': 'No devices assigned to this playlist',
+            'device_count': 0
+        }), 400
+
+    direct_devices = 0
+    hub_devices = 0
+
+    try:
+        # Mark playlist as syncing
+        playlist.mark_syncing()
+
+        # Create or update DevicePlaylistSync records for each assigned device
+        for assignment in assignments:
+            device = assignment.device
+            if not device:
+                continue
+
+            # Count device types
+            if device.mode == 'hub' and device.hub_id:
+                hub_devices += 1
+            else:
+                direct_devices += 1
+
+            # Find or create sync record
+            sync_record = DevicePlaylistSync.query.filter_by(
+                device_id=device.id,
+                playlist_id=playlist_id
+            ).first()
+
+            if not sync_record:
+                sync_record = DevicePlaylistSync(
+                    device_id=device.id,
+                    playlist_id=playlist_id
+                )
+                db.session.add(sync_record)
+
+            # Mark as syncing
+            sync_record.mark_syncing()
+
+        db.session.commit()
+
+        # In a real implementation, this would queue background jobs to:
+        # 1. For direct devices: Push content directly via API
+        # 2. For hub devices: Push to the hub, which distributes to devices
+        #
+        # For now, we simulate successful sync after a short delay
+        # by marking devices as synced (this would normally happen
+        # asynchronously as each device reports successful sync)
+
+        # Simulate immediate sync for demo purposes
+        # In production, this would be handled by background workers
+        for assignment in assignments:
+            device = assignment.device
+            if not device:
+                continue
+
+            sync_record = DevicePlaylistSync.query.filter_by(
+                device_id=device.id,
+                playlist_id=playlist_id
+            ).first()
+
+            if sync_record:
+                sync_record.mark_synced(playlist.version)
+
+        # Mark playlist as synced
+        playlist.mark_synced()
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        playlist.mark_sync_error()
+        db.session.commit()
+        return jsonify({
+            'error': f'Failed to initiate sync: {str(e)}'
+        }), 500
+
+    # Log the push action
+    log_action(
+        action='playlist.push',
+        action_category='playlists',
+        resource_type='playlist',
+        resource_id=playlist.id,
+        resource_name=playlist.name,
+        details={
+            'device_count': len(assignments),
+            'direct_devices': direct_devices,
+            'hub_devices': hub_devices,
+            'version': playlist.version,
+        }
+    )
+
+    return jsonify({
+        'message': 'Sync initiated',
+        'playlist_id': playlist_id,
+        'device_count': len(assignments),
+        'synced_count': len(assignments),  # All synced in demo mode
+        'direct_devices': direct_devices,
+        'hub_devices': hub_devices,
+        'sync_status': playlist.sync_status,
+        'version': playlist.version,
+        'last_synced_at': playlist.last_synced_at.isoformat() if playlist.last_synced_at else None
+    }), 200
+
+
+@playlists_bp.route('/<playlist_id>/sync-status', methods=['GET'])
+@login_required
+def get_playlist_sync_status(playlist_id):
+    """
+    Get the sync status for a playlist across all assigned devices.
+
+    Returns detailed sync information including:
+    - Overall playlist sync status
+    - Number of devices synced vs total
+    - Per-device sync details (optional)
+
+    Args:
+        playlist_id: Playlist UUID
+
+    Query Parameters:
+        include_devices: Include per-device sync details (default: false)
+
+    Returns:
+        200: Sync status details
+            {
+                "playlist_id": "uuid",
+                "sync_status": "synced",
+                "version": 3,
+                "device_count": 5,
+                "synced_count": 4,
+                "pending_count": 1,
+                "failed_count": 0,
+                "last_synced_at": "2024-01-15T10:00:00Z",
+                "devices": [...]  // Optional, if include_devices=true
+            }
+        404: Playlist not found
+    """
+    # Validate playlist_id format
+    if not isinstance(playlist_id, str) or len(playlist_id) > 64:
+        return jsonify({
+            'error': 'Invalid playlist_id format'
+        }), 400
+
+    playlist = db.session.get(Playlist, playlist_id)
+
+    if not playlist:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    # Get all device assignments for this playlist
+    assignments = DeviceAssignment.query.filter_by(playlist_id=playlist_id).all()
+    device_ids = [a.device_id for a in assignments if a.device_id]
+
+    # Get sync records for assigned devices
+    sync_records = DevicePlaylistSync.query.filter(
+        DevicePlaylistSync.playlist_id == playlist_id,
+        DevicePlaylistSync.device_id.in_(device_ids)
+    ).all() if device_ids else []
+
+    # Calculate counts
+    synced_count = sum(1 for r in sync_records if r.sync_status == DeviceSyncStatus.SYNCED.value and r.is_up_to_date)
+    pending_count = sum(1 for r in sync_records if r.sync_status in [DeviceSyncStatus.PENDING.value, DeviceSyncStatus.QUEUED.value, DeviceSyncStatus.SYNCING.value])
+    failed_count = sum(1 for r in sync_records if r.sync_status == DeviceSyncStatus.FAILED.value)
+
+    # Devices without sync records are considered pending
+    untracked_count = len(device_ids) - len(sync_records)
+    pending_count += untracked_count
+
+    response = {
+        'playlist_id': playlist_id,
+        'sync_status': playlist.sync_status,
+        'version': playlist.version,
+        'device_count': len(device_ids),
+        'synced_count': synced_count,
+        'pending_count': pending_count,
+        'failed_count': failed_count,
+        'last_synced_at': playlist.last_synced_at.isoformat() if playlist.last_synced_at else None
+    }
+
+    # Optionally include per-device details
+    include_devices = request.args.get('include_devices', 'false').lower() == 'true'
+    if include_devices:
+        devices_status = []
+        for assignment in assignments:
+            device = assignment.device
+            if not device:
+                continue
+
+            sync_record = next((r for r in sync_records if r.device_id == device.id), None)
+
+            device_status = {
+                'device_id': device.id,
+                'device_name': device.name or device.device_id,
+                'mode': device.mode,
+                'hub_id': device.hub_id,
+                'sync_status': sync_record.sync_status if sync_record else 'pending',
+                'synced_version': sync_record.synced_version if sync_record else None,
+                'is_up_to_date': sync_record.is_up_to_date if sync_record else False,
+                'last_sync_attempt': sync_record.last_sync_attempt.isoformat() if sync_record and sync_record.last_sync_attempt else None,
+                'last_successful_sync': sync_record.last_successful_sync.isoformat() if sync_record and sync_record.last_successful_sync else None,
+                'error_message': sync_record.error_message if sync_record else None
+            }
+            devices_status.append(device_status)
+
+        response['devices'] = devices_status
+
+    return jsonify(response), 200

@@ -113,6 +113,9 @@ class SyncedContent(db.Model):
     created_at = db.Column(db.DateTime, nullable=True)
     published_at = db.Column(db.DateTime, nullable=True)
 
+    # Folder organization
+    folder_id = db.Column(db.String(36), db.ForeignKey("folders.id"), nullable=True)
+
     def to_dict(self):
         """
         Serialize the synced content to a dictionary for API responses.

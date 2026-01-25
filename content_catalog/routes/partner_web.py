@@ -21,7 +21,7 @@ Partner Portal API Routes (session-based authentication):
 - POST /api/approvals/<uuid>/reject: Reject a pending content asset
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 
@@ -64,6 +64,28 @@ def get_current_partner():
 
     db.session.commit()  # Commit the last_activity update
     return user
+
+
+def get_partner_tenants(user):
+    """
+    Get the tenants/networks associated with a partner user.
+
+    Args:
+        user: The User object
+
+    Returns:
+        List of Tenant objects the user belongs to
+    """
+    if not user:
+        return []
+
+    from content_catalog.models import Tenant
+
+    tenant_ids = user.get_tenant_ids_list()
+    if not tenant_ids:
+        return []
+
+    return Tenant.query.filter(Tenant.id.in_(tenant_ids)).all()
 
 
 # Create partner web blueprint (registered at /partner prefix in app.py)
@@ -116,7 +138,7 @@ def register(token=None):
             error = 'This invitation has already been used. Please log in instead.'
         elif invitation.status == UserInvitation.STATUS_REVOKED:
             error = 'This invitation has been revoked. Please contact your administrator.'
-        elif invitation.is_expired:
+        elif invitation.is_expired():
             error = 'This invitation has expired. Please request a new invitation.'
 
     return render_template(
@@ -213,6 +235,7 @@ def dashboard():
         'partner/dashboard.html',
         active_page='dashboard',
         current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
         total_assets=total_assets,
         pending_submissions_count=pending_submissions_count,
         published_count=published_count,
@@ -284,6 +307,7 @@ def assets():
         'partner/assets.html',
         active_page='assets',
         current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
         pending_submissions_count=pending_count,
         assets=visible_assets,
         status_filter=status_filter,
@@ -302,13 +326,18 @@ def upload():
     Content upload page.
 
     Allows partners to upload new content assets with metadata fields.
-    Partners can save content as draft or submit for review.
+    Network selection depends on user role:
+    - Skillz employees (admin, content_manager): All networks, multi-select
+    - Advertisers: All networks, multi-select
+    - Partners/Retailers: Only their assigned networks
 
     Requires authentication - redirects to login if not authenticated.
 
     Returns:
         Rendered upload.html template with upload form
     """
+    from content_catalog.models import Tenant
+
     current_user = get_current_partner()
     if not current_user:
         return redirect(url_for('partner.login'))
@@ -326,10 +355,29 @@ def upload():
             status=ContentAsset.STATUS_PENDING_REVIEW
         ).count()
 
+    # Determine available networks based on role
+    skillz_roles = [User.ROLE_SUPER_ADMIN, User.ROLE_ADMIN, User.ROLE_CONTENT_MANAGER]
+    is_skillz = current_user.role in skillz_roles
+    is_advertiser = current_user.role == User.ROLE_ADVERTISER
+
+    if is_skillz or is_advertiser:
+        # Skillz employees and advertisers can upload to all networks
+        available_networks = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+        allow_multi_network = True
+    else:
+        # Partners can only upload to their assigned networks
+        available_networks = get_partner_tenants(current_user)
+        allow_multi_network = False
+
     return render_template(
         'partner/upload.html',
         active_page='upload',
         current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
+        available_networks=available_networks,
+        allow_multi_network=allow_multi_network,
+        is_skillz=is_skillz,
+        is_advertiser=is_advertiser,
         pending_submissions_count=pending_submissions_count
     )
 
@@ -337,63 +385,61 @@ def upload():
 @partner_web_bp.route('/approvals')
 def approvals():
     """
-    Approval queue page.
+    Approval queue page for venue partners.
 
-    Shows content assets pending approval for users with approval permissions.
-    Allows approvers to approve or reject pending content.
+    Shows content that has been Skillz-approved and is pending venue approval.
+    Partners can approve or reject content for their venues/screens.
 
     Requires authentication - redirects to login if not authenticated.
-    Shows permission warning if user doesn't have approval permission.
 
     Returns:
-        Rendered approvals.html template with pending approvals list
+        Rendered approvals.html template with pending venue approvals
     """
+    from content_catalog.models.content_venue_approval import ContentVenueApproval
+
     current_user = get_current_partner()
     if not current_user:
         return redirect(url_for('partner.login'))
 
-    # Get pending submissions count for sidebar badge
-    org_id = current_user.organization_id
-    if org_id:
-        pending_submissions_count = ContentAsset.query.filter_by(
-            organization_id=org_id,
-            status=ContentAsset.STATUS_PENDING_REVIEW
-        ).count()
-    else:
-        pending_submissions_count = ContentAsset.query.filter_by(
-            uploaded_by=current_user.id,
-            status=ContentAsset.STATUS_PENDING_REVIEW
+    # Get user's tenant IDs
+    tenant_ids = current_user.get_tenant_ids_list()
+
+    # Count pending venue approvals for badge
+    pending_submissions_count = 0
+    if tenant_ids:
+        pending_submissions_count = ContentVenueApproval.query.filter(
+            ContentVenueApproval.tenant_id.in_(tenant_ids),
+            ContentVenueApproval.status == ContentVenueApproval.STATUS_PENDING_VENUE
         ).count()
 
-    # Check if user has permission to approve content
-    can_approve = current_user.can_approve_assets and current_user.role in [
-        User.ROLE_SUPER_ADMIN,
-        User.ROLE_ADMIN,
-        User.ROLE_CONTENT_MANAGER
-    ]
+    # Partners can approve content for their venues
+    can_approve = len(tenant_ids) > 0
 
     pending_approvals = []
     if can_approve:
-        # Get pending content assets that this user can approve
-        # Exclude assets uploaded by this user (separation of duties)
-        query = ContentAsset.query.filter(
-            ContentAsset.status == ContentAsset.STATUS_PENDING_REVIEW,
-            ContentAsset.uploaded_by != current_user.id  # Exclude own uploads
-        )
+        # Get content pending venue approval for user's tenants
+        venue_approvals = ContentVenueApproval.query.filter(
+            ContentVenueApproval.tenant_id.in_(tenant_ids),
+            ContentVenueApproval.status == ContentVenueApproval.STATUS_PENDING_VENUE
+        ).order_by(ContentVenueApproval.created_at.desc()).all()
 
-        # For Content Managers, optionally restrict to their organization's content
-        if current_user.role == User.ROLE_CONTENT_MANAGER and current_user.organization_id:
-            query = query.filter(ContentAsset.organization_id == current_user.organization_id)
-
-        pending_approvals = query.order_by(ContentAsset.created_at.asc()).all()
+        # Build list with asset and tenant info
+        for approval in venue_approvals:
+            pending_approvals.append({
+                'approval': approval,
+                'asset': approval.content_asset,
+                'tenant': approval.tenant
+            })
 
     return render_template(
         'partner/approvals.html',
         active_page='approvals',
         current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
         pending_submissions_count=pending_submissions_count,
         can_approve=can_approve,
-        pending_approvals=pending_approvals
+        pending_approvals=pending_approvals,
+        tenant_ids=tenant_ids
     )
 
 
@@ -407,49 +453,15 @@ def submissions():
     Returns:
         Rendered submissions.html template
     """
-    # Placeholder - will be implemented with auth check
+    current_user = get_current_partner()
+    if not current_user:
+        return redirect(url_for('partner.login'))
+
     return render_template(
         'partner/base.html',
         active_page='submissions',
-        current_user=None,
-        pending_submissions_count=0
-    )
-
-
-@partner_web_bp.route('/analytics')
-def analytics():
-    """
-    Performance analytics page.
-
-    Displays content performance metrics and analytics.
-
-    Returns:
-        Rendered analytics.html template
-    """
-    # Placeholder - will be implemented with auth check
-    return render_template(
-        'partner/base.html',
-        active_page='analytics',
-        current_user=None,
-        pending_submissions_count=0
-    )
-
-
-@partner_web_bp.route('/revenue')
-def revenue():
-    """
-    Revenue tracking page.
-
-    Shows revenue information and payment history.
-
-    Returns:
-        Rendered revenue.html template
-    """
-    # Placeholder - will be implemented with auth check
-    return render_template(
-        'partner/base.html',
-        active_page='revenue',
-        current_user=None,
+        current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
         pending_submissions_count=0
     )
 
@@ -464,11 +476,15 @@ def profile():
     Returns:
         Rendered profile.html template
     """
-    # Placeholder - will be implemented with auth check
+    current_user = get_current_partner()
+    if not current_user:
+        return redirect(url_for('partner.login'))
+
     return render_template(
         'partner/base.html',
         active_page='profile',
-        current_user=None,
+        current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
         pending_submissions_count=0
     )
 
@@ -483,11 +499,15 @@ def settings():
     Returns:
         Rendered settings.html template
     """
-    # Placeholder - will be implemented with auth check
+    current_user = get_current_partner()
+    if not current_user:
+        return redirect(url_for('partner.login'))
+
     return render_template(
         'partner/base.html',
         active_page='settings',
-        current_user=None,
+        current_user=current_user,
+        partner_tenants=get_partner_tenants(current_user),
         pending_submissions_count=0
     )
 
@@ -502,13 +522,561 @@ def logout():
     Returns:
         Redirect to login page
     """
-    # Placeholder - will be implemented with session handling
-    return render_template('partner/login.html')
+    from flask import make_response
+
+    # Get current session and invalidate it
+    session_token = request.cookies.get(PARTNER_SESSION_COOKIE)
+    if session_token:
+        is_valid, session = AuthService.validate_session(db.session, session_token)
+        if session:
+            session.is_valid = False
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+    # Clear the cookie and redirect to login
+    response = make_response(redirect(url_for('partner.login')))
+    response.delete_cookie(PARTNER_SESSION_COOKIE)
+    return response
 
 
 # =============================================================================
 # Partner Portal API Routes (Session-based authentication)
 # =============================================================================
+
+
+@partner_web_bp.route('/api/login', methods=['POST'])
+def api_login():
+    """
+    API endpoint for partner login.
+
+    Authenticates a user and creates a session cookie.
+
+    Request Body:
+        {
+            "email": "partner@example.com" (required),
+            "password": "password" (required)
+        }
+
+    Returns:
+        JSON response with login result or error
+    """
+    from flask import make_response
+
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Validate email
+    email = data.get('email')
+    if not email:
+        return jsonify({'error': 'email is required'}), 400
+
+    if not isinstance(email, str):
+        return jsonify({'error': 'email must be a string'}), 400
+
+    email = email.lower().strip()
+
+    # Validate password
+    password = data.get('password')
+    if not password:
+        return jsonify({'error': 'password is required'}), 400
+
+    if not isinstance(password, str):
+        return jsonify({'error': 'password must be a string'}), 400
+
+    # Find user by email
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        AuditService.log_action(
+            db_session=db.session,
+            action='partner.login_failed',
+            user_email=email,
+            details={'reason': 'user_not_found'}
+        )
+        db.session.commit()
+        return jsonify({'message': 'Invalid email or password'}), 401
+
+    # Check if account is locked
+    if user.is_locked():
+        AuditService.log_action(
+            db_session=db.session,
+            action='partner.login_failed',
+            user_id=user.id,
+            user_email=user.email,
+            details={'reason': 'account_locked'}
+        )
+        db.session.commit()
+        return jsonify({'message': 'Account is locked. Please try again later.'}), 401
+
+    # Check user status - only active users can login
+    if user.status != User.STATUS_ACTIVE:
+        AuditService.log_action(
+            db_session=db.session,
+            action='partner.login_failed',
+            user_id=user.id,
+            user_email=user.email,
+            details={'reason': f'account_status_{user.status}'}
+        )
+        db.session.commit()
+
+        if user.status == User.STATUS_PENDING:
+            return jsonify({'message': 'Account is pending approval'}), 401
+        elif user.status == User.STATUS_SUSPENDED:
+            return jsonify({'message': 'Account has been suspended'}), 401
+        elif user.status == User.STATUS_DEACTIVATED:
+            return jsonify({'message': 'Account has been deactivated'}), 401
+        elif user.status == User.STATUS_REJECTED:
+            return jsonify({'message': 'Account registration was rejected'}), 401
+        else:
+            return jsonify({'message': 'Account is not active'}), 401
+
+    # Verify password
+    if not AuthService.verify_password(password, user.password_hash):
+        # Increment failed login attempts
+        user.failed_login_attempts += 1
+
+        # Lock account if max attempts exceeded
+        if user.failed_login_attempts >= AuthService.MAX_LOGIN_ATTEMPTS:
+            user.locked_until = datetime.now(timezone.utc) + timedelta(
+                minutes=AuthService.LOCKOUT_DURATION_MINUTES
+            )
+
+        AuditService.log_action(
+            db_session=db.session,
+            action='partner.login_failed',
+            user_id=user.id,
+            user_email=user.email,
+            details={
+                'reason': 'invalid_password',
+                'failed_attempts': user.failed_login_attempts,
+                'locked': user.failed_login_attempts >= AuthService.MAX_LOGIN_ATTEMPTS
+            }
+        )
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        return jsonify({'message': 'Invalid email or password'}), 401
+
+    # Successful login - reset failed attempts and update last login
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login = datetime.now(timezone.utc)
+
+    # Create session for cookie-based auth
+    session = AuthService.create_session(
+        db_session=db.session,
+        user_id=user.id,
+        ip_address=request.remote_addr,
+        user_agent=request.user_agent.string if request.user_agent else None
+    )
+
+    # Log successful login
+    AuditService.log_action(
+        db_session=db.session,
+        action='partner.login',
+        user_id=user.id,
+        user_email=user.email,
+        details={'method': 'password'}
+    )
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Failed to complete login: {str(e)}'}), 500
+
+    # Create response with session cookie
+    response = make_response(jsonify({
+        'access_token': session.token,
+        'user': user.to_dict()
+    }))
+
+    # Set session cookie (HttpOnly for security)
+    response.set_cookie(
+        PARTNER_SESSION_COOKIE,
+        session.token,
+        httponly=True,
+        secure=False,  # Set to True in production with HTTPS
+        samesite='Lax',
+        max_age=86400 * 7  # 7 days
+    )
+
+    return response, 200
+
+
+@partner_web_bp.route('/api/upload', methods=['POST'])
+def api_upload():
+    """
+    API endpoint for partner content upload.
+
+    Handles file upload from the partner portal.
+    Creates a new content asset with the uploaded file.
+
+    Form Data:
+        file: The uploaded file (required)
+        title: Content title (required)
+        description: Content description (optional)
+        action: 'draft' to save as draft, 'submit' to submit for review
+
+    Returns:
+        JSON response with upload result or error
+    """
+    import os
+    import uuid as uuid_module
+    from pathlib import Path
+    from werkzeug.utils import secure_filename
+    from flask import current_app
+
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    # Check for file
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    allowed_extensions = {'mp4', 'avi', 'mov', 'mkv', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    if file_ext not in allowed_extensions:
+        return jsonify({'error': f'File type not allowed. Supported: {", ".join(allowed_extensions)}'}), 400
+
+    # Get title
+    title = request.form.get('title', '').strip()
+    if not title:
+        title = file.filename.rsplit('.', 1)[0]
+
+    description = request.form.get('description', '').strip()
+    category = request.form.get('category', '').strip()
+    tags = request.form.get('tags', '').strip()
+    action = request.form.get('action', 'draft')
+
+    # Get target tenant(s)/network(s)
+    # Can be multiple values for advertisers/skillz, single for partners
+    tenant_ids_raw = request.form.getlist('tenant_ids')
+    if not tenant_ids_raw:
+        return jsonify({'error': 'Target network is required'}), 400
+
+    # Parse and validate tenant IDs
+    from content_catalog.models import Tenant
+    tenant_ids = []
+    for tid in tenant_ids_raw:
+        try:
+            tenant_ids.append(int(tid))
+        except (ValueError, TypeError):
+            return jsonify({'error': f'Invalid network ID: {tid}'}), 400
+
+    # Check user permissions for these tenants
+    skillz_roles = [User.ROLE_SUPER_ADMIN, User.ROLE_ADMIN, User.ROLE_CONTENT_MANAGER]
+    is_skillz = current_user.role in skillz_roles
+    is_advertiser = current_user.role == User.ROLE_ADVERTISER
+
+    if not is_skillz and not is_advertiser:
+        # Partners can only upload to their assigned tenants
+        user_tenant_ids = current_user.get_tenant_ids_list()
+        for tid in tenant_ids:
+            if tid not in user_tenant_ids:
+                return jsonify({'error': f'Access denied to network ID: {tid}'}), 403
+
+    # Verify all tenants exist
+    tenants = Tenant.query.filter(Tenant.id.in_(tenant_ids)).all()
+    if len(tenants) != len(tenant_ids):
+        return jsonify({'error': 'One or more networks not found'}), 404
+
+    tenant_names = [t.name for t in tenants]
+
+    # Generate unique filename
+    original_filename = secure_filename(file.filename)
+    unique_filename = f"{uuid_module.uuid4()}.{file_ext}"
+
+    # Get upload path
+    uploads_path = current_app.config.get('UPLOADS_PATH')
+    if not uploads_path:
+        uploads_path = Path(current_app.config.get('BASE_DIR', os.getcwd())) / 'uploads'
+
+    uploads_path = Path(uploads_path)
+    uploads_path.mkdir(parents=True, exist_ok=True)
+
+    file_path = uploads_path / unique_filename
+
+    try:
+        file.save(str(file_path))
+        file_size = os.path.getsize(str(file_path))
+
+        # Determine status based on action and who is uploading
+        if action == 'submit':
+            if is_skillz:
+                # Skillz uploading → already approved by Skillz
+                status = ContentAsset.STATUS_APPROVED
+            else:
+                # Advertiser/Partner uploading → needs Skillz review
+                status = ContentAsset.STATUS_PENDING_REVIEW
+        else:
+            status = ContentAsset.STATUS_DRAFT
+
+        # Extract video duration if it's a video
+        duration = None
+        video_exts = {'mp4', 'avi', 'mov', 'mkv', 'webm'}
+        if file_ext in video_exts:
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                     '-of', 'default=noprint_wrappers=1:nokey=1', str(file_path)],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    duration = int(float(result.stdout.strip()))
+            except Exception:
+                pass
+
+        asset = ContentAsset(
+            title=title,
+            description=description,
+            filename=unique_filename,
+            original_filename=original_filename,
+            file_path=str(file_path),
+            file_size=file_size,
+            format=file_ext,
+            duration=duration,
+            category=category if category else None,
+            tags=tags if tags else None,
+            uploaded_by=current_user.id,
+            organization_id=current_user.organization_id,
+            status=status
+        )
+
+        db.session.add(asset)
+        db.session.flush()  # Get the asset ID
+
+        # Create ContentVenueApproval records for each target tenant
+        from content_catalog.models.content_venue_approval import ContentVenueApproval
+        from datetime import datetime, timezone
+
+        for tenant in tenants:
+            # Determine initial status based on who is uploading:
+            # - Skillz employees: Skip Skillz approval, go directly to pending_venue
+            # - Advertisers/Partners: Need Skillz approval first
+            if is_skillz:
+                # Skillz uploading → already Skillz-approved, needs venue approval
+                venue_approval = ContentVenueApproval(
+                    content_asset_id=asset.id,
+                    tenant_id=tenant.id,
+                    status=ContentVenueApproval.STATUS_PENDING_VENUE,
+                    skillz_approved=True,
+                    skillz_approved_by_id=current_user.id,
+                    skillz_approved_at=datetime.now(timezone.utc)
+                )
+            else:
+                # Advertiser/Partner uploading → needs Skillz approval first
+                venue_approval = ContentVenueApproval(
+                    content_asset_id=asset.id,
+                    tenant_id=tenant.id,
+                    status=ContentVenueApproval.STATUS_PENDING_SKILLZ
+                )
+            db.session.add(venue_approval)
+
+        AuditService.log_action(
+            db_session=db.session,
+            action='content.uploaded',
+            user_id=current_user.id,
+            user_email=current_user.email,
+            resource_type='content_asset',
+            resource_id=asset.id,
+            details={
+                'title': title,
+                'filename': unique_filename,
+                'file_size': file_size,
+                'status': status,
+                'tenant_ids': tenant_ids,
+                'tenant_names': tenant_names
+            }
+        )
+
+        db.session.commit()
+
+        # Build response message
+        if len(tenants) == 1:
+            message = f'Content uploaded successfully for {tenant_names[0]}'
+        else:
+            message = f'Content uploaded successfully for {len(tenants)} networks'
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'asset': asset.to_dict(),
+            'networks': [{'id': t.id, 'name': t.name} for t in tenants]
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        if file_path.exists():
+            os.remove(str(file_path))
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+
+
+@partner_web_bp.route('/api/venue-approval/<int:approval_id>/approve', methods=['POST'])
+def api_venue_approve(approval_id):
+    """
+    API endpoint for partners to approve content for their venue.
+
+    This is the second stage of the two-stage approval workflow.
+    When approved, content is synced to the CMS for display on screens.
+
+    Args:
+        approval_id: ID of the ContentVenueApproval record
+
+    Returns:
+        JSON response with approval result or error
+    """
+    from content_catalog.models.content_venue_approval import ContentVenueApproval
+    from content_catalog.services.cms_transfer_service import CMSTransferService
+
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    # Get the approval record
+    approval = db.session.get(ContentVenueApproval, approval_id)
+    if not approval:
+        return jsonify({'error': 'Approval record not found'}), 404
+
+    # Check if user has access to this tenant
+    tenant_ids = current_user.get_tenant_ids_list()
+    if approval.tenant_id not in tenant_ids:
+        return jsonify({'error': 'Access denied to this venue'}), 403
+
+    # Check if it's pending venue approval
+    if approval.status != ContentVenueApproval.STATUS_PENDING_VENUE:
+        return jsonify({'error': f"Cannot approve: status is '{approval.status}'"}), 400
+
+    try:
+        # Approve the venue approval
+        approval.approve_venue(current_user.id)
+
+        # Log the action
+        AuditService.log_action(
+            db_session=db.session,
+            action='content.venue_approved',
+            user_id=current_user.id,
+            user_email=current_user.email,
+            resource_type='content_venue_approval',
+            resource_id=approval.id,
+            details={
+                'content_asset_id': approval.content_asset_id,
+                'tenant_id': approval.tenant_id,
+                'asset_title': approval.content_asset.title if approval.content_asset else None
+            }
+        )
+
+        db.session.commit()
+
+        # Sync to CMS now that it's fully approved
+        sync_result = {'synced': False}
+        try:
+            asset = approval.content_asset
+            tenant = approval.tenant
+            sync_result = CMSTransferService.transfer_to_cms(asset, tenant)
+            if sync_result.get('success'):
+                asset.synced_to_cms = True
+                if sync_result.get('cms_content_id'):
+                    asset.cms_content_id = sync_result.get('cms_content_id')
+                db.session.commit()
+                sync_result['synced'] = True
+        except Exception as sync_error:
+            # Log sync error but don't fail the approval
+            print(f"CMS sync error: {sync_error}")
+            sync_result = {'synced': False, 'error': str(sync_error)}
+
+        return jsonify({
+            'success': True,
+            'message': 'Content approved for your venue and synced to CMS',
+            'approval': approval.to_dict(),
+            'cms_sync': sync_result
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to approve: {str(e)}'}), 500
+
+
+@partner_web_bp.route('/api/venue-approval/<int:approval_id>/reject', methods=['POST'])
+def api_venue_reject(approval_id):
+    """
+    API endpoint for partners to reject content for their venue.
+
+    Args:
+        approval_id: ID of the ContentVenueApproval record
+
+    Returns:
+        JSON response with rejection result or error
+    """
+    from content_catalog.models.content_venue_approval import ContentVenueApproval
+
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    # Get the approval record
+    approval = db.session.get(ContentVenueApproval, approval_id)
+    if not approval:
+        return jsonify({'error': 'Approval record not found'}), 404
+
+    # Check if user has access to this tenant
+    tenant_ids = current_user.get_tenant_ids_list()
+    if approval.tenant_id not in tenant_ids:
+        return jsonify({'error': 'Access denied to this venue'}), 403
+
+    # Check if it's pending venue approval
+    if approval.status != ContentVenueApproval.STATUS_PENDING_VENUE:
+        return jsonify({'error': f"Cannot reject: status is '{approval.status}'"}), 400
+
+    # Get rejection reason
+    data = request.get_json(silent=True) or {}
+    reason = data.get('reason', '').strip()
+
+    try:
+        # Reject the venue approval
+        approval.reject_venue(current_user.id, reason)
+
+        # Log the action
+        AuditService.log_action(
+            db_session=db.session,
+            action='content.venue_rejected',
+            user_id=current_user.id,
+            user_email=current_user.email,
+            resource_type='content_venue_approval',
+            resource_id=approval.id,
+            details={
+                'content_asset_id': approval.content_asset_id,
+                'tenant_id': approval.tenant_id,
+                'asset_title': approval.content_asset.title if approval.content_asset else None,
+                'reason': reason
+            }
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Content rejected for your venue',
+            'approval': approval.to_dict()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to reject: {str(e)}'}), 500
 
 
 @partner_web_bp.route('/api/approvals/<asset_uuid>/approve', methods=['POST'])

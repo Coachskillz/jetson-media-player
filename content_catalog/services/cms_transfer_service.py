@@ -129,20 +129,38 @@ class CMSTransferService:
             conn = sqlite3.connect(str(CMS_DATABASE))
             cursor = conn.cursor()
             
+            # Determine mime_type from format
+            format_to_mime = {
+                'mp4': 'video/mp4',
+                'mov': 'video/quicktime',
+                'avi': 'video/x-msvideo',
+                'mkv': 'video/x-matroska',
+                'webm': 'video/webm',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+            }
+            mime_type = format_to_mime.get(
+                (content_asset.format or '').lower(),
+                content_asset.content_type or 'video/mp4'
+            )
+
             cursor.execute("""
                 INSERT INTO content (
-                    id, title, original_name, filename, content_type,
+                    id, title, original_name, filename, mime_type,
                     file_size, duration, network_id, catalog_asset_uuid,
                     source, status, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 content_id,
                 content_asset.title,
-                content_asset.filename,
+                content_asset.original_filename or content_asset.filename,
                 dest_filename,
-                content_asset.format or 'video',
+                mime_type,
                 content_asset.file_size or 0,
-                content_asset.duration or 0,
+                int(content_asset.duration or 0),
                 network_id,
                 content_asset.uuid,
                 'catalog',

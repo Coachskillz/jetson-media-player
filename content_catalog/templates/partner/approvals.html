@@ -44,15 +44,71 @@
 .approval-card {
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--border-radius);
-    padding: 20px;
     border: 1px solid var(--border-light);
     transition: all 0.3s;
+    overflow: hidden;
 }
 
 .approval-card:hover {
     transform: translateY(-4px);
     border-color: var(--primary);
     box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
+}
+
+/* Asset Preview in Approval Card */
+.approval-preview {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.approval-preview img,
+.approval-preview video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.approval-preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.approval-preview-placeholder .icon {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.approval-preview-placeholder .text {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Duration Badge */
+.duration-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.approval-card-body {
+    padding: 16px;
 }
 
 .approval-header {
@@ -96,6 +152,27 @@
 .status-pending_review {
     background: rgba(245, 158, 11, 0.2);
     color: #fbbf24;
+}
+
+/* Venue Info */
+.venue-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.venue-label {
+    color: var(--text-muted);
+}
+
+.venue-name {
+    color: #60a5fa;
+    font-weight: 600;
 }
 
 /* Approval Meta */
@@ -364,84 +441,99 @@
 
     {% if pending_approvals %}
     <div class="approvals-grid">
-        {% for asset in pending_approvals %}
-        <div class="approval-card" data-asset-id="{{ asset.id }}" data-asset-uuid="{{ asset.uuid }}">
-            <div class="approval-header">
-                <div>
-                    <div class="approval-title">{{ asset.title }}</div>
-                    <div class="approval-filename">{{ asset.filename }}</div>
-                </div>
-                <div class="approval-badge">
-                    <span class="status-badge status-pending_review">Pending</span>
-                </div>
-            </div>
-
-            {% if asset.description %}
-            <div class="approval-description">{{ asset.description }}</div>
-            {% endif %}
-
-            {% if asset.category or asset.tags %}
-            <div class="approval-tags">
-                {% if asset.category %}
-                <span class="approval-category">{{ asset.category }}</span>
+        {% for item in pending_approvals %}
+        <div class="approval-card" data-approval-id="{{ item.approval.id }}" data-asset-uuid="{{ item.asset.uuid }}">
+            <!-- Asset Preview -->
+            <div class="approval-preview">
+                {% set is_video = item.asset.format in ['mp4', 'avi', 'mov', 'mkv', 'webm'] %}
+                {% set is_image = item.asset.format in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
+                {% if is_video %}
+                <video src="/uploads/{{ item.asset.filename }}" preload="metadata" controls></video>
+                {% if item.asset.duration %}
+                <span class="duration-badge">{{ '%d:%02d'|format((item.asset.duration // 60)|int, (item.asset.duration % 60)|int) }}</span>
                 {% endif %}
-                {% if asset.tags %}
-                    {% for tag in asset.tags.split(',')[:3] %}
-                    <span class="approval-tag">{{ tag.strip() }}</span>
-                    {% endfor %}
+                {% elif is_image %}
+                <img src="/uploads/{{ item.asset.filename }}" alt="{{ item.asset.title }}">
+                {% else %}
+                <div class="approval-preview-placeholder">
+                    <span class="icon">&#128196;</span>
+                    <span class="text">{{ item.asset.format|upper if item.asset.format else 'FILE' }}</span>
+                </div>
                 {% endif %}
             </div>
-            {% endif %}
 
-            <!-- Uploader Info -->
-            <div class="uploader-info">
-                <div class="uploader-avatar">{{ asset.uploader.name[0] if asset.uploader else '?' }}</div>
-                <div class="uploader-details">
-                    <div class="uploader-name">{{ asset.uploader.name if asset.uploader else 'Unknown' }}</div>
-                    <div class="uploader-org">{{ asset.organization.name if asset.organization else 'No Organization' }}</div>
+            <div class="approval-card-body">
+                <div class="approval-header">
+                    <div>
+                        <div class="approval-title">{{ item.asset.title }}</div>
+                        <div class="approval-filename">{{ item.asset.filename }}</div>
+                    </div>
+                    <div class="approval-badge">
+                        <span class="status-badge status-pending_review">Pending</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="approval-meta">
-                <div class="meta-item">
-                    <span class="meta-label">Format</span>
-                    <span class="meta-value">{{ asset.format|upper if asset.format else 'Unknown' }}</span>
+                <!-- Venue/Tenant Info -->
+                <div class="venue-info">
+                    <span class="venue-label">For:</span>
+                    <span class="venue-name">{{ item.tenant.name if item.tenant else 'Unknown Venue' }}</span>
                 </div>
-                <div class="meta-item">
-                    <span class="meta-label">Size</span>
-                    <span class="meta-value">
-                        {% if asset.file_size %}
-                            {{ (asset.file_size / 1024 / 1024)|round(1) }} MB
-                        {% else %}
-                            Unknown
-                        {% endif %}
-                    </span>
-                </div>
-                {% if asset.duration %}
-                <div class="meta-item">
-                    <span class="meta-label">Duration</span>
-                    <span class="meta-value">{{ asset.duration|round(1) }}s</span>
+
+                {% if item.asset.description %}
+                <div class="approval-description">{{ item.asset.description }}</div>
+                {% endif %}
+
+                {% if item.asset.category or item.asset.tags %}
+                <div class="approval-tags">
+                    {% if item.asset.category %}
+                    <span class="approval-category">{{ item.asset.category }}</span>
+                    {% endif %}
+                    {% if item.asset.tags %}
+                        {% for tag in item.asset.tags.split(',')[:3] %}
+                        <span class="approval-tag">{{ tag.strip() }}</span>
+                        {% endfor %}
+                    {% endif %}
                 </div>
                 {% endif %}
-                {% if asset.resolution %}
-                <div class="meta-item">
-                    <span class="meta-label">Resolution</span>
-                    <span class="meta-value">{{ asset.resolution }}</span>
-                </div>
-                {% endif %}
-                <div class="meta-item">
-                    <span class="meta-label">Submitted</span>
-                    <span class="meta-value">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
-                </div>
-            </div>
 
-            <div class="approval-actions">
-                <button class="btn btn-approve" onclick="approveAsset('{{ asset.uuid }}', '{{ asset.title|e }}')">
-                    <span>&#10003;</span> Approve
-                </button>
-                <button class="btn btn-reject" onclick="openRejectModal('{{ asset.uuid }}', '{{ asset.title|e }}')">
-                    <span>&#10007;</span> Reject
-                </button>
+                <!-- Uploader Info -->
+                <div class="uploader-info">
+                    <div class="uploader-avatar">{{ item.asset.uploader.name[0] if item.asset.uploader else '?' }}</div>
+                    <div class="uploader-details">
+                        <div class="uploader-name">{{ item.asset.uploader.name if item.asset.uploader else 'Unknown' }}</div>
+                        <div class="uploader-org">{{ item.asset.organization.name if item.asset.organization else 'No Organization' }}</div>
+                    </div>
+                </div>
+
+                <div class="approval-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Format</span>
+                        <span class="meta-value">{{ item.asset.format|upper if item.asset.format else 'Unknown' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Size</span>
+                        <span class="meta-value">
+                            {% if item.asset.file_size %}
+                                {{ (item.asset.file_size / 1024 / 1024)|round(1) }} MB
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Submitted</span>
+                        <span class="meta-value">{{ item.asset.created_at.strftime('%b %d, %Y') if item.asset.created_at else 'Unknown' }}</span>
+                    </div>
+                </div>
+
+                <div class="approval-actions">
+                    <button class="btn btn-approve" onclick="approveVenue({{ item.approval.id }}, '{{ item.asset.title|e }}')">
+                        <span>&#10003;</span> Approve
+                    </button>
+                    <button class="btn btn-reject" onclick="openRejectModal({{ item.approval.id }}, '{{ item.asset.title|e }}')">
+                        <span>&#10007;</span> Reject
+                    </button>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -473,7 +565,7 @@
         <p id="rejectAssetTitle" style="color: var(--text-muted); margin-bottom: 20px;"></p>
 
         <form id="rejectForm" onsubmit="submitRejection(event)">
-            <input type="hidden" id="rejectAssetUuid" value="">
+            <input type="hidden" id="rejectApprovalId" value="">
 
             <div class="reject-form-group">
                 <label for="rejectionReason">Rejection Reason <span style="color: #f87171;">*</span></label>
@@ -499,18 +591,18 @@
 
 {% block extra_scripts %}
 <script>
-    // Approve asset
-    async function approveAsset(assetUuid, assetTitle) {
-        if (!confirm('Approve "' + assetTitle + '"? This will make the asset available for publishing.')) {
+    // Approve venue approval
+    async function approveVenue(approvalId, assetTitle) {
+        if (!confirm('Approve "' + assetTitle + '"? This will sync the asset to the CMS and make it available on screens.')) {
             return;
         }
 
-        const card = document.querySelector('[data-asset-uuid="' + assetUuid + '"]');
+        const card = document.querySelector('[data-approval-id="' + approvalId + '"]');
         const buttons = card.querySelectorAll('button');
         buttons.forEach(btn => btn.disabled = true);
 
         try {
-            const response = await fetch('/partner/api/approvals/' + assetUuid + '/approve', {
+            const response = await fetch('/partner/api/venue-approval/' + approvalId + '/approve', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -520,7 +612,7 @@
             const data = await response.json();
 
             if (response.ok) {
-                Partner.status.toast('Asset approved successfully!', 'success');
+                Partner.status.toast('Asset approved and synced to CMS!', 'success');
                 // Remove the card with animation
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.9)';
@@ -539,8 +631,8 @@
     }
 
     // Open reject modal
-    function openRejectModal(assetUuid, assetTitle) {
-        document.getElementById('rejectAssetUuid').value = assetUuid;
+    function openRejectModal(approvalId, assetTitle) {
+        document.getElementById('rejectApprovalId').value = approvalId;
         document.getElementById('rejectAssetTitle').textContent = 'Rejecting: ' + assetTitle;
         document.getElementById('rejectionReason').value = '';
         document.getElementById('rejectModal').classList.add('active');
@@ -557,7 +649,7 @@
     async function submitRejection(event) {
         event.preventDefault();
 
-        const assetUuid = document.getElementById('rejectAssetUuid').value;
+        const approvalId = document.getElementById('rejectApprovalId').value;
         const reason = document.getElementById('rejectionReason').value.trim();
 
         if (!reason || reason.length < 10) {
@@ -569,7 +661,7 @@
         submitBtn.disabled = true;
 
         try {
-            const response = await fetch('/partner/api/approvals/' + assetUuid + '/reject', {
+            const response = await fetch('/partner/api/venue-approval/' + approvalId + '/reject', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -580,11 +672,11 @@
             const data = await response.json();
 
             if (response.ok) {
-                Partner.status.toast('Asset rejected successfully', 'success');
+                Partner.status.toast('Asset rejected', 'success');
                 closeRejectModal();
 
                 // Remove the card with animation
-                const card = document.querySelector('[data-asset-uuid="' + assetUuid + '"]');
+                const card = document.querySelector('[data-approval-id="' + approvalId + '"]');
                 if (card) {
                     card.style.opacity = '0';
                     card.style.transform = 'scale(0.9)';

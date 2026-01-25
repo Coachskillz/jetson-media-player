@@ -291,15 +291,19 @@
 
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
-                    <input
-                        type="password"
-                        class="form-input"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        required
-                        autocomplete="current-password"
-                    >
+                    <div style="position: relative;">
+                        <input
+                            type="password"
+                            class="form-input"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                            autocomplete="current-password"
+                            style="padding-right: 45px;"
+                        >
+                        <button type="button" id="togglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 4px;" title="Show password">👁</button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login" id="loginButton">
@@ -333,6 +337,15 @@
             particlesContainer.appendChild(particle);
         }
 
+        // Password toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁' : '🙈';
+        });
+
         // Form submission handler
         const loginForm = document.getElementById('loginForm');
         const loginButton = document.getElementById('loginButton');
@@ -363,8 +376,8 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Store token and redirect to dashboard
-                    localStorage.setItem('partner_token', data.access_token);
+                    // Cookie is set automatically by the server
+                    // Redirect to dashboard
                     window.location.href = '/partner/';
                 } else {
                     // Show error message

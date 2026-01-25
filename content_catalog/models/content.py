@@ -175,6 +175,22 @@ class ContentAsset(db.Model):
     # External integration
     zoho_campaign_id = db.Column(db.String(100), nullable=True)
 
+    # CMS Sync tracking
+    synced_to_cms = db.Column(db.Boolean, default=False, nullable=False)
+    synced_at = db.Column(db.DateTime, nullable=True)
+    cms_content_id = db.Column(db.String(36), nullable=True)  # CMS content record UUID
+
+    # Location/Store tracking
+    location_id = db.Column(db.Integer, nullable=True)
+    location_name = db.Column(db.String(255), nullable=True)
+
+    # Original filename for display
+    original_filename = db.Column(db.String(500), nullable=True)
+    content_type = db.Column(db.String(100), nullable=True)  # MIME type
+
+    # Rejection tracking
+    rejection_reason = db.Column(db.Text, nullable=True)
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=lambda: datetime.now(timezone.utc))
@@ -226,20 +242,30 @@ class ContentAsset(db.Model):
             'title': self.title,
             'description': self.description,
             'filename': self.filename,
+            'original_filename': self.original_filename,
             'file_path': self.file_path,
             'file_size': self.file_size,
             'duration': self.duration,
             'resolution': self.resolution,
             'format': self.format,
+            'content_type': self.content_type,
             'thumbnail_path': self.thumbnail_path,
             'checksum': self.checksum,
             'organization_id': self.organization_id,
+            'tenant_id': self.tenant_id,
+            'location_id': self.location_id,
+            'location_name': self.location_name,
             'uploaded_by': self.uploaded_by,
             'status': self.status,
             'reviewed_by': self.reviewed_by,
             'reviewed_at': self.reviewed_at.isoformat() if self.reviewed_at else None,
             'review_notes': self.review_notes,
+            'approved_by': self.approved_by_user_id,
+            'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'published_at': self.published_at.isoformat() if self.published_at else None,
+            'synced_to_cms': self.synced_to_cms,
+            'synced_at': self.synced_at.isoformat() if self.synced_at else None,
+            'cms_content_id': self.cms_content_id,
             'tags': self.tags,
             'category': self.category,
             'networks': self.networks,

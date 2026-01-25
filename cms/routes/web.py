@@ -319,7 +319,7 @@ def content_page():
         content.append({
             'id': item.id,
             'filename': item.filename,
-            'local_filename': item.local_filename if item.local_filename else (item.file_path.split('/')[-1] if item.file_path else item.filename),
+            'local_filename': getattr(item, 'local_filename', None) or (getattr(item, 'file_path', '').split('/')[-1] if getattr(item, 'file_path', None) else item.filename),
             'title': item.title,
             'duration': item.duration or 0,
             'file_size': item.file_size or 0,
@@ -351,7 +351,7 @@ def content_page():
         content.append({
             'id': item.id,
             'filename': item.filename,
-            'local_filename': item.local_filename if item.local_filename else (item.file_path.split('/')[-1] if item.file_path else item.filename),
+            'local_filename': getattr(item, 'local_filename', None) or (getattr(item, 'file_path', '').split('/')[-1] if getattr(item, 'file_path', None) else item.filename),
             'title': item.original_name,  # Template expects 'title'
             'duration': item.duration or 0,
             'file_size': item.file_size,

@@ -371,6 +371,65 @@
     flex: 1;
 }
 
+/* Network Selection */
+.network-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.network-option {
+    padding: 16px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition-fast);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.network-option:hover {
+    border-color: var(--border-medium);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.network-option.selected {
+    border-color: var(--primary);
+    background: rgba(6, 182, 212, 0.15);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.network-option input {
+    display: none;
+}
+
+.network-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.network-name {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.no-networks-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--border-radius);
+    color: #fbbf24;
+    font-size: 14px;
+}
+
+.no-networks-warning .warning-icon {
+    font-size: 20px;
+}
+
 /* Category Cards */
 .category-grid {
     display: grid;
@@ -413,6 +472,70 @@
     color: var(--text-secondary);
     font-weight: 500;
 }
+
+/* Preview Container */
+.preview-container {
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.preview-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.preview-close {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preview-close:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+.preview-content {
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    min-height: 200px;
+}
+
+.preview-info {
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border-light);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.preview-info span {
+    margin-right: 20px;
+}
+
+.preview-info strong {
+    color: var(--text-primary);
+}
 </style>
 {% endblock %}
 
@@ -437,6 +560,19 @@
                     </div>
                 </div>
 
+                <!-- File Preview Area -->
+                <div class="preview-container" id="previewContainer" style="display: none;">
+                    <div class="preview-header">
+                        <span class="preview-title">Preview</span>
+                        <button type="button" class="preview-close" onclick="clearPreview()">&times; Remove</button>
+                    </div>
+                    <div class="preview-content" id="previewContent">
+                        <video id="videoPreview" controls style="display: none; max-width: 100%; max-height: 400px; border-radius: 8px;"></video>
+                        <img id="imagePreview" style="display: none; max-width: 100%; max-height: 400px; border-radius: 8px;">
+                    </div>
+                    <div class="preview-info" id="previewInfo"></div>
+                </div>
+
                 <!-- Progress Bar -->
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-bar">
@@ -447,6 +583,46 @@
 
                 <!-- Upload Status -->
                 <div class="upload-status" id="uploadStatus"></div>
+
+                <!-- Network Selection -->
+                <div class="form-group">
+                    <label class="required">Target Network{% if allow_multi_network %}(s){% endif %}</label>
+                    {% if allow_multi_network %}
+                    <p class="hint" style="margin-bottom: 12px; margin-top: 0;">Select one or more networks for this content</p>
+                    {% else %}
+                    <p class="hint" style="margin-bottom: 12px; margin-top: 0;">Select which network this content is for</p>
+                    {% endif %}
+                    <div class="network-grid">
+                        {% if available_networks %}
+                            {% for tenant in available_networks %}
+                            {% if allow_multi_network %}
+                            <label class="network-option" onclick="toggleNetwork(this)">
+                                <input type="checkbox" name="tenant_ids" value="{{ tenant.id }}">
+                                <div class="network-icon">&#127760;</div>
+                                <div class="network-name">{{ tenant.name }}</div>
+                            </label>
+                            {% else %}
+                            <label class="network-option" onclick="selectNetwork(this)">
+                                <input type="radio" name="tenant_ids" value="{{ tenant.id }}" {% if loop.first %}checked{% endif %}>
+                                <div class="network-icon">&#127760;</div>
+                                <div class="network-name">{{ tenant.name }}</div>
+                            </label>
+                            {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-networks-warning">
+                                <span class="warning-icon">&#9888;</span>
+                                <span>No networks assigned. Contact your administrator.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if allow_multi_network and available_networks %}
+                    <div class="network-actions" style="margin-top: 12px;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="selectAllNetworks()">Select All</button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="clearAllNetworks()">Clear All</button>
+                    </div>
+                    {% endif %}
+                </div>
 
                 <!-- Metadata Fields -->
                 <div class="form-group">
@@ -606,6 +782,44 @@
         renderTags();
     }
 
+    // Network selection (single select - radio buttons)
+    function selectNetwork(element) {
+        document.querySelectorAll('.network-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        element.classList.add('selected');
+        element.querySelector('input').checked = true;
+    }
+
+    // Network toggle (multi select - checkboxes)
+    function toggleNetwork(element) {
+        const checkbox = element.querySelector('input');
+        checkbox.checked = !checkbox.checked;
+        element.classList.toggle('selected', checkbox.checked);
+    }
+
+    // Select all networks
+    function selectAllNetworks() {
+        document.querySelectorAll('.network-option input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+            cb.closest('.network-option').classList.add('selected');
+        });
+    }
+
+    // Clear all network selections
+    function clearAllNetworks() {
+        document.querySelectorAll('.network-option input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+            cb.closest('.network-option').classList.remove('selected');
+        });
+    }
+
+    // Initialize first network as selected (for radio buttons only)
+    const firstNetworkRadio = document.querySelector('.network-option input[type="radio"]');
+    if (firstNetworkRadio) {
+        firstNetworkRadio.closest('.network-option').classList.add('selected');
+    }
+
     // Category selection
     function selectCategory(element) {
         document.querySelectorAll('.category-option').forEach(opt => {
@@ -626,6 +840,11 @@
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
 
+    const previewContainer = document.getElementById('previewContainer');
+    const videoPreview = document.getElementById('videoPreview');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewInfo = document.getElementById('previewInfo');
+
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             const file = this.files[0];
@@ -636,8 +855,68 @@
             if (!titleInput.value) {
                 titleInput.value = file.name.replace(/\.[^/.]+$/, "");
             }
+
+            // Show preview
+            showPreview(file);
         }
     });
+
+    function showPreview(file) {
+        const fileType = file.type;
+        const fileURL = URL.createObjectURL(file);
+
+        // Reset previews
+        videoPreview.style.display = 'none';
+        imagePreview.style.display = 'none';
+        videoPreview.src = '';
+        imagePreview.src = '';
+
+        if (fileType.startsWith('video/')) {
+            videoPreview.src = fileURL;
+            videoPreview.style.display = 'block';
+            videoPreview.onloadedmetadata = function() {
+                const duration = formatDuration(videoPreview.duration);
+                const width = videoPreview.videoWidth;
+                const height = videoPreview.videoHeight;
+                previewInfo.innerHTML = `
+                    <span><strong>Duration:</strong> ${duration}</span>
+                    <span><strong>Resolution:</strong> ${width} x ${height}</span>
+                    <span><strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    <span><strong>Type:</strong> ${file.type}</span>
+                `;
+            };
+        } else if (fileType.startsWith('image/')) {
+            imagePreview.src = fileURL;
+            imagePreview.style.display = 'block';
+            imagePreview.onload = function() {
+                previewInfo.innerHTML = `
+                    <span><strong>Dimensions:</strong> ${imagePreview.naturalWidth} x ${imagePreview.naturalHeight}</span>
+                    <span><strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    <span><strong>Type:</strong> ${file.type}</span>
+                `;
+            };
+        }
+
+        previewContainer.style.display = 'block';
+    }
+
+    function formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function clearPreview() {
+        previewContainer.style.display = 'none';
+        videoPreview.src = '';
+        videoPreview.style.display = 'none';
+        imagePreview.src = '';
+        imagePreview.style.display = 'none';
+        fileInput.value = '';
+        uploadArea.classList.remove('selected');
+        uploadText.innerHTML = 'Drop files here or click to browse';
+        titleInput.value = '';
+    }
 
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -663,6 +942,13 @@
     function submitForm(action) {
         if (!fileInput.files.length) {
             showStatus('Please select a file first', 'error');
+            return;
+        }
+
+        // Check network selection (works for both radio and checkbox)
+        const selectedNetworks = document.querySelectorAll('input[name="tenant_ids"]:checked');
+        if (selectedNetworks.length === 0) {
+            showStatus('Please select at least one target network', 'error');
             return;
         }
 

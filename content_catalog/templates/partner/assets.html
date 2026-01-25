@@ -114,16 +114,98 @@
 .asset-card {
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--border-radius);
-    padding: 20px;
     border: 1px solid var(--border-light);
     transition: all 0.3s;
     cursor: pointer;
+    overflow: hidden;
 }
 
 .asset-card:hover {
     transform: translateY(-4px);
     border-color: var(--primary);
     box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
+}
+
+/* Asset Preview/Thumbnail */
+.asset-preview {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.asset-preview img,
+.asset-preview video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.asset-preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.asset-preview-placeholder .icon {
+    font-size: 40px;
+    opacity: 0.5;
+}
+
+.asset-preview-placeholder .text {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Duration Badge on Preview */
+.duration-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+/* Network Badges */
+.asset-networks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.network-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: rgba(6, 182, 212, 0.2);
+    color: var(--primary);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.network-badge .icon {
+    font-size: 10px;
+}
+
+.asset-card-body {
+    padding: 16px;
 }
 
 .asset-header {
@@ -352,92 +434,113 @@
     <div class="assets-grid">
         {% for asset in assets %}
         <div class="asset-card" data-id="{{ asset.id }}">
-            <div class="asset-header">
-                <div>
-                    <div class="asset-title">{{ asset.title }}</div>
-                    <div class="asset-filename">{{ asset.filename }}</div>
-                </div>
-                <div class="asset-status">
-                    <span class="status-badge status-{{ asset.status }}">
-                        {% if asset.status == 'draft' %}Draft
-                        {% elif asset.status == 'pending_review' %}Pending
-                        {% elif asset.status == 'approved' %}Approved
-                        {% elif asset.status == 'rejected' %}Rejected
-                        {% elif asset.status == 'published' %}Published
-                        {% elif asset.status == 'archived' %}Archived
-                        {% else %}{{ asset.status }}
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-
-            {% if asset.description %}
-            <div class="asset-description">{{ asset.description }}</div>
-            {% endif %}
-
-            {% if asset.category or asset.tags %}
-            <div class="asset-tags">
-                {% if asset.category %}
-                <span class="asset-category">{{ asset.category }}</span>
-                {% endif %}
-                {% if asset.tags %}
-                    {% for tag in asset.tags.split(',')[:3] %}
-                    <span class="asset-tag">{{ tag.strip() }}</span>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <div class="asset-meta">
-                <div class="meta-item">
-                    <span class="meta-label">Format</span>
-                    <span class="meta-value">{{ asset.format|upper if asset.format else 'Unknown' }}</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Size</span>
-                    <span class="meta-value">
-                        {% if asset.file_size %}
-                            {{ (asset.file_size / 1024 / 1024)|round(1) }} MB
-                        {% else %}
-                            Unknown
-                        {% endif %}
-                    </span>
-                </div>
+            <!-- Asset Preview -->
+            <div class="asset-preview">
+                {% set is_video = asset.format in ['mp4', 'avi', 'mov', 'mkv', 'webm'] %}
+                {% set is_image = asset.format in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
+                {% if is_video %}
+                <video src="/uploads/{{ asset.filename }}" preload="metadata"></video>
                 {% if asset.duration %}
-                <div class="meta-item">
-                    <span class="meta-label">Duration</span>
-                    <span class="meta-value">{{ asset.duration|round(1) }}s</span>
-                </div>
+                <span class="duration-badge">{{ '%d:%02d'|format((asset.duration // 60)|int, (asset.duration % 60)|int) }}</span>
                 {% endif %}
-                {% if asset.resolution %}
-                <div class="meta-item">
-                    <span class="meta-label">Resolution</span>
-                    <span class="meta-value">{{ asset.resolution }}</span>
-                </div>
-                {% endif %}
-                <div class="meta-item">
-                    <span class="meta-label">Created</span>
-                    <span class="meta-value">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
-                </div>
-                {% if asset.status == 'published' and asset.published_at %}
-                <div class="meta-item">
-                    <span class="meta-label">Published</span>
-                    <span class="meta-value">{{ asset.published_at.strftime('%b %d, %Y') }}</span>
+                {% elif is_image %}
+                <img src="/uploads/{{ asset.filename }}" alt="{{ asset.title }}">
+                {% else %}
+                <div class="asset-preview-placeholder">
+                    <span class="icon">&#128196;</span>
+                    <span class="text">{{ asset.format|upper if asset.format else 'FILE' }}</span>
                 </div>
                 {% endif %}
             </div>
 
-            <div class="asset-actions">
-                {% if asset.status == 'draft' %}
-                <a href="{{ url_for('partner.upload') }}?edit={{ asset.uuid }}" class="btn btn-secondary btn-sm">&#9998; Edit</a>
-                <button class="btn btn-primary btn-sm" onclick="submitForReview('{{ asset.uuid }}')">&#10003; Submit</button>
-                {% elif asset.status == 'rejected' %}
-                <a href="{{ url_for('partner.upload') }}?edit={{ asset.uuid }}" class="btn btn-secondary btn-sm">&#9998; Edit &amp; Resubmit</a>
-                {% elif asset.status == 'pending_review' %}
-                <button class="btn btn-secondary btn-sm" disabled>&#9203; Awaiting Review</button>
-                {% elif asset.status == 'approved' or asset.status == 'published' %}
-                <button class="btn btn-secondary btn-sm" onclick="viewAsset('{{ asset.uuid }}')">&#128065; View Details</button>
+            <!-- Target Networks -->
+            {% if asset.venue_approvals %}
+            <div class="asset-networks">
+                {% for approval in asset.venue_approvals %}
+                <span class="network-badge">
+                    <span class="icon">&#127760;</span>
+                    {{ approval.tenant.name if approval.tenant else 'Unknown' }}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="asset-card-body">
+                <div class="asset-header">
+                    <div>
+                        <div class="asset-title">{{ asset.title }}</div>
+                        <div class="asset-filename">{{ asset.filename }}</div>
+                    </div>
+                    <div class="asset-status">
+                        <span class="status-badge status-{{ asset.status }}">
+                            {% if asset.status == 'draft' %}Draft
+                            {% elif asset.status == 'pending_review' %}Pending
+                            {% elif asset.status == 'approved' %}Approved
+                            {% elif asset.status == 'rejected' %}Rejected
+                            {% elif asset.status == 'published' %}Published
+                            {% elif asset.status == 'archived' %}Archived
+                            {% else %}{{ asset.status }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                {% if asset.description %}
+                <div class="asset-description">{{ asset.description }}</div>
                 {% endif %}
+
+                {% if asset.category or asset.tags %}
+                <div class="asset-tags">
+                    {% if asset.category %}
+                    <span class="asset-category">{{ asset.category }}</span>
+                    {% endif %}
+                    {% if asset.tags %}
+                        {% for tag in asset.tags.split(',')[:3] %}
+                        <span class="asset-tag">{{ tag.strip() }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="asset-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Format</span>
+                        <span class="meta-value">{{ asset.format|upper if asset.format else 'Unknown' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Size</span>
+                        <span class="meta-value">
+                            {% if asset.file_size %}
+                                {{ (asset.file_size / 1024 / 1024)|round(1) }} MB
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Created</span>
+                        <span class="meta-value">{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'Unknown' }}</span>
+                    </div>
+                    {% if asset.status == 'published' and asset.published_at %}
+                    <div class="meta-item">
+                        <span class="meta-label">Published</span>
+                        <span class="meta-value">{{ asset.published_at.strftime('%b %d, %Y') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="asset-actions">
+                    {% if asset.status == 'draft' %}
+                    <a href="{{ url_for('partner.upload') }}?edit={{ asset.uuid }}" class="btn btn-secondary btn-sm">&#9998; Edit</a>
+                    <button class="btn btn-primary btn-sm" onclick="submitForReview('{{ asset.uuid }}')">&#10003; Submit</button>
+                    {% elif asset.status == 'rejected' %}
+                    <a href="{{ url_for('partner.upload') }}?edit={{ asset.uuid }}" class="btn btn-secondary btn-sm">&#9998; Edit &amp; Resubmit</a>
+                    {% elif asset.status == 'pending_review' %}
+                    <button class="btn btn-secondary btn-sm" disabled>&#9203; Awaiting Review</button>
+                    {% elif asset.status == 'approved' or asset.status == 'published' %}
+                    <button class="btn btn-secondary btn-sm" onclick="viewAsset('{{ asset.uuid }}')">&#128065; View Details</button>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endfor %}

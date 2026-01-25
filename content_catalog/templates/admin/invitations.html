@@ -1,0 +1,667 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Invitations - Content Catalog Admin{% endblock %}
+
+{% block page_title %}Invitations{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Create Invitation Section */
+.create-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.create-section h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.create-form {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Invitations Table Section */
+.invitations-section {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+}
+
+.invitations-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.invitations-header h3 {
+    font-size: 18px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.invitations-count {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Table Styles */
+.invitations-table-wrapper {
+    overflow-x: auto;
+}
+
+.invitations-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.invitations-table th {
+    text-align: left;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+}
+
+.invitations-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.invitations-table tbody tr {
+    transition: background var(--transition-fast);
+}
+
+.invitations-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.invitations-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.pending {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.status-badge.accepted {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.status-badge.expired {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.status-badge.revoked {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+/* Role Badges */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.role-badge.super_admin {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.role-badge.admin {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+
+.role-badge.content_manager {
+    background: rgba(6, 182, 212, 0.15);
+    color: #06b6d4;
+}
+
+.role-badge.partner, .role-badge.advertiser {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.role-badge.viewer {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+/* Button Styles */
+.btn {
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--bg-dark);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--primary-glow);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.btn-secondary {
+    background: rgba(107, 114, 128, 0.15);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: rgba(107, 114, 128, 0.25);
+}
+
+/* Empty State */
+.empty-state {
+    padding: 60px 24px;
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-description {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 16px 20px;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast.success {
+    background: rgba(34, 197, 94, 0.9);
+    color: white;
+}
+
+.toast.error {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+/* Copy Link Button */
+.copy-link-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    transition: color 0.2s;
+}
+
+.copy-link-btn:hover {
+    color: var(--primary);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* Network Checkboxes */
+.network-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.network-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.network-checkbox:hover {
+    border-color: var(--primary);
+}
+
+.network-checkbox input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.network-checkbox input[type="checkbox"]:checked + span {
+    color: var(--primary);
+}
+
+/* Network Badge in Table */
+.network-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.network-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--primary);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Create Invitation Section -->
+<div class="create-section">
+    <h3><span>&#9993;</span> Send New Invitation</h3>
+    <form class="create-form" id="invitationForm">
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" placeholder="partner@example.com" required>
+        </div>
+        <div class="form-group">
+            <label for="role">Role</label>
+            <select id="role" name="role" required>
+                <option value="">Select a role...</option>
+                <option value="partner">Partner</option>
+                <option value="advertiser">Advertiser</option>
+                <option value="content_manager">Content Manager</option>
+                <option value="viewer">Viewer</option>
+                {% if current_user and current_user.role == 'super_admin' %}
+                <option value="admin">Admin</option>
+                {% endif %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="organization">Organization (Optional)</label>
+            <select id="organization" name="organization_id">
+                <option value="">No organization</option>
+                {% for org in organizations %}
+                <option value="{{ org.id }}">{{ org.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="min-width: 300px;">
+            <label>Networks (for Partners/Advertisers)</label>
+            <div class="network-checkboxes" id="networkCheckboxes">
+                {% for tenant in tenants %}
+                <label class="network-checkbox">
+                    <input type="checkbox" name="tenant_ids" value="{{ tenant.id }}">
+                    <span>{{ tenant.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="sendBtn">
+            <span>&#9993;</span> Send Invitation
+        </button>
+    </form>
+</div>
+
+<!-- Invitations List Section -->
+<div class="invitations-section">
+    <div class="invitations-header">
+        <h3>
+            <span>&#128203;</span>
+            Invitations
+            <span class="invitations-count">({{ invitations|length }} total)</span>
+        </h3>
+    </div>
+
+    {% if invitations %}
+    <div class="invitations-table-wrapper">
+        <table class="invitations-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Organization</th>
+                    <th>Networks</th>
+                    <th>Status</th>
+                    <th>Invited By</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invitation in invitations %}
+                <tr>
+                    <td>{{ invitation.email }}</td>
+                    <td>
+                        <span class="role-badge {{ invitation.role }}">{{ invitation.role|replace('_', ' ') }}</span>
+                    </td>
+                    <td>{{ invitation.organization.name if invitation.organization else '-' }}</td>
+                    <td>
+                        {% set inv_tenant_ids = invitation.get_tenant_ids_list() %}
+                        {% if inv_tenant_ids %}
+                        <div class="network-badges">
+                            {% for tid in inv_tenant_ids %}
+                                {% for t in tenants if t.id == tid %}
+                                <span class="network-badge">{{ t.name }}</span>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge {{ invitation.status }}">{{ invitation.status }}</span>
+                    </td>
+                    <td>{{ invitation.inviter.name if invitation.inviter else 'System' }}</td>
+                    <td>{{ invitation.created_at.strftime('%Y-%m-%d %H:%M') if invitation.created_at else '-' }}</td>
+                    <td>{{ invitation.expires_at.strftime('%Y-%m-%d %H:%M') if invitation.expires_at else '-' }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if invitation.status == 'pending' %}
+                            <button class="copy-link-btn" onclick="copyInvitationLink('{{ invitation.token }}')" title="Copy invitation link">
+                                &#128279; Copy Link
+                            </button>
+                            <button class="btn btn-small btn-secondary" onclick="resendInvitation('{{ invitation.id }}')" title="Resend email">
+                                &#128231;
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-small btn-danger" onclick="deleteInvitation('{{ invitation.id }}')" title="Delete invitation">
+                                &#128465;
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">&#9993;</div>
+        <div class="empty-title">No Invitations Yet</div>
+        <div class="empty-description">Send your first invitation using the form above.</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// Show toast notification
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// Copy invitation link to clipboard
+function copyInvitationLink(token) {
+    const link = window.location.origin + '/partner/register/' + token;
+    navigator.clipboard.writeText(link).then(() => {
+        showToast('Invitation link copied to clipboard!');
+    }).catch(() => {
+        showToast('Failed to copy link', 'error');
+    });
+}
+
+// Send invitation form handler
+document.getElementById('invitationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span>...</span> Sending...';
+
+    const formData = {
+        email: document.getElementById('email').value,
+        role: document.getElementById('role').value
+    };
+
+    const orgId = document.getElementById('organization').value;
+    if (orgId) {
+        formData.organization_id = parseInt(orgId);
+    }
+
+    // Get selected tenant IDs
+    const selectedTenants = [];
+    document.querySelectorAll('input[name="tenant_ids"]:checked').forEach(cb => {
+        selectedTenants.push(parseInt(cb.value));
+    });
+    if (selectedTenants.length > 0) {
+        formData.tenant_ids = selectedTenants;
+    }
+
+    try {
+        const response = await fetch('/admin/api/invitations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Invitation sent successfully!');
+            // Reload page to show new invitation
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast(data.error || 'Failed to send invitation', 'error');
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<span>&#9993;</span> Send Invitation';
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<span>&#9993;</span> Send Invitation';
+    }
+});
+
+// Resend invitation
+async function resendInvitation(invitationId) {
+    try {
+        const response = await fetch('/admin/api/invitations/' + invitationId + '/resend', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            if (data.warning) {
+                showToast(data.message, 'error');
+            } else {
+                showToast('Invitation resent successfully!');
+            }
+        } else {
+            showToast(data.error || 'Failed to resend invitation', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    }
+}
+
+// Delete invitation
+async function deleteInvitation(invitationId) {
+    if (!confirm('Are you sure you want to delete this invitation?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/admin/api/invitations/' + invitationId, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showToast('Invitation deleted successfully!');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            const data = await response.json();
+            showToast(data.error || 'Failed to delete invitation', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    }
+}
+</script>
+{% endblock %}

@@ -23,7 +23,7 @@ from content_catalog.services.email_service import EmailService
 invitations_bp = Blueprint('invitations', __name__)
 
 # Invitation expiration period in days
-INVITATION_EXPIRY_DAYS = 7
+INVITATION_EXPIRY_HOURS = 48
 
 
 def _get_current_user():
@@ -155,7 +155,7 @@ def create_invitation():
     token = AuthService.generate_invitation_token()
 
     # Calculate expiration date
-    expires_at = datetime.now(timezone.utc) + timedelta(days=INVITATION_EXPIRY_DAYS)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=INVITATION_EXPIRY_HOURS)
 
     # Create invitation record
     invitation = UserInvitation(
@@ -301,6 +301,11 @@ def accept_invitation(token):
         status=User.STATUS_ACTIVE,  # Invited users are active immediately
         invited_by=invitation.invited_by
     )
+
+    # Set tenant_ids from invitation
+    invitation_tenant_ids = invitation.get_tenant_ids_list()
+    if invitation_tenant_ids:
+        user.set_tenant_ids_list(invitation_tenant_ids)
 
     # Update invitation status
     invitation.status = UserInvitation.STATUS_ACCEPTED

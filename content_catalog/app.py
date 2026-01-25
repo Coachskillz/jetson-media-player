@@ -23,7 +23,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
 
@@ -141,6 +141,20 @@ def create_app(config_name: Optional[str] = None) -> Flask:
             'service': 'content_catalog',
             'timestamp': datetime.utcnow().isoformat() + 'Z'
         })
+
+    # Serve uploaded files
+    @app.route('/uploads/<path:filename>')
+    def serve_upload(filename):
+        """Serve uploaded media files.
+
+        Args:
+            filename: The filename to serve from the uploads directory.
+
+        Returns:
+            The file from the uploads directory.
+        """
+        uploads_path = app.config.get('UPLOADS_PATH', os.path.join(app.root_path, 'uploads'))
+        return send_from_directory(str(uploads_path), filename)
 
     return app
 

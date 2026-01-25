@@ -110,34 +110,29 @@ def get_mime_type(filename):
 @login_required
 def upload_content():
     """
-    Upload a new content file.
+    Upload endpoint is disabled.
 
-    Content files are media files (images, videos) that can be assigned
-    to playlists and displayed on devices. Files are saved to the uploads
-    directory with a unique filename.
-
-    Form Data:
-        file: The media file to upload (required)
-        network_id: UUID of the network this content belongs to (optional)
-        width: Content width in pixels (optional)
-        height: Content height in pixels (optional)
-        duration: Duration in seconds for video/audio (optional)
+    All content must go through the Content Catalog approval workflow
+    to ensure proper review before being displayed on screens.
 
     Returns:
-        201: Content created successfully
+        403: Direct uploads not allowed
             {
-                "id": "uuid",
-                "filename": "stored-filename.mp4",
-                "original_name": "my-video.mp4",
-                "mime_type": "video/mp4",
-                "file_size": 52428800,
-                "created_at": "2024-01-15T10:00:00Z"
+                "error": "Direct uploads are not allowed. All content must be submitted through the Content Catalog for approval."
             }
-        400: Missing file or invalid data
-            {
-                "error": "error message"
-            }
-        413: File too large (handled by Flask)
+    """
+    return jsonify({
+        'error': 'Direct uploads are not allowed. All content must be submitted through the Content Catalog for approval.'
+    }), 403
+
+
+@content_bp.route('/upload-disabled-original', methods=['POST'])
+def _upload_content_disabled():
+    """
+    DISABLED: Original upload endpoint preserved for reference.
+
+    This endpoint has been disabled. All content must go through
+    the Content Catalog approval workflow.
     """
     # Check if file was included in request
     if 'file' not in request.files:

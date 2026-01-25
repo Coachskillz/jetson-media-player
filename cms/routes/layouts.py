@@ -33,6 +33,7 @@ All endpoints are prefixed with /api/v1/layouts when registered with the app.
 from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, render_template, abort
+from flask_login import login_required
 
 from cms.models import db, ScreenLayout, ScreenLayer, LayerContent, LayerPlaylistAssignment, Device, Playlist, DeviceLayout, Content
 from cms.models.layout import CONTENT_MODES, TICKER_DIRECTIONS, LAYER_TRIGGER_TYPES
@@ -69,8 +70,8 @@ VALID_ORIENTATIONS = ['landscape', 'portrait']
 VALID_BACKGROUND_TYPES = ['solid', 'transparent', 'image']
 
 # Valid values for layer fields
-VALID_LAYER_TYPES = ['content', 'text', 'widget', 'image']
-VALID_LAYER_BACKGROUND_TYPES = ['solid', 'transparent', 'image']
+VALID_LAYER_TYPES = ['content', 'text', 'widget', 'image', 'weather', 'ticker', 'clock', 'html']
+VALID_LAYER_BACKGROUND_TYPES = ['solid', 'transparent', 'image', 'none']
 
 
 @layouts_bp.route('', methods=['POST'])
@@ -483,21 +484,31 @@ def delete_layout(layout_id):
     if not layout:
         return jsonify({'error': 'Layout not found'}), 404
 
-    # Store id for response
+    # Store id and name for response
     layout_id_response = layout.id
+    layout_name = layout.name
 
     try:
+        # Delete associated DeviceLayout assignments first
+        DeviceLayout.query.filter_by(layout_id=layout_id).delete()
+
+        # Delete the layout (layers will cascade)
         db.session.delete(layout)
         db.session.commit()
+
+        print(f"Layout deleted: {layout_name} ({layout_id_response})")
+
     except Exception as e:
         db.session.rollback()
+        print(f"Failed to delete layout {layout_id}: {str(e)}")
         return jsonify({
             'error': f'Failed to delete layout: {str(e)}'
         }), 500
 
     return jsonify({
         'message': 'Layout deleted successfully',
-        'id': layout_id_response
+        'id': layout_id_response,
+        'name': layout_name
     }), 200
 
 
@@ -769,6 +780,12 @@ def add_layer(layout_id):
             'error': f"Invalid background_type: {background_type}. Valid values: {', '.join(VALID_LAYER_BACKGROUND_TYPES)}"
         }), 400
 
+    # Handle content_config - serialize to JSON if it's a dict
+    import json
+    content_config = data.get('content_config')
+    if content_config and isinstance(content_config, dict):
+        content_config = json.dumps(content_config)
+
     # Create layer
     layer = ScreenLayer(
         layout_id=layout_id,
@@ -784,7 +801,11 @@ def add_layer(layout_id):
         background_color=data.get('background_color'),
         is_visible=data.get('is_visible', True),
         is_locked=data.get('is_locked', False),
-        content_config=data.get('content_config')
+        content_source=data.get('content_source', 'none'),
+        playlist_id=data.get('playlist_id'),
+        content_id=data.get('content_id'),
+        is_primary=data.get('is_primary', False),
+        content_config=content_config
     )
 
     try:
@@ -1013,9 +1034,41 @@ def update_layer(layout_id, layer_id):
     if 'is_locked' in data:
         layer.is_locked = bool(data['is_locked'])
 
+    # Update content_source if provided
+    if 'content_source' in data:
+        valid_sources = ['none', 'playlist', 'static', 'widget']
+        if data['content_source'] not in valid_sources:
+            return jsonify({
+                'error': f"Invalid content_source. Valid values: {', '.join(valid_sources)}"
+            }), 400
+        layer.content_source = data['content_source']
+
+    # Update playlist_id if provided
+    if 'playlist_id' in data:
+        layer.playlist_id = data['playlist_id'] if data['playlist_id'] else None
+
+    # Update content_id if provided
+    if 'content_id' in data:
+        layer.content_id = data['content_id'] if data['content_id'] else None
+
+    # Update is_primary if provided
+    if 'is_primary' in data:
+        is_primary = bool(data['is_primary'])
+        if is_primary:
+            # Clear is_primary on all other layers in this layout
+            ScreenLayer.query.filter(
+                ScreenLayer.layout_id == layout_id,
+                ScreenLayer.id != layer_id
+            ).update({'is_primary': False})
+        layer.is_primary = is_primary
+
     # Update content_config if provided
     if 'content_config' in data:
-        layer.content_config = data['content_config']
+        import json
+        content_config = data['content_config']
+        if content_config and isinstance(content_config, dict):
+            content_config = json.dumps(content_config)
+        layer.content_config = content_config
 
     try:
         db.session.commit()
@@ -2243,6 +2296,239 @@ def list_layout_assignments(layout_id):
 
 
 # =============================================================================
+# Layout Push/Sync Endpoints
+# =============================================================================
+
+
+@layouts_bp.route('/<layout_id>/push', methods=['POST'])
+def push_layout_to_device(layout_id):
+    """
+    Push a layout (with all associated content) to a device.
+
+    This endpoint bundles the layout configuration along with all content
+    files referenced by the layout's layers (playlists, static content, etc.)
+    and initiates a sync to the specified device.
+
+    The content is uploaded to the device's local storage so it can play
+    offline without requiring an internet connection.
+
+    Args:
+        layout_id: Layout UUID
+
+    Request Body:
+        {
+            "device_id": "uuid-of-device" (required)
+        }
+
+    Returns:
+        200: Push initiated successfully
+            {
+                "status": "success",
+                "message": "Layout push initiated",
+                "layout_id": "...",
+                "device_id": "...",
+                "content_files": [...],  # List of content files to sync
+                "assignment_id": "..."   # DeviceLayout assignment ID
+            }
+        400: Missing required field or invalid data
+        404: Layout or device not found
+    """
+    import json
+
+    # Validate layout_id format
+    if not isinstance(layout_id, str) or len(layout_id) > 64:
+        return jsonify({'error': 'Invalid layout_id format'}), 400
+
+    layout = db.session.get(ScreenLayout, layout_id)
+    if not layout:
+        return jsonify({'error': 'Layout not found'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    # Validate device_id
+    device_id = data.get('device_id')
+    if not device_id:
+        return jsonify({'error': 'device_id is required'}), 400
+
+    device = db.session.get(Device, device_id)
+    if not device:
+        return jsonify({'error': f'Device with id {device_id} not found'}), 404
+
+    # Get all layers for this layout
+    layers = ScreenLayer.query.filter_by(layout_id=layout_id).order_by(ScreenLayer.z_index).all()
+
+    # Collect all content that needs to be synced
+    content_to_sync = set()
+    playlists_to_sync = []
+
+    for layer in layers:
+        # Check for direct content assignment on layer
+        if layer.content_id:
+            content_to_sync.add(layer.content_id)
+
+        # Check for playlist assignment on layer
+        if layer.playlist_id:
+            playlist = db.session.get(Playlist, layer.playlist_id)
+            if playlist:
+                playlists_to_sync.append({
+                    'id': playlist.id,
+                    'name': playlist.name,
+                    'layer_id': layer.id
+                })
+                # Get all content in the playlist
+                from cms.models import PlaylistItem
+                items = PlaylistItem.query.filter_by(playlist_id=playlist.id).all()
+                for item in items:
+                    if item.content_id:
+                        content_to_sync.add(item.content_id)
+
+        # Check for LayerContent assignments (device-specific static content)
+        layer_contents = LayerContent.query.filter_by(layer_id=layer.id).all()
+        for lc in layer_contents:
+            if lc.static_file_id:
+                content_to_sync.add(lc.static_file_id)
+
+        # Check for LayerPlaylistAssignments (device-specific playlists)
+        layer_playlists = LayerPlaylistAssignment.query.filter_by(layer_id=layer.id).all()
+        for lp in layer_playlists:
+            if lp.playlist_id:
+                playlist = db.session.get(Playlist, lp.playlist_id)
+                if playlist:
+                    playlists_to_sync.append({
+                        'id': playlist.id,
+                        'name': playlist.name,
+                        'layer_id': layer.id,
+                        'trigger_type': lp.trigger_type
+                    })
+                    from cms.models import PlaylistItem
+                    items = PlaylistItem.query.filter_by(playlist_id=playlist.id).all()
+                    for item in items:
+                        if item.content_id:
+                            content_to_sync.add(item.content_id)
+
+    # Get content details for sync manifest
+    content_files = []
+    for content_id in content_to_sync:
+        content = db.session.get(Content, content_id)
+        if content:
+            content_files.append({
+                'id': content.id,
+                'name': content.original_name,
+                'filename': content.filename,
+                'type': content.content_type,
+                'file_path': content.file_path,
+                'file_size': content.file_size,
+                'checksum': content.checksum if hasattr(content, 'checksum') else None
+            })
+
+    # Create or update DeviceLayout assignment
+    assignment = DeviceLayout.query.filter_by(
+        device_id=device_id,
+        layout_id=layout_id
+    ).first()
+
+    if not assignment:
+        assignment = DeviceLayout(
+            device_id=device_id,
+            layout_id=layout_id,
+            priority=0
+        )
+        db.session.add(assignment)
+
+    # Update assignment with sync info
+    assignment.last_pushed_at = datetime.now(timezone.utc)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to create assignment: {str(e)}'}), 500
+
+    # Build layout package manifest
+    layout_package = {
+        'layout': layout.to_dict(include_layers=True),
+        'playlists': playlists_to_sync,
+        'content_manifest': content_files,
+        'pushed_at': datetime.now(timezone.utc).isoformat()
+    }
+
+    return jsonify({
+        'status': 'success',
+        'message': 'Layout push initiated',
+        'layout_id': layout_id,
+        'device_id': device_id,
+        'device_name': device.name or device.device_id,
+        'content_files_count': len(content_files),
+        'playlists_count': len(playlists_to_sync),
+        'assignment_id': assignment.id,
+        'package': layout_package
+    }), 200
+
+
+@layouts_bp.route('/<layout_id>/sync-status', methods=['GET'])
+def get_layout_sync_status(layout_id):
+    """
+    Get the sync status of a layout across all assigned devices.
+
+    Returns information about which devices have this layout and their
+    sync status.
+
+    Args:
+        layout_id: Layout UUID
+
+    Returns:
+        200: Sync status for all assigned devices
+            {
+                "layout_id": "...",
+                "layout_name": "...",
+                "device_syncs": [
+                    {
+                        "device_id": "...",
+                        "device_name": "...",
+                        "sync_status": "synced|pending|syncing|failed",
+                        "last_pushed_at": "...",
+                        "last_confirmed_at": "..."
+                    }
+                ]
+            }
+        404: Layout not found
+    """
+    # Validate layout_id format
+    if not isinstance(layout_id, str) or len(layout_id) > 64:
+        return jsonify({'error': 'Invalid layout_id format'}), 400
+
+    layout = db.session.get(ScreenLayout, layout_id)
+    if not layout:
+        return jsonify({'error': 'Layout not found'}), 404
+
+    # Get all device assignments for this layout
+    assignments = DeviceLayout.query.filter_by(layout_id=layout_id).all()
+
+    device_syncs = []
+    for assignment in assignments:
+        device = assignment.device
+        device_syncs.append({
+            'device_id': assignment.device_id,
+            'device_name': device.name if device else 'Unknown',
+            'device_status': device.status if device else 'unknown',
+            'assignment_id': assignment.id,
+            'priority': assignment.priority,
+            'last_pushed_at': assignment.last_pushed_at.isoformat() if hasattr(assignment, 'last_pushed_at') and assignment.last_pushed_at else None,
+            'start_date': assignment.start_date.isoformat() if assignment.start_date else None,
+            'end_date': assignment.end_date.isoformat() if assignment.end_date else None
+        })
+
+    return jsonify({
+        'layout_id': layout_id,
+        'layout_name': layout.name,
+        'total_devices': len(device_syncs),
+        'device_syncs': device_syncs
+    }), 200
+
+
+# =============================================================================
 # Web UI Routes
 # =============================================================================
 
@@ -2263,21 +2549,54 @@ def layouts_page():
     """
     layouts = ScreenLayout.query.order_by(ScreenLayout.updated_at.desc()).all()
 
-    # Get device count for each layout
-    layout_list = []
+    # Add layer_count and device_count to each layout for template use
     for layout in layouts:
-        layout_data = {
-            'layout': layout,
-            'device_count': DeviceLayout.query.filter_by(layout_id=layout.id).count(),
-            'layer_count': ScreenLayer.query.filter_by(layout_id=layout.id).count()
-        }
-        layout_list.append(layout_data)
+        layout.layer_count = ScreenLayer.query.filter_by(layout_id=layout.id).count()
+        # Get device assignment info
+        assignments = DeviceLayout.query.filter_by(layout_id=layout.id).all()
+        layout.device_count = len(assignments)
+        # Get most recent push time
+        pushed_times = [a.last_pushed_at for a in assignments if a.last_pushed_at]
+        layout.last_pushed_at = max(pushed_times) if pushed_times else None
 
     return render_template(
         'layouts/list.html',
         active_page='layouts',
-        layouts=layout_list
+        layouts=layouts
     )
+
+
+@layouts_web_bp.route('/layouts/<layout_id>/delete', methods=['POST'])
+def delete_layout_web(layout_id):
+    """
+    Delete a layout via form POST (more reliable than JavaScript fetch).
+    Redirects back to layouts list after deletion.
+    """
+    from flask import redirect, url_for, flash
+
+    layout = db.session.get(ScreenLayout, layout_id)
+
+    if not layout:
+        flash('Layout not found', 'error')
+        return redirect(url_for('layouts_web.layouts_page'))
+
+    layout_name = layout.name
+
+    try:
+        # Delete associated DeviceLayout assignments first
+        DeviceLayout.query.filter_by(layout_id=layout_id).delete()
+
+        # Delete the layout (layers will cascade)
+        db.session.delete(layout)
+        db.session.commit()
+
+        flash(f'Layout "{layout_name}" deleted successfully', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Failed to delete layout: {str(e)}', 'error')
+
+    return redirect(url_for('layouts_web.layouts_page'))
 
 
 @layouts_web_bp.route('/layouts/<layout_id>/designer')

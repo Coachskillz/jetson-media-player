@@ -24,9 +24,13 @@ from datetime import datetime
 from typing import Optional
 
 from flask import Flask, jsonify
+from flask_migrate import Migrate
 
 from cms.config import get_config
 from cms.models import db
+
+# Global migrate instance
+migrate = Migrate()
 
 
 def create_app(config_name: Optional[str] = None) -> Flask:
@@ -52,6 +56,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
 
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db)
 
     # Initialize Flask-Login
     from flask_login import LoginManager
@@ -251,6 +256,14 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.info('Registered thea blueprint at /api/v1/thea')
     except ImportError:
         app.logger.debug('Thea blueprint not available yet')
+
+    # Content Catalog integration blueprint
+    try:
+        from cms.routes import catalog_bp
+        app.register_blueprint(catalog_bp, url_prefix='/api/v1/catalog')
+        app.logger.info('Registered catalog blueprint at /api/v1/catalog')
+    except ImportError:
+        app.logger.debug('Catalog blueprint not available yet')
 
     try:
         from cms.routes import playlists_bp

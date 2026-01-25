@@ -77,6 +77,7 @@ class DeviceAssignment(db.Model):
     )
     trigger_type = db.Column(db.String(50), nullable=False, default='default', index=True)
     priority = db.Column(db.Integer, nullable=False, default=0)
+    is_enabled = db.Column(db.Boolean, nullable=False, default=False)  # Default OFF, except 'default' trigger
     start_date = db.Column(db.DateTime, nullable=True)
     end_date = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -98,6 +99,7 @@ class DeviceAssignment(db.Model):
             'playlist_id': self.playlist_id,
             'trigger_type': self.trigger_type,
             'priority': self.priority,
+            'is_enabled': self.is_enabled,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
@@ -117,11 +119,15 @@ class DeviceAssignment(db.Model):
 
     def is_active(self):
         """
-        Check if the assignment is currently active based on date constraints.
+        Check if the assignment is currently active based on enabled state and date constraints.
 
         Returns:
-            bool: True if assignment is active (within date range or no dates set)
+            bool: True if assignment is enabled and active (within date range or no dates set)
         """
+        # Check if manually disabled
+        if not self.is_enabled:
+            return False
+
         now = datetime.now(timezone.utc)
 
         # If no date constraints, always active
@@ -152,6 +158,7 @@ class DeviceAssignment(db.Model):
         now = datetime.now(timezone.utc)
         return cls.query.filter(
             cls.device_id == device_id,
+            cls.is_enabled == True,
             db.or_(cls.start_date.is_(None), cls.start_date <= now),
             db.or_(cls.end_date.is_(None), cls.end_date >= now)
         ).order_by(cls.priority.desc()).all()

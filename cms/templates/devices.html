@@ -505,143 +505,446 @@
 .btn-assign:hover {
     background: #059669;
 }
+
+/* Network Section */
+.network-section {
+    margin-bottom: 24px;
+}
+
+.network-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.network-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.network-info h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.network-info p {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.network-stats {
+    display: flex;
+    gap: 20px;
+    text-align: center;
+}
+
+.network-stat {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px 16px;
+    border-radius: 10px;
+}
+
+.network-stat-value {
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.network-stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+/* Screens Grid */
+.screens-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    padding: 20px;
+}
+
+.screen-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.screen-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.screen-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.screen-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.screen-id {
+    font-size: 12px;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.screen-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.screen-status.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.screen-status.offline {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.screen-status.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.screen-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.screen-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.screen-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.screen-detail-label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.screen-detail-value {
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.screen-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.screen-actions a {
+    font-size: 13px;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.screen-actions a:hover {
+    text-decoration: underline;
+}
+
+/* Empty State */
+.empty-network {
+    padding: 40px;
+    text-align: center;
+    color: #64748b;
+}
+
+.empty-network-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.empty-network h4 {
+    font-size: 16px;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.empty-network p {
+    font-size: 14px;
+}
+
+/* No Networks */
+.no-networks {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 60px 40px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.no-networks-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.no-networks h3 {
+    font-size: 20px;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.no-networks p {
+    color: #64748b;
+    margin-bottom: 20px;
+}
 {% endblock %}
 
 {% block content %}
-<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📱 Device Manager</h2>
+{% if filtered_hub %}
+<!-- Hub Filtered View -->
+<div style="margin: 20px 0 15px 0; display: flex; align-items: center; gap: 16px;">
+    <a href="/devices" style="color: white; text-decoration: none; font-size: 14px; opacity: 0.8;">&larr; All Screens</a>
+    <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">{{ filtered_hub.code }} - {{ filtered_hub.name }}</h2>
+</div>
+
+<div class="network-card">
+    <div class="network-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="network-info">
+            <h3>Hub: {{ filtered_hub.name }}</h3>
+            <p>Code: {{ filtered_hub.code }} {% if filtered_hub.network %} | Network: {{ filtered_hub.network.name }}{% endif %}</p>
+        </div>
+        <div class="network-stats">
+            <div class="network-stat">
+                <div class="network-stat-value">{{ hub_screens|length }}</div>
+                <div class="network-stat-label">Screens</div>
+            </div>
+            <div class="network-stat">
+                <div class="network-stat-value">{{ hub_screens|selectattr('status', 'equalto', 'active')|list|length }}</div>
+                <div class="network-stat-label">Online</div>
+            </div>
+        </div>
+    </div>
+
+    {% if hub_screens %}
+    <div class="screens-grid">
+        {% for screen in hub_screens %}
+        <div class="screen-card">
+            <div class="screen-header">
+                <div>
+                    <div class="screen-name">{{ screen.name }}</div>
+                    <div class="screen-id">{{ screen.device_id }}</div>
+                </div>
+                <div class="screen-status {{ screen.status }}">
+                    <span class="screen-status-dot"></span>
+                    {{ screen.status }}
+                </div>
+            </div>
+
+            <div class="screen-details">
+                <div class="screen-detail">
+                    <span class="screen-detail-label">Layout</span>
+                    <span class="screen-detail-value">{{ screen.layout_name }}</span>
+                </div>
+                <div class="screen-detail">
+                    <span class="screen-detail-label">Playing</span>
+                    <span class="screen-detail-value">{{ screen.current_playlist }}</span>
+                </div>
+            </div>
+
+            <div class="screen-actions">
+                <a href="/devices/{{ screen.device_id }}">Manage Screen &rarr;</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-network">
+        <div class="empty-network-icon">&#128247;</div>
+        <h4>No screens connected to this hub</h4>
+        <p>Pair screens to this hub from the Dashboard.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% else %}
+<!-- Normal View -->
+<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">Screens</h2>
 
 <!-- Locations -->
 <div class="locations-section">
     <div class="locations-header">
-        <h3>📍 Locations</h3>
+        <h3>Locations</h3>
         <button class="create-location-btn" onclick="openCreateLocation()">
-            ➕ Create Location
+            + Create Location
         </button>
     </div>
     <div class="locations-grid">
-        <button class="location-btn active" style="color: #64748b;" onclick="filterLocation(null)">
-            🌍 All Locations
-            <span class="count" id="count-all">{{ devices|length }}</span>
-        </button>
         {% for location in locations %}
-        <button class="location-btn" style="color: {{ location.color }};" onclick="filterLocation('{{ location.id }}')">
+        <button class="location-btn" style="color: {{ location.color }};" onclick="filterByLocation('{{ location.id }}')">
             {{ location.icon }} {{ location.name }}
             <span class="count" id="count-{{ location.id }}">0</span>
             <button class="delete-location" onclick="event.stopPropagation(); deleteLocation('{{ location.id }}', '{{ location.name }}')">×</button>
         </button>
         {% endfor %}
+        {% if not locations %}
+        <p style="color: #64748b; font-size: 14px;">No locations created yet. Create a location to organize your screens.</p>
+        {% endif %}
     </div>
 </div>
 
-<!-- Pairing Box -->
-<div class="pairing-box">
-    <h3>🔗 Pair New Device</h3>
-    <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-        Enter the 6-digit code displayed on the device screen to approve pairing
-    </p>
-    <form id="pairingForm" class="pairing-form">
-        <div class="form-group">
-            <label>6-Digit Pairing Code</label>
-            <input type="text" id="pairingCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required>
-        </div>
-        <div class="form-group">
-            <label>Assign to Location</label>
-            <select id="locationSelect">
-                <option value="">No Location</option>
-                {% for location in locations %}
-                <option value="{{ location.id }}">{{ location.icon }} {{ location.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button type="submit" class="btn btn-primary">✓ Approve</button>
-    </form>
-    <div id="pairingStatus"></div>
-</div>
-
-<!-- Devices Grid -->
-<div class="devices-section">
-    <h3 id="devicesHeader">All Devices ({{ devices|length }})</h3>
-
-    {% if devices %}
-    <div class="devices-grid">
-        {% for device in devices %}
-        <div class="device-card" data-location="{{ device.location_id or '' }}">
-            <div class="device-header">
-                <div class="device-status" id="status-{{ device.id }}"></div>
-                <div class="device-info">
-                    <div class="device-name"><a href="/devices/{{ device.device_id }}">{{ device.name or device.device_id }}</a></div>
-                    <div class="device-meta">
-                        {% if device.location_name %}
-                        <div class="device-meta-item">
-                            <div class="location-badge" style="background: {{ device.location_color }}20; color: {{ device.location_color }};">
-                                {{ device.location_icon }} {{ device.location_name }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <div class="device-meta-item">
-                            {% if device.connection_mode == 'hub' %}
-                            <span class="connection-mode-badge badge-hub">🔗 Hub</span>
-                            {% else %}
-                            <span class="connection-mode-badge badge-direct">📡 Direct</span>
-                            {% endif %}
-                        </div>
-                        {% if device.mac_address %}
-                        <div class="device-meta-item">
-                            <strong>MAC:</strong> {{ device.mac_address }}
-                        </div>
-                        {% endif %}
-                        {% if device.last_seen %}
-                        <div class="device-meta-item">
-                            <strong>Last Seen:</strong> <span id="time-{{ device.id }}">{{ device.last_seen }}</span>
-                        </div>
-                        {% endif %}
+<!-- Networks and Screens Catalog -->
+<div class="network-section">
+    {% if networks %}
+        {% for network in networks %}
+        <div class="network-card">
+            <div class="network-header">
+                <div class="network-info">
+                    <h3>{{ network.name }}</h3>
+                    <p>{{ network.description or 'No description' }}</p>
+                </div>
+                <div class="network-stats">
+                    <div class="network-stat">
+                        <div class="network-stat-value">{{ network.screen_count }}</div>
+                        <div class="network-stat-label">Screens</div>
                     </div>
-                    <span class="badge" id="badge-{{ device.id }}"></span>
+                    <div class="network-stat">
+                        <div class="network-stat-value">{{ network.online_count }}</div>
+                        <div class="network-stat-label">Online</div>
+                    </div>
                 </div>
             </div>
 
-            {% if device.paired == 1 %}
-            <div class="device-playlists">
-                <div class="section-title">📋 Assigned Playlists</div>
-                {% if device.assigned_playlists %}
-                {% for playlist in device.assigned_playlists %}
-                <div class="playlist-item">
-                    <div class="playlist-name">{{ playlist.name }}</div>
-                    <div class="playlist-trigger">
-                        Trigger: {{ playlist.trigger_type }}
-                        {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %}
+            {% if network.screens %}
+            <div class="screens-grid">
+                {% for screen in network.screens %}
+                <div class="screen-card">
+                    <div class="screen-header">
+                        <div>
+                            <div class="screen-name">{{ screen.name }}</div>
+                            <div class="screen-id">{{ screen.device_id }}</div>
+                        </div>
+                        <div class="screen-status {{ screen.status }}">
+                            <span class="screen-status-dot"></span>
+                            {{ screen.status }}
+                        </div>
+                    </div>
+
+                    <div class="screen-details">
+                        <div class="screen-detail">
+                            <span class="screen-detail-label">Layout</span>
+                            <span class="screen-detail-value">{{ screen.layout_name }}</span>
+                        </div>
+                        <div class="screen-detail">
+                            <span class="screen-detail-label">Playing</span>
+                            <span class="screen-detail-value">{{ screen.current_playlist }}</span>
+                        </div>
+                    </div>
+
+                    <div class="screen-actions">
+                        <a href="/devices/{{ screen.device_id }}">Manage Screen &rarr;</a>
                     </div>
                 </div>
                 {% endfor %}
-                {% else %}
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; color: #94a3b8; font-size: 13px;">
-                    No playlists assigned
-                </div>
-                {% endif %}
-
-                <button class="btn btn-assign" onclick="openAssignPlaylist('{{ device.id }}', '{{ device.name }}')">
-                    ➕ Assign Playlist
-                </button>
-                <a href="/devices/{{ device.device_id }}" class="device-settings-link">
-                    Settings &rarr;
-                </a>
             </div>
             {% else %}
-            <button class="btn btn-primary" style="width: 100%;" onclick="quickPair('{{ device.pairing_code }}')">
-                ✓ Quick Pair
-            </button>
+            <div class="empty-network">
+                <div class="empty-network-icon">&#128247;</div>
+                <h4>No screens in this network</h4>
+                <p>Add screens to this network to see them here.</p>
+            </div>
             {% endif %}
         </div>
         {% endfor %}
-    </div>
     {% else %}
-    <div class="empty-state">
-        <div class="empty-state-icon">📱</div>
-        <h3>No devices yet</h3>
-        <p>Devices will appear here when they request pairing</p>
+    <div class="no-networks">
+        <div class="no-networks-icon">&#127760;</div>
+        <h3>No Networks Configured</h3>
+        <p>Create a network and add screens to get started.</p>
+        <a href="/" class="btn btn-primary">Go to Dashboard</a>
     </div>
     {% endif %}
 </div>
+
+<!-- Individual/Unassigned Devices -->
+{% if unassigned_devices %}
+<div class="network-card" style="margin-top: 24px;">
+    <div class="network-header" style="background: linear-gradient(135deg, #64748b 0%, #475569 100%);">
+        <div class="network-info">
+            <h3>Individual Devices</h3>
+            <p>Screens not assigned to a network</p>
+        </div>
+        <div class="network-stats">
+            <div class="network-stat">
+                <div class="network-stat-value">{{ unassigned_devices|length }}</div>
+                <div class="network-stat-label">Screens</div>
+            </div>
+        </div>
+    </div>
+    <div class="screens-grid">
+        {% for device in unassigned_devices %}
+        <div class="screen-card">
+            <div class="screen-header">
+                <div>
+                    <div class="screen-name">{{ device.name or device.device_id }}</div>
+                    <div class="screen-id">{{ device.device_id }}</div>
+                </div>
+                <div class="screen-status {{ device.status }}">
+                    <span class="screen-status-dot"></span>
+                    {{ device.status }}
+                </div>
+            </div>
+            <div class="screen-details">
+                <div class="screen-detail">
+                    <span class="screen-detail-label">Mode</span>
+                    <span class="screen-detail-value">{{ device.mode or 'direct' }}</span>
+                </div>
+                <div class="screen-detail">
+                    <span class="screen-detail-label">Status</span>
+                    <span class="screen-detail-value">{{ device.status }}</span>
+                </div>
+            </div>
+            <div class="screen-actions">
+                <a href="/devices/{{ device.device_id }}">Manage Screen &rarr;</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Create Location Modal -->
 <div class="modal" id="createLocationModal">
@@ -706,168 +1009,14 @@
         </form>
     </div>
 </div>
+{% endif %}
 
-<!-- Assign Playlist Modal -->
-<div class="modal" id="assignModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="assignModalTitle">Assign Playlist</h3>
-            <button class="close-btn" onclick="closeAssignModal()">&times;</button>
-        </div>
-
-        <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-            Select a playlist to assign to this device. The device will download and cache the content for offline playback.
-        </p>
-
-        <div class="form-group">
-            <label>Select Playlist</label>
-            <select id="playlistSelect" style="width: 100%;">
-                <option value="">Choose a playlist...</option>
-                {% for playlist in playlists %}
-                <option value="{{ playlist.id }}">
-                    {{ playlist.name }} ({{ playlist.trigger_type }}
-                    {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %})
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <button class="btn btn-primary" onclick="assignPlaylist()">Assign to Device</button>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    let currentDeviceId = null;
     let selectedLocationIcon = '📍';
     let selectedLocationColor = '#667eea';
-
-    // Update device statuses
-    function isOnline(lastSeenStr) {
-        if (!lastSeenStr) return false;
-        const lastSeen = new Date(lastSeenStr);
-        const now = new Date();
-        const diff = (now - lastSeen) / 1000 / 60;
-        return diff < 5;
-    }
-
-    function updateDeviceStatuses() {
-        document.querySelectorAll('.device-card').forEach(card => {
-            const statusEl = card.querySelector('[id^="status-"]');
-            const badgeEl = card.querySelector('[id^="badge-"]');
-            const timeEl = card.querySelector('[id^="time-"]');
-
-            if (!statusEl || !badgeEl) return;
-
-            const isPaired = !card.querySelector('.btn-primary:not(.btn-assign)');
-            const lastSeen = timeEl ? timeEl.textContent : null;
-
-            if (!isPaired) {
-                statusEl.className = 'device-status pending';
-                badgeEl.className = 'badge badge-pending';
-                badgeEl.textContent = '⏳ PENDING';
-            } else if (isOnline(lastSeen)) {
-                statusEl.className = 'device-status online';
-                badgeEl.className = 'badge badge-online';
-                badgeEl.textContent = '● ONLINE';
-            } else {
-                statusEl.className = 'device-status offline';
-                badgeEl.className = 'badge badge-offline';
-                badgeEl.textContent = '○ OFFLINE';
-            }
-        });
-    }
-
-    updateDeviceStatuses();
-
-    // Update location counts
-    function updateLocationCounts() {
-        const cards = document.querySelectorAll('.device-card');
-        const counts = {};
-
-        cards.forEach(card => {
-            const locationId = card.dataset.location;
-            if (locationId) {
-                counts[locationId] = (counts[locationId] || 0) + 1;
-            }
-        });
-
-        Object.keys(counts).forEach(locationId => {
-            const el = document.getElementById(`count-${locationId}`);
-            if (el) el.textContent = counts[locationId];
-        });
-
-        document.getElementById('count-all').textContent = cards.length;
-    }
-
-    updateLocationCounts();
-
-    // Filter by location
-    function filterLocation(locationId) {
-        const cards = document.querySelectorAll('.device-card');
-        const buttons = document.querySelectorAll('.location-btn');
-
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.location-btn').classList.add('active');
-
-        let visibleCount = 0;
-        cards.forEach(card => {
-            if (locationId === null || card.dataset.location == locationId) {
-                card.style.display = 'block';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        const locationName = locationId === null ? 'All Locations' : event.target.textContent.split('\n')[0].trim();
-        document.getElementById('devicesHeader').textContent = `${locationName} (${visibleCount})`;
-    }
-
-    // Pairing
-    document.getElementById('pairingForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const code = document.getElementById('pairingCode').value;
-        const locationId = document.getElementById('locationSelect').value || null;
-        const statusDiv = document.getElementById('pairingStatus');
-
-        statusDiv.style.display = 'block';
-        statusDiv.style.background = '#e0e7ff';
-        statusDiv.style.color = '#3730a3';
-        statusDiv.textContent = '⏳ Approving device...';
-
-        try {
-            const response = await fetch('/api/admin/pairing/approve', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ pairing_code: code, location_id: locationId })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                statusDiv.style.background = '#d1fae5';
-                statusDiv.style.color = '#065f46';
-                statusDiv.textContent = `✅ Device paired successfully! ${data.name}`;
-                setTimeout(() => location.reload(), 2000);
-            } else {
-                statusDiv.style.background = '#fee2e2';
-                statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = `❌ Error: ${data.error || 'Invalid pairing code'}`;
-            }
-        } catch (error) {
-            statusDiv.style.background = '#fee2e2';
-            statusDiv.style.color = '#991b1b';
-            statusDiv.textContent = `❌ Failed: ${error.message}`;
-        }
-    });
-
-    function quickPair(code) {
-        document.getElementById('pairingCode').value = code;
-        document.getElementById('locationSelect').focus();
-    }
 
     // Create Location Modal
     function openCreateLocation() {
@@ -915,20 +1064,19 @@
             });
 
             if (response.ok) {
-                alert('✅ Location created successfully!');
                 location.reload();
             } else {
                 const data = await response.json();
-                alert('❌ Error: ' + data.error);
+                alert('Error: ' + data.error);
             }
         } catch (error) {
-            alert('❌ Failed to create location');
+            alert('Failed to create location');
         }
     });
 
     // Delete location
     async function deleteLocation(locationId, locationName) {
-        if (!confirm(`Delete location "${locationName}"? Devices will not be deleted.`)) {
+        if (!confirm(`Delete location "${locationName}"? Screens will not be deleted.`)) {
             return;
         }
 
@@ -940,48 +1088,17 @@
             if (response.ok) {
                 location.reload();
             } else {
-                alert('❌ Failed to delete location');
+                alert('Failed to delete location');
             }
         } catch (error) {
-            alert('❌ Error: ' + error.message);
+            alert('Error: ' + error.message);
         }
     }
 
-    // Assign Playlist Modal
-    function openAssignPlaylist(deviceId, deviceName) {
-        currentDeviceId = deviceId;
-        document.getElementById('assignModalTitle').textContent = `Assign Playlist to ${deviceName}`;
-        document.getElementById('assignModal').classList.add('active');
-    }
-
-    function closeAssignModal() {
-        document.getElementById('assignModal').classList.remove('active');
-    }
-
-    async function assignPlaylist() {
-        const playlistId = document.getElementById('playlistSelect').value;
-
-        if (!playlistId) {
-            alert('Please select a playlist');
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/devices/${currentDeviceId}/assign-playlist`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ playlist_id: playlistId })
-            });
-
-            if (response.ok) {
-                alert('✅ Playlist assigned successfully! Device will sync content on next check-in.');
-                location.reload();
-            } else {
-                alert('❌ Failed to assign playlist');
-            }
-        } catch (error) {
-            alert('❌ Error: ' + error.message);
-        }
+    // Filter screens by location (future functionality)
+    function filterByLocation(locationId) {
+        // TODO: Filter network cards/screens by location
+        console.log('Filter by location:', locationId);
     }
 </script>
 {% endblock %}
