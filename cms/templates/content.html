@@ -3,325 +3,274 @@
 {% block title %}Content Library - Skillz Media Screens CMS{% endblock %}
 
 {% block extra_styles %}
-.layout {
+/* Page Layout: Left Sidebar + Main Content */
+.content-library-layout {
     display: grid;
-    grid-template-columns: 1fr 500px;
-    gap: 20px;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
     margin-top: 20px;
+    min-height: calc(100vh - 120px);
 }
 
-.main-content {
-    min-width: 0;
-}
-
-.preview-panel {
-    position: sticky;
-    top: 20px;
+/* Left Sidebar */
+.left-sidebar {
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    padding: 20px;
     height: fit-content;
+}
+
+.sidebar-item {
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-item:hover {
+    background: #f1f5f9;
+}
+
+.sidebar-item.active {
+    background: #667eea;
+    color: white;
+}
+
+.sidebar-item.syncing {
+    background: #f59e0b;
+    color: white;
+}
+
+/* Main Content Area */
+.main-content-area {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 /* Networks Section */
 .networks-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    padding: 24px;
 }
 
 .networks-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
-.networks-section h3 {
-    font-size: 18px;
-    color: #1e293b;
+.networks-header h2 {
+    font-size: 22px;
     font-weight: 700;
+    color: #1e293b;
+    margin: 0;
 }
 
+/* Network Folders Grid */
 .networks-grid {
     display: flex;
-    gap: 10px;
+    gap: 16px;
     flex-wrap: wrap;
 }
 
-.network-btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #f1f5f9;
+.network-folder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    color: #64748b;
+    min-width: 120px;
+    text-align: center;
 }
 
-.network-btn:hover {
+.network-folder:hover {
+    background: #f8fafc;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.network-btn.active {
-    border-color: #667eea;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    color: #667eea;
+.network-folder.active {
+    background: #eef2ff;
+    border: 2px solid #667eea;
 }
 
-.network-btn .count {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+.network-folder-icon {
+    font-size: 64px;
+    margin-bottom: 8px;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.1));
 }
 
-/* Partners Section */
-.partners-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.partners-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.partners-section h3 {
-    font-size: 18px;
-    color: #1e293b;
-    font-weight: 700;
-}
-
-.partners-grid {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.partner-btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #f1f5f9;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    color: #64748b;
-}
-
-.partner-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.partner-btn.active {
-    border-color: #10b981;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    color: #10b981;
-}
-
-.partner-btn .count {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* Content Type Section */
-.content-type-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.content-type-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.content-type-section h3 {
-    font-size: 18px;
-    color: #1e293b;
-    font-weight: 700;
-}
-
-.content-type-grid {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.content-type-btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #f1f5f9;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-    color: #64748b;
-}
-
-.content-type-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.content-type-btn.active {
-    border-color: #f59e0b;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    color: #f59e0b;
-}
-
-.content-type-btn .count {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* Folders Section */
-.folders-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.folders-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.folders-section h3 {
-    font-size: 18px;
-    color: #1e293b;
-    font-weight: 700;
-}
-
-.create-folder-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
+.network-folder-name {
     font-size: 13px;
     font-weight: 600;
-    transition: all 0.2s;
+    color: #1e293b;
+    max-width: 100px;
+    line-height: 1.3;
 }
 
-.create-folder-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.network-folder-count {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
 }
 
-.folders-grid {
+/* All Content Section */
+.all-content-section {
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    padding: 24px;
+    flex: 1;
+}
+
+.all-content-header {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
-.folder-btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #f1f5f9;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
+.all-content-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+/* Search Box */
+.search-box {
     display: flex;
     align-items: center;
     gap: 8px;
-    position: relative;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    width: 280px;
 }
 
-.folder-btn:hover {
+.search-box input {
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+}
+
+.search-box:focus-within {
+    border-color: #667eea;
+}
+
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.content-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.content-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    border-color: #667eea;
 }
 
-.folder-btn.drag-over {
-    transform: scale(1.05);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-    border-color: #667eea !important;
+.content-card.active {
+    border-color: #667eea;
     background: #eef2ff;
 }
 
-.content-card.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
+.content-thumbnail {
+    width: 100%;
+    height: 110px;
+    background: #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
-.folder-btn.active {
-    border-color: currentColor;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.content-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-.folder-btn .count {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
+.content-thumbnail .no-thumbnail {
+    font-size: 32px;
+    color: #94a3b8;
+}
+
+.status-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge.approved { background: #dcfce7; color: #16a34a; }
+.status-badge.pending_review { background: #fef3c7; color: #d97706; }
+.status-badge.rejected { background: #fee2e2; color: #dc2626; }
+
+.content-title {
+    font-size: 14px;
     font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.delete-folder {
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 2px 6px;
+.content-meta {
     font-size: 12px;
-    cursor: pointer;
-    margin-left: 8px;
-    opacity: 0;
-    transition: opacity 0.2s;
+    color: #64748b;
 }
 
-.folder-btn:hover .delete-folder {
-    opacity: 1;
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    color: #1e293b;
+    margin-bottom: 8px;
 }
 
 /* Modal */
@@ -344,8 +293,8 @@
 
 .modal-content {
     background: white;
-    border-radius: 20px;
-    padding: 30px;
+    border-radius: 16px;
+    padding: 28px;
     max-width: 500px;
     width: 90%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -355,13 +304,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 }
 
 .modal-header h3 {
-    font-size: 22px;
+    font-size: 20px;
     color: #1e293b;
     font-weight: 700;
+    margin: 0;
 }
 
 .close-btn {
@@ -370,11 +320,36 @@
     font-size: 28px;
     cursor: pointer;
     color: #64748b;
-    transition: color 0.2s;
 }
 
 .close-btn:hover {
     color: #1e293b;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #374151;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #667eea;
 }
 
 /* Icon Picker */
@@ -382,22 +357,21 @@
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     gap: 8px;
-    margin: 15px 0;
+    margin: 12px 0;
 }
 
 .icon-option {
-    padding: 12px;
+    padding: 10px;
     border: 2px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    font-size: 24px;
+    font-size: 22px;
     transition: all 0.2s;
 }
 
 .icon-option:hover {
     border-color: #667eea;
-    transform: scale(1.1);
 }
 
 .icon-option.selected {
@@ -410,13 +384,13 @@
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 10px;
-    margin: 15px 0;
+    margin: 12px 0;
 }
 
 .color-option {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     cursor: pointer;
     border: 3px solid transparent;
     transition: all 0.2s;
@@ -428,684 +402,208 @@
 
 .color-option.selected {
     border-color: #1e293b;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.form-group {
-    margin: 20px 0;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #475569;
+/* Buttons */
+.btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
-    font-size: 14px;
-}
-
-.form-group input, .form-group select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.form-group input:focus, .form-group select:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-/* Content Grid */
-.content-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.content-section h3 {
-    font-size: 18px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-.content-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.content-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s;
     cursor: pointer;
-    border: 2px solid transparent;
-}
-
-.content-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    border-color: #667eea;
-}
-
-.content-card.active {
-    border-color: #667eea;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
-}
-
-.content-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 10px;
-}
-
-.content-info {
-    color: #64748b;
-    font-size: 13px;
-    margin: 6px 0;
-}
-
-.folder-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 10px;
-}
-
-/* Content Card Thumbnail */
-.content-thumbnail {
-    width: 100%;
-    height: 140px;
-    background: #f1f5f9;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.content-thumbnail img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.content-thumbnail .no-thumbnail {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    font-size: 36px;
-}
-
-.content-thumbnail .no-thumbnail span {
-    font-size: 11px;
-    margin-top: 4px;
-}
-
-/* Status Badge */
-.status-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-badge.approved {
-    background: #dcfce7;
-    color: #16a34a;
-}
-
-.status-badge.published {
-    background: #dbeafe;
-    color: #2563eb;
-}
-
-.status-badge.pending {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.status-badge.pending_review {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.status-badge.rejected {
-    background: #fee2e2;
-    color: #dc2626;
-}
-
-.status-badge.draft {
-    background: #f1f5f9;
-    color: #64748b;
-}
-
-/* Partner Badge */
-.partner-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #f0fdf4;
-    color: #16a34a;
-    margin-top: 8px;
-}
-
-.partner-badge.no-partner {
-    background: #f1f5f9;
-    color: #64748b;
-}
-
-/* Content Card Meta Row */
-.content-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
-}
-
-/* Sync Section */
-.sync-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.sync-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.sync-section h3 {
-    font-size: 18px;
-    color: #1e293b;
-    font-weight: 700;
-}
-
-.sync-controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.sync-btn {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
+    transition: all 0.2s;
     border: none;
-    padding: 10px 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
 }
 
-.sync-btn:hover {
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.sync-btn:disabled {
-    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.sync-btn.syncing {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.sync-btn .sync-icon {
-    transition: transform 0.5s ease;
-}
-
-.sync-btn.syncing .sync-icon {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.sync-timestamp {
-    font-size: 13px;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.sync-timestamp .timestamp-label {
-    font-weight: 500;
-}
-
-.sync-timestamp .timestamp-value {
-    color: #1e293b;
-    font-weight: 600;
-}
-
-.sync-status {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.sync-stat {
-    background: #f8fafc;
-    padding: 12px 16px;
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: white;
+    padding: 16px 24px;
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.sync-stat .stat-label {
-    font-size: 12px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.sync-stat .stat-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1e293b;
-}
-
-.sync-stat.success {
-    background: #dcfce7;
-}
-
-.sync-stat.success .stat-value {
-    color: #16a34a;
-}
-
-.sync-stat.warning {
-    background: #fef3c7;
-}
-
-.sync-stat.warning .stat-value {
-    color: #d97706;
-}
-
-.sync-stat.error {
-    background: #fee2e2;
-}
-
-.sync-stat.error .stat-value {
-    color: #dc2626;
-}
-
-/* Player Box */
-.player-box {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.player-box h3 {
-    font-size: 16px;
-    color: #1e293b;
-    margin-bottom: 15px;
-    font-weight: 700;
-}
-
-.player-container {
-    position: relative;
-    width: 100%;
-    padding-bottom: 56.25%;
-    background: #000;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.player-container video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.no-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #94a3b8;
-    flex-direction: column;
-    padding: 40px 20px;
-}
-
-.no-preview svg {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 15px;
-    opacity: 0.3;
-}
-
-.player-info {
-    margin-top: 15px;
-}
-
-.player-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 10px;
-}
-
-.player-meta {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-}
-
-.meta-item {
-    background: #f8fafc;
-    padding: 12px;
-    border-radius: 8px;
-}
-
-.meta-label {
-    font-size: 11px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.meta-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-top: 5px;
-}
-
-
-/* Drop Zone Styles */
-.drop-zone-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(102, 126, 234, 0.15);
-    border: 4px dashed #667eea;
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-}
-
-.drop-zone-overlay.active {
-    display: flex;
-}
-
-.drop-zone-message {
-    background: white;
-    padding: 40px 60px;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    text-align: center;
-}
-
-.drop-zone-message .drop-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-}
-
-.drop-zone-message h3 {
-    font-size: 24px;
-    color: #1e293b;
-    margin-bottom: 10px;
-}
-
-.drop-zone-message p {
-    color: #64748b;
-    font-size: 16px;
-}
-
-.drop-toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: white;
-    padding: 20px 30px;
-    border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     z-index: 10000;
     transform: translateX(400px);
     opacity: 0;
     transition: all 0.3s ease;
 }
 
-.drop-toast.show {
+.toast.show {
     transform: translateX(0);
     opacity: 1;
 }
 
-.drop-toast.success {
-    border-left: 4px solid #10b981;
+.toast.success { border-left: 4px solid #10b981; }
+.toast.error { border-left: 4px solid #ef4444; }
+
+.toast-icon { font-size: 24px; }
+.toast-content h4 { font-size: 14px; color: #1e293b; margin: 0 0 2px 0; }
+.toast-content p { font-size: 13px; color: #64748b; margin: 0; }
+
+/* Back Button */
+#backButton:hover {
+    background: #f1f5f9;
+    border-color: #667eea;
+    color: #667eea;
 }
 
-.drop-toast.error {
-    border-left: 4px solid #ef4444;
+/* Breadcrumb */
+.breadcrumb-item {
+    cursor: pointer;
+    color: #667eea;
+    transition: color 0.2s;
 }
 
-.drop-toast .toast-icon {
-    font-size: 32px;
+.breadcrumb-item:hover {
+    color: #4f46e5;
+    text-decoration: underline;
 }
 
-.drop-toast .toast-content h4 {
-    font-size: 16px;
-    color: #1e293b;
-    margin: 0 0 4px 0;
+/* Drag and Drop */
+.content-card {
+    cursor: grab;
 }
 
-.drop-toast .toast-content p {
-    font-size: 14px;
-    color: #64748b;
-    margin: 0;
+.content-card:active {
+    cursor: grabbing;
 }
 
-.content-section.drop-target {
-    border: 3px dashed #667eea !important;
-    background: rgba(102, 126, 234, 0.05) !important;
+.content-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.droppable-folder.drag-over {
+    background: #eef2ff !important;
+    border: 2px dashed #667eea !important;
+    transform: scale(1.02);
+}
+
+.droppable-folder {
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.folder-nav-bar.drag-over {
+    background: #eef2ff !important;
+    border: 2px dashed #667eea !important;
 }
 
 {% endblock %}
 
 {% block content %}
+<h2 style="margin: 0 0 8px 0; color: white; font-size: 28px; font-weight: 700;">Content Library</h2>
 
-<!-- Drop Zone Overlay -->
-<div class="layout">
-    <div class="main-content">
-        <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📁 Content Library</h2>
-
-        <!-- Sync Section -->
-        <div class="sync-section">
-            <div class="sync-header">
-                <h3>🔄 Content Catalog Sync</h3>
-                <div class="sync-controls">
-                    <div class="sync-timestamp" id="syncTimestamp">
-                        <span class="timestamp-label">Last synced:</span>
-                        <span class="timestamp-value" id="lastSyncTime">Loading...</span>
-                    </div>
-                    <button class="sync-btn" id="syncBtn" onclick="syncContent()">
-                        <span class="sync-icon">🔄</span>
-                        <span class="sync-text">Sync Now</span>
-                    </button>
-                </div>
-            </div>
-            <div class="sync-status" id="syncStatus">
-                <div class="sync-stat" id="syncStatTotal">
-                    <span class="stat-label">Total Synced:</span>
-                    <span class="stat-value" id="totalSynced">-</span>
-                </div>
-                <div class="sync-stat" id="syncStatCatalog">
-                    <span class="stat-label">Catalog Status:</span>
-                    <span class="stat-value" id="catalogStatus">Checking...</span>
-                </div>
-            </div>
+<div class="content-library-layout">
+    <!-- Left Sidebar -->
+    <div class="left-sidebar">
+        <div class="sidebar-item" id="syncBtn" onclick="syncContent()">
+            <span id="syncIcon">🔄</span> <span id="syncText">Sync</span>
         </div>
+        <div class="sidebar-item" onclick="showToast(true, 'Coming Soon', 'Tags feature coming soon!')">
+            <span>🏷️</span> Tags
+        </div>
+    </div>
 
-        <!-- Network Filter -->
+    <!-- Main Content Area -->
+    <div class="main-content-area">
+        <!-- Networks Section -->
         <div class="networks-section">
             <div class="networks-header">
-                <h3>🌐 Networks</h3>
+                <h2>Networks</h2>
             </div>
             <div class="networks-grid">
-                <button class="network-btn active" onclick="filterNetwork(null)">
-                    🌍 All Networks
-                    <span class="count" id="network-count-all">{{ content|length }}</span>
-                </button>
                 {% for network in networks %}
-                <button class="network-btn" data-network-id="{{ network.slug }}" onclick="filterNetwork('{{ network.slug }}')">
-                    📡 {{ network.name }}
-                    <span class="count" id="network-count-{{ network.slug }}">0</span>
-                </button>
+                <div class="network-folder" data-network="{{ network.slug }}" data-network-id="{{ network.id }}" onclick="selectNetwork('{{ network.slug }}', '{{ network.name }}', '{{ network.id }}')">
+                    <div class="network-folder-icon">📁</div>
+                    <div class="network-folder-name">{{ network.name }}</div>
+                    <div class="network-folder-count" id="count-{{ network.slug }}">0 items</div>
+                </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- Partner Filter -->
-        <div class="partners-section">
-            <div class="partners-header">
-                <h3>🏢 Partners</h3>
+        <!-- Folders Section (shown when a network is selected) -->
+        <div class="networks-section" id="foldersSection" style="display: none;">
+            <div class="networks-header">
+                <h2 id="foldersSectionTitle">Folders</h2>
+                <button class="btn btn-primary" onclick="openCreateFolder()" style="padding: 8px 16px; font-size: 13px;">
+                    + New Folder
+                </button>
             </div>
-            <div class="partners-grid">
-                <button class="partner-btn active" onclick="filterPartner(null)">
-                    🏢 All Partners
-                    <span class="count" id="partner-count-all">{{ content|length }}</span>
+            <!-- Navigation Bar with Back Button and Breadcrumb -->
+            <div id="folderNavBar"
+                 class="folder-nav-bar"
+                 ondragover="handleNavBarDragOver(event)"
+                 ondragleave="handleNavBarDragLeave(event)"
+                 ondrop="handleNavBarDrop(event)"
+                 style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 2px solid transparent; transition: all 0.2s;">
+                <!-- Back Button (hidden at root level) -->
+                <button id="backButton" onclick="goBack()" style="display: none; padding: 8px 12px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.2s;">
+                    ← Back
                 </button>
-                {% for org in organizations %}
-                <button class="partner-btn" data-organization-id="{{ org.id }}" onclick="filterPartner('{{ org.id }}')">
-                    🏭 {{ org.name }}
-                    <span class="count" id="partner-count-{{ org.id }}">0</span>
-                </button>
-                {% endfor %}
+                <!-- Breadcrumb Path -->
+                <div id="folderBreadcrumb" style="flex: 1; font-size: 14px; color: #64748b; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span class="breadcrumb-item" style="cursor: pointer; color: #667eea;" onclick="goToNetworkRoot()">Network</span>
+                </div>
+                <!-- Drop hint (shown when dragging) -->
+                <div id="dropHint" style="display: none; font-size: 12px; color: #667eea; padding: 4px 8px; background: #eef2ff; border-radius: 4px;">
+                    Drop here to move to root
+                </div>
             </div>
-        </div>
-
-        <!-- Content Type Filter -->
-        <div class="content-type-section">
-            <div class="content-type-header">
-                <h3>📁 Content Type</h3>
-            </div>
-            <div class="content-type-grid">
-                <button class="content-type-btn active" onclick="filterContentType(null)">
-                    📋 All Types
-                    <span class="count" id="type-count-all">{{ content|length }}</span>
-                </button>
-                <button class="content-type-btn" data-content-type="video" onclick="filterContentType('video')">
-                    🎬 Video
-                    <span class="count" id="type-count-video">0</span>
-                </button>
-                <button class="content-type-btn" data-content-type="image" onclick="filterContentType('image')">
-                    🖼️ Image
-                    <span class="count" id="type-count-image">0</span>
-                </button>
-                <button class="content-type-btn" data-content-type="audio" onclick="filterContentType('audio')">
-                    🎵 Audio
-                    <span class="count" id="type-count-audio">0</span>
-                </button>
+            <div class="networks-grid" id="foldersGrid">
+                <!-- Folders will be populated by JavaScript -->
             </div>
         </div>
 
-        <!-- Folders -->
-        <div class="folders-section">
-            <div class="folders-header">
-                <h3>🗂️ Folders</h3>
-                <button class="create-folder-btn" onclick="openCreateFolder()">
-                    ➕ Create Folder
-                </button>
+        <!-- All Content Section -->
+        <div class="all-content-section">
+            <div class="all-content-header">
+                <h2 id="contentSectionTitle">All Content</h2>
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search content..." oninput="searchContent(this.value)">
+                </div>
             </div>
-            <div class="folders-grid">
-                <button class="folder-btn active" style="color: #64748b;" onclick="filterFolder(null)"
-                        data-folder-id=""
-                        ondragover="handleFolderDragOver(event)"
-                        ondragleave="handleFolderDragLeave(event)"
-                        ondrop="handleFolderDrop(event, null)">
-                    📂 All Content
-                    <span class="count" id="count-all">{{ content|length }}</span>
-                </button>
-                {% for folder in folders %}
-                <button class="folder-btn" style="color: {{ folder.color }};" onclick="filterFolder('{{ folder.id }}')"
-                        data-folder-id="{{ folder.id }}"
-                        ondragover="handleFolderDragOver(event)"
-                        ondragleave="handleFolderDragLeave(event)"
-                        ondrop="handleFolderDrop(event, '{{ folder.id }}')">
-                    {{ folder.icon }} {{ folder.name }}
-                    <span class="count" id="count-{{ folder.id }}">0</span>
-                    <button class="delete-folder" onclick="event.stopPropagation(); deleteFolder('{{ folder.id }}', '{{ folder.name }}')">×</button>
-                </button>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Content Grid -->
-        <div class="content-section">
-            <h3 id="contentHeader">All Content ({{ content|length }})</h3>
 
             {% if content %}
             <div class="content-grid" id="contentGrid">
                 {% for item in content %}
-                <div class="content-card" data-id="{{ item.id }}" data-folder="{{ item.folder_id or '' }}" data-networks='{{ item.network_ids|default([])|tojson|safe }}' data-organization="{{ item.organization_id or '' }}" data-content-type="{{ item.content_type or 'video' }}" data-status="{{ item.status or '' }}"
+                <div class="content-card"
+                     data-id="{{ item.id }}"
+                     data-folder="{{ item.folder_id or '' }}"
+                     data-networks='{{ item.network_ids|default([])|tojson|safe }}'
+                     data-title="{{ item.title }}"
+                     data-status="{{ item.status or '' }}"
                      draggable="true"
-                     ondragstart="handleContentDragStart(event, '{{ item.id }}')"
+                     ondragstart="handleContentDragStart(event)"
                      ondragend="handleContentDragEnd(event)"
                      onclick="previewContent('{{ item.id }}', '{{ item.local_filename|default(item.filename) }}', '{{ item.title }}', {{ item.duration }}, {{ item.file_size }})">
-                    <!-- Thumbnail with Status Badge -->
                     <div class="content-thumbnail">
                         {% if item.thumbnail_url %}
-                        <img src="{{ item.thumbnail_url }}" alt="{{ item.title }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <img src="{{ item.thumbnail_url }}" alt="{{ item.title }}" onerror="this.style.display='none'; this.parentElement.querySelector('.no-thumbnail').style.display='flex';">
                         <div class="no-thumbnail" style="display: none;">
-                            {% if item.content_type == 'video' or not item.content_type %}🎬{% elif item.content_type == 'image' %}🖼️{% elif item.content_type == 'audio' %}🎵{% else %}📄{% endif %}
-                            <span>Click to preview</span>
+                            {% if item.content_type == 'video' %}🎬{% elif item.content_type == 'image' %}🖼️{% else %}📄{% endif %}
                         </div>
                         {% else %}
                         <div class="no-thumbnail">
-                            {% if item.content_type == 'video' or not item.content_type %}🎬{% elif item.content_type == 'image' %}🖼️{% elif item.content_type == 'audio' %}🎵{% else %}📄{% endif %}
-                            <span>Click to preview</span>
+                            {% if item.content_type == 'video' %}🎬{% elif item.content_type == 'image' %}🖼️{% else %}📄{% endif %}
                         </div>
                         {% endif %}
                         {% if item.status %}
@@ -1113,22 +611,7 @@
                         {% endif %}
                     </div>
                     <div class="content-title">{{ item.title }}</div>
-                    <div class="content-info">📄 {{ item.filename }}</div>
-                    <div class="content-info">⏱️ {{ item.duration }}s (auto-detected)</div>
-                    <div class="content-info">💾 {{ (item.file_size / 1024 / 1024)|round(1) }} MB</div>
-                    <div class="content-meta-row">
-                        {% if item.folder_name %}
-                        <div class="folder-badge" style="background: {{ item.folder_color }}20; color: {{ item.folder_color }};">
-                            {{ item.folder_icon }} {{ item.folder_name }}
-                        </div>
-                        {% endif %}
-                        {% if item.organization_name %}
-                        <div class="partner-badge">
-                            🏢 {{ item.organization_name }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <span class="badge">ID: {{ item.id }}</span>
+                    <div class="content-meta">{{ item.duration }}s • {{ (item.file_size / 1024 / 1024)|round(1) }} MB</div>
                 </div>
                 {% endfor %}
             </div>
@@ -1136,64 +619,11 @@
             <div class="empty-state">
                 <div class="empty-state-icon">🎬</div>
                 <h3>No content available</h3>
-                <p>Content will appear here when added to the catalog.</p>
+                <p>Click Sync to fetch content from the catalog.</p>
             </div>
             {% endif %}
         </div>
     </div>
-
-    <!-- Right Panel: Asset Editor -->
-    <div class="preview-panel" id="assetEditorPanel" style="display: none;">
-        <div class="player-box">
-            <h3>🎬 Asset Preview</h3>
-            <div class="player-container" id="previewContainer">
-                <div class="no-preview">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z"/>
-                    </svg>
-                    <span>Select content to preview</span>
-                </div>
-            </div>
-            <div class="player-info" id="playerInfo" style="display: none;">
-                <div class="player-title" id="playerTitle">-</div>
-                <div class="player-meta">
-                    <div class="meta-item">
-                        <div class="meta-label">Duration</div>
-                        <div class="meta-value" id="playerDuration">-</div>
-                    </div>
-                    <div class="meta-item">
-                        <div class="meta-label">Size</div>
-                        <div class="meta-value" id="playerSize">-</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Asset Editor Section -->
-        <div class="player-box" style="margin-top: 20px;" id="assetEditorSection">
-            <h3>✏️ Edit Asset</h3>
-            <div class="form-group">
-                <label>Display Duration (seconds)</label>
-                <input type="number" id="editDuration" min="1" max="3600" placeholder="Duration in seconds">
-                <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">
-                    For images, this sets how long to display. For videos, this is informational.
-                </small>
-            </div>
-            <div class="form-group">
-                <label>Folder</label>
-                <select id="editFolder">
-                    <option value="">No Folder</option>
-                    {% for folder in folders %}
-                    <option value="{{ folder.id }}">{{ folder.icon }} {{ folder.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button class="btn btn-primary" onclick="saveAssetChanges()" style="width: 100%;">
-                💾 Save Changes
-            </button>
-        </div>
-    </div>
-
 </div>
 
 <!-- Create Folder Modal -->
@@ -1203,15 +633,13 @@
             <h3>Create New Folder</h3>
             <button class="close-btn" onclick="closeCreateFolder()">&times;</button>
         </div>
-
         <form id="createFolderForm">
             <div class="form-group">
                 <label>Folder Name</label>
                 <input type="text" id="folderName" placeholder="e.g., Holiday Specials" required>
             </div>
-
             <div class="form-group">
-                <label>Choose Icon</label>
+                <label>Icon</label>
                 <div class="icon-picker">
                     <div class="icon-option selected" data-icon="📁">📁</div>
                     <div class="icon-option" data-icon="🎯">🎯</div>
@@ -1221,37 +649,43 @@
                     <div class="icon-option" data-icon="🎬">🎬</div>
                     <div class="icon-option" data-icon="⭐">⭐</div>
                     <div class="icon-option" data-icon="💼">💼</div>
-                    <div class="icon-option" data-icon="🛍️">🛍️</div>
-                    <div class="icon-option" data-icon="🎨">🎨</div>
-                    <div class="icon-option" data-icon="🏆">🏆</div>
-                    <div class="icon-option" data-icon="💎">💎</div>
-                    <div class="icon-option" data-icon="🚀">🚀</div>
-                    <div class="icon-option" data-icon="🎪">🎪</div>
-                    <div class="icon-option" data-icon="🌟">🌟</div>
-                    <div class="icon-option" data-icon="🔥">🔥</div>
                 </div>
             </div>
-
             <div class="form-group">
-                <label>Choose Color</label>
+                <label>Color</label>
                 <div class="color-picker">
                     <div class="color-option selected" style="background: #667eea;" data-color="#667eea"></div>
                     <div class="color-option" style="background: #10b981;" data-color="#10b981"></div>
-                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6"></div>
                     <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"></div>
                     <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
                     <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"></div>
-                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
-                    <div class="color-option" style="background: #14b8a6;" data-color="#14b8a6"></div>
-                    <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
-                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
-                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16"></div>
                     <div class="color-option" style="background: #64748b;" data-color="#64748b"></div>
                 </div>
             </div>
-
-            <button type="submit" class="btn btn-primary">Create Folder</button>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Folder</button>
         </form>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal" id="previewModal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3 id="previewTitle">Preview</h3>
+            <button class="close-btn" onclick="closePreview()">&times;</button>
+        </div>
+        <div id="previewContainer" style="background: #000; border-radius: 8px; overflow: hidden; position: relative; padding-bottom: 56.25%;">
+        </div>
+        <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="background: #f8fafc; padding: 12px; border-radius: 8px;">
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Duration</div>
+                <div id="previewDuration" style="font-size: 16px; font-weight: 600; color: #1e293b;">-</div>
+            </div>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 8px;">
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Size</div>
+                <div id="previewSize" style="font-size: 16px; font-weight: 600; color: #1e293b;">-</div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1259,651 +693,618 @@
 
 {% block extra_scripts %}
 <script>
-    // Pass folders data from template to JavaScript
-    window.foldersData = [ {% for f in folders %}{{ f.to_dict()|tojson|safe }}{% if not loop.last %},{% endif %}{% endfor %} ];
-    let currentPreviewId = null;
-    let currentFolder = null;
-    let currentNetwork = null;
-    let currentPartner = null;
-    let currentContentType = null;
-    let selectedIcon = '📁';
-    let selectedColor = '#667eea';
-    let isSyncing = false;
+let currentNetwork = null;
+let currentNetworkId = null;
+let currentFolder = null;
+let folderPath = []; // Track folder navigation path
+let searchQuery = '';
+let selectedIcon = '📁';
+let selectedColor = '#667eea';
+let isSyncing = false;
+let currentPreviewId = null;
 
-    // ==========================================================================
-    // Content Sync Functions
-    // ==========================================================================
+// Store folders by network from server
+let networkFolders = {};
 
-    // Format timestamp for display
-    function formatSyncTimestamp(isoString) {
-        if (!isoString) {
-            return 'Never';
-        }
-        const date = new Date(isoString);
-        const now = new Date();
-        const diff = now - date;
+// ==========================================================================
+// Sync
+// ==========================================================================
+async function syncContent() {
+    if (isSyncing) return;
 
-        // If less than a minute ago
-        if (diff < 60000) {
-            return 'Just now';
-        }
+    const syncBtn = document.getElementById('syncBtn');
+    const syncIcon = document.getElementById('syncIcon');
+    const syncText = document.getElementById('syncText');
 
-        // If less than an hour ago
-        if (diff < 3600000) {
-            const minutes = Math.floor(diff / 60000);
-            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-        }
+    isSyncing = true;
+    syncBtn.classList.add('syncing');
+    syncText.textContent = 'Syncing...';
 
-        // If less than a day ago
-        if (diff < 86400000) {
-            const hours = Math.floor(diff / 3600000);
-            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-        }
-
-        // Otherwise show date and time
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    // Load sync status on page load
-    async function loadSyncStatus() {
-        try {
-            const response = await fetch('/api/v1/content/sync');
-            if (response.ok) {
-                const data = await response.json();
-
-                // Update last sync time
-                const lastSyncEl = document.getElementById('lastSyncTime');
-                if (lastSyncEl) {
-                    lastSyncEl.textContent = formatSyncTimestamp(data.last_synced);
-                }
-
-                // Update total synced count
-                const totalSyncedEl = document.getElementById('totalSynced');
-                if (totalSyncedEl) {
-                    totalSyncedEl.textContent = data.total_synced || 0;
-                }
-
-                // Update catalog status
-                const catalogStatusEl = document.getElementById('catalogStatus');
-                const syncStatCatalogEl = document.getElementById('syncStatCatalog');
-                if (catalogStatusEl && data.content_catalog) {
-                    if (data.content_catalog.available) {
-                        catalogStatusEl.textContent = 'Connected';
-                        syncStatCatalogEl.classList.remove('error', 'warning');
-                        syncStatCatalogEl.classList.add('success');
-                    } else {
-                        catalogStatusEl.textContent = 'Unavailable';
-                        syncStatCatalogEl.classList.remove('success', 'warning');
-                        syncStatCatalogEl.classList.add('error');
-                    }
-                }
-            }
-        } catch (error) {
-            const catalogStatusEl = document.getElementById('catalogStatus');
-            const syncStatCatalogEl = document.getElementById('syncStatCatalog');
-            if (catalogStatusEl) {
-                catalogStatusEl.textContent = 'Error';
-                syncStatCatalogEl.classList.remove('success', 'warning');
-                syncStatCatalogEl.classList.add('error');
-            }
-        }
-    }
-
-    // Sync content from Content Catalog
-    async function syncContent() {
-        if (isSyncing) return;
-
-        const syncBtn = document.getElementById('syncBtn');
-        const syncText = syncBtn.querySelector('.sync-text');
-
-        // Update UI to show syncing state
-        isSyncing = true;
-        syncBtn.classList.add('syncing');
-        syncBtn.disabled = true;
-        syncText.textContent = 'Syncing...';
-
-        try {
-            const response = await fetch('/api/v1/content/sync', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Update last sync time
-                const lastSyncEl = document.getElementById('lastSyncTime');
-                if (lastSyncEl) {
-                    lastSyncEl.textContent = formatSyncTimestamp(data.synced_at);
-                }
-
-                // Update total synced
-                const totalSyncedEl = document.getElementById('totalSynced');
-                if (totalSyncedEl) {
-                    totalSyncedEl.textContent = data.synced_count || 0;
-                }
-
-                // Show success message
-                alert(`✅ Sync completed!\n\nSynced: ${data.synced_count} items\nCreated: ${data.created_count} new\nUpdated: ${data.updated_count} existing`);
-
-                // Reload page to show new content
-                if (data.created_count > 0 || data.updated_count > 0) {
-                    location.reload();
-                }
-            } else {
-                // Handle error
-                alert(`❌ Sync failed: ${data.error || 'Unknown error'}\n\n${data.message || ''}`);
-            }
-        } catch (error) {
-            alert(`❌ Sync failed: ${error.message}`);
-        } finally {
-            // Reset UI
-            isSyncing = false;
-            syncBtn.classList.remove('syncing');
-            syncBtn.disabled = false;
-            syncText.textContent = 'Sync Now';
-        }
-    }
-
-    // Load sync status on page load
-
-    // ==========================================================================
-    // Filter Functions
-    // ==========================================================================
-
-    // Update network counts
-    function updateNetworkCounts() {
-        const cards = document.querySelectorAll('.content-card');
-        const counts = {};
-        let totalCount = 0;
-
-        cards.forEach(card => {
-            // Check if card is visible (not filtered by folder)
-            if (card.style.display !== 'none') {
-                totalCount++;
-                const networkIds = card.dataset.networks;
-                if (networkIds) {
-                    try {
-                        const networks = JSON.parse(networkIds);
-                        networks.forEach(networkId => {
-                            counts[networkId] = (counts[networkId] || 0) + 1;
-                        });
-                    } catch (e) {
-                        // Single network ID as string
-                        if (networkIds) {
-                            counts[networkIds] = (counts[networkIds] || 0) + 1;
-                        }
-                    }
-                }
-            }
+    try {
+        const response = await fetch('/api/v1/content/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
         });
+        const data = await response.json();
 
-        // Update network count badges
-        document.querySelectorAll('.network-btn[data-network-id]').forEach(btn => {
-            const networkId = btn.dataset.networkId;
-            const countEl = document.getElementById(`network-count-${networkId}`);
-            if (countEl) {
-                countEl.textContent = counts[networkId] || 0;
-            }
-        });
-
-        const allCountEl = document.getElementById(`network-count-all`);
-        if (allCountEl) {
-            allCountEl.textContent = totalCount;
-        }
-    }
-
-    // Filter by network
-    function filterNetwork(networkId) {
-        currentNetwork = networkId;
-        const buttons = document.querySelectorAll('.network-btn');
-
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.network-btn').classList.add('active');
-
-        applyFilters();
-    }
-
-    updateNetworkCounts();
-
-    // Update folder counts
-    function updateFolderCounts() {
-        const cards = document.querySelectorAll('.content-card');
-        const counts = {};
-
-        cards.forEach(card => {
-            const folderId = card.dataset.folder;
-            if (folderId) {
-                counts[folderId] = (counts[folderId] || 0) + 1;
-            }
-        });
-
-        Object.keys(counts).forEach(folderId => {
-            const el = document.getElementById(`count-${folderId}`);
-            if (el) el.textContent = counts[folderId];
-        });
-
-        document.getElementById('count-all').textContent = cards.length;
-    }
-
-    updateFolderCounts();
-
-    // Update partner counts
-    function updatePartnerCounts() {
-        const cards = document.querySelectorAll('.content-card');
-        const counts = {};
-        let totalCount = 0;
-
-        cards.forEach(card => {
-            // Check if card is visible (not filtered by other filters)
-            if (card.style.display !== 'none') {
-                totalCount++;
-                const orgId = card.dataset.organization;
-                if (orgId) {
-                    counts[orgId] = (counts[orgId] || 0) + 1;
-                }
-            }
-        });
-
-        // Update partner count badges
-        document.querySelectorAll('.partner-btn[data-organization-id]').forEach(btn => {
-            const orgId = btn.dataset.organizationId;
-            const countEl = document.getElementById(`partner-count-${orgId}`);
-            if (countEl) {
-                countEl.textContent = counts[orgId] || 0;
-            }
-        });
-
-        const allCountEl = document.getElementById('partner-count-all');
-        if (allCountEl) {
-            allCountEl.textContent = totalCount;
-        }
-    }
-
-    updatePartnerCounts();
-
-    // Update content type counts
-    function updateContentTypeCounts() {
-        const cards = document.querySelectorAll('.content-card');
-        const counts = { video: 0, image: 0, audio: 0 };
-        let totalCount = 0;
-
-        cards.forEach(card => {
-            // Check if card is visible (not filtered by other filters)
-            if (card.style.display !== 'none') {
-                totalCount++;
-                const contentType = card.dataset.contentType || 'video';
-                if (counts.hasOwnProperty(contentType)) {
-                    counts[contentType]++;
-                }
-            }
-        });
-
-        // Update content type count badges
-        document.getElementById('type-count-video').textContent = counts.video;
-        document.getElementById('type-count-image').textContent = counts.image;
-        document.getElementById('type-count-audio').textContent = counts.audio;
-
-        const allCountEl = document.getElementById('type-count-all');
-        if (allCountEl) {
-            allCountEl.textContent = totalCount;
-        }
-    }
-
-    updateContentTypeCounts();
-
-    // Helper function to check if card matches all current filters
-    function cardMatchesFilters(card) {
-        // Check folder filter
-        const folderMatch = currentFolder === null || card.dataset.folder == currentFolder;
-
-        // Check network filter
-        let networkMatch = false;
-        if (currentNetwork === null) {
-            networkMatch = true;
-        } else {
-            const networkIds = card.dataset.networks;
-            if (networkIds) {
-                try {
-                    const networks = JSON.parse(networkIds);
-                    networkMatch = networks.includes(currentNetwork);
-                } catch (e) {
-                    networkMatch = networkIds === currentNetwork;
-                }
-            }
-        }
-
-        // Check partner filter
-        const partnerMatch = currentPartner === null || card.dataset.organization == currentPartner;
-
-        // Check content type filter
-        const contentTypeMatch = currentContentType === null || (card.dataset.contentType || 'video') === currentContentType;
-
-        return folderMatch && networkMatch && partnerMatch && contentTypeMatch;
-    }
-
-    // Apply all filters and update counts
-    function applyFilters() {
-        const cards = document.querySelectorAll('.content-card');
-        let visibleCount = 0;
-
-        cards.forEach(card => {
-            if (cardMatchesFilters(card)) {
-                card.style.display = 'block';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        document.getElementById('contentHeader').textContent = `Content (${visibleCount})`;
-        updateNetworkCounts();
-        updateFolderCounts();
-        updatePartnerCounts();
-        updateContentTypeCounts();
-    }
-
-    // Filter by partner (organization)
-    function filterPartner(orgId) {
-        currentPartner = orgId;
-        const buttons = document.querySelectorAll('.partner-btn');
-
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.partner-btn').classList.add('active');
-
-        applyFilters();
-    }
-
-    // Filter by content type
-    function filterContentType(contentType) {
-        currentContentType = contentType;
-        const buttons = document.querySelectorAll('.content-type-btn');
-
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.content-type-btn').classList.add('active');
-
-        applyFilters();
-    }
-
-    // Filter by folder
-    function filterFolder(folderId) {
-        currentFolder = folderId;
-        const buttons = document.querySelectorAll('.folder-btn');
-
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.closest('.folder-btn').classList.add('active');
-
-        applyFilters();
-    }
-
-    // Create Folder Modal
-    function openCreateFolder() {
-        document.getElementById('createFolderModal').classList.add('active');
-    }
-
-    function closeCreateFolder() {
-        document.getElementById('createFolderModal').classList.remove('active');
-        document.getElementById('folderName').value = '';
-    }
-
-    // Icon selection
-    document.querySelectorAll('.icon-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedIcon = this.dataset.icon;
-        });
-    });
-
-    // Color selection
-    document.querySelectorAll('.color-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedColor = this.dataset.color;
-        });
-    });
-
-    // Create folder form
-    document.getElementById('createFolderForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('folderName').value;
-
-        try {
-            const response = await fetch('/folders', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name: name,
-                    icon: selectedIcon,
-                    color: selectedColor
-                })
-            });
-
-            if (response.ok) {
-                alert('✅ Folder created successfully!');
+        if (response.ok) {
+            showToast(true, 'Sync Complete', `${data.synced_count || 0} items synced`);
+            if (data.created_count > 0 || data.updated_count > 0) {
                 location.reload();
-            } else {
-                const data = await response.json();
-                alert('❌ Error: ' + data.error);
             }
-        } catch (error) {
-            alert('❌ Failed to create folder');
-        }
-    });
-
-    // Delete folder
-    async function deleteFolder(folderId, folderName) {
-        if (!confirm(`Delete folder "${folderName}"? Content will not be deleted.`)) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/folders/${folderId}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                location.reload();
-            } else {
-                alert('❌ Failed to delete folder');
-            }
-        } catch (error) {
-            alert('❌ Error: ' + error.message);
-        }
-    }
-
-    // Video preview and asset editor
-    function previewContent(id, filename, title, duration, fileSize) {
-        document.querySelectorAll(".content-card").forEach(card => {
-            card.classList.remove("active");
-        });
-
-        const card = document.querySelector('[data-id="' + id + '"]');
-        if (card) card.classList.add("active");
-        currentPreviewId = id;
-
-        // Show the asset editor panel
-        const panel = document.getElementById('assetEditorPanel');
-        panel.style.display = 'block';
-
-        // Update the preview container based on content type
-        const previewContainer = document.getElementById('previewContainer');
-        const contentType = card.dataset.contentType || 'video';
-        const videoUrl = '/cms/uploads/' + filename;
-
-        if (contentType === 'video') {
-            previewContainer.innerHTML = `
-                <video controls style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; object-fit: contain;">
-                    <source src="${videoUrl}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            `;
-        } else if (contentType === 'image') {
-            previewContainer.innerHTML = `
-                <img src="${videoUrl}" alt="${title}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; object-fit: contain;">
-            `;
         } else {
-            previewContainer.innerHTML = `
-                <div class="no-preview" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-                    <span style="font-size: 48px;">📄</span>
-                    <span>${contentType.toUpperCase()}</span>
-                </div>
-            `;
+            showToast(false, 'Sync Failed', data.error || 'Unknown error');
         }
+    } catch (error) {
+        showToast(false, 'Sync Failed', error.message);
+    } finally {
+        isSyncing = false;
+        syncBtn.classList.remove('syncing');
+        syncText.textContent = 'Sync';
+    }
+}
 
-        // Update the info panel
-        document.getElementById("playerTitle").textContent = title;
-        document.getElementById("playerDuration").textContent = duration + "s";
-        document.getElementById("playerSize").textContent = (fileSize / 1024 / 1024).toFixed(1) + " MB";
-        document.getElementById("playerInfo").style.display = "block";
+// ==========================================================================
+// Network/Folder Selection
+// ==========================================================================
+function selectNetwork(networkSlug, networkName, networkId) {
+    currentNetwork = networkSlug;
+    currentNetworkId = networkId || null;
+    currentFolder = null;
+    folderPath = [];
 
-        // Update the editor fields
-        document.getElementById("editDuration").value = duration;
-        document.getElementById("editFolder").value = card.dataset.folder || '';
+    // Update active state
+    document.querySelectorAll('.network-folder').forEach(f => f.classList.remove('active'));
+    const selected = document.querySelector(`.network-folder[data-network="${networkSlug || ''}"]`);
+    if (selected) selected.classList.add('active');
+
+    // Update title
+    document.getElementById('contentSectionTitle').textContent = networkName ? `${networkName} Content` : 'All Content';
+
+    // Show/hide folders section
+    const foldersSection = document.getElementById('foldersSection');
+    if (networkId) {
+        foldersSection.style.display = 'block';
+        document.getElementById('foldersSectionTitle').textContent = `${networkName} Folders`;
+        loadNetworkFolders(networkId);
+        updateBreadcrumb();
+        updateBackButton();
+    } else {
+        foldersSection.style.display = 'none';
     }
 
-    // Save asset changes
-    async function saveAssetChanges() {
-        if (!currentPreviewId) {
-            showToast(false, 'No Selection', 'Please select content first');
-            return;
-        }
+    applyFilters();
+}
 
-        const duration = document.getElementById('editDuration').value;
-        const folderId = document.getElementById('editFolder').value || null;
-        const card = document.querySelector(`.content-card[data-id="${currentPreviewId}"]`);
-
-        try {
-            // Move to folder if changed
-            if (card && card.dataset.folder !== (folderId || '')) {
-                const moveResponse = await fetch(`/content/${currentPreviewId}/move`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folder_id: folderId })
-                });
-
-                if (moveResponse.ok && card) {
-                    card.dataset.folder = folderId || '';
-                    updateFolderCounts();
-                    applyFilters();
-                }
-            }
-
-            showToast(true, 'Saved', 'Asset changes saved successfully');
-        } catch (error) {
-            showToast(false, 'Error', 'Failed to save changes: ' + error.message);
-        }
-    }
-
-    // ==========================================================================
-    // DRAG & DROP: Content to Folders
-    // ==========================================================================
-
-    let draggedContentId = null;
-
-    function handleContentDragStart(event, contentId) {
-        draggedContentId = contentId;
-        event.dataTransfer.setData('text/plain', contentId);
-        event.dataTransfer.effectAllowed = 'move';
-        event.target.classList.add('dragging');
-    }
-
-    function handleContentDragEnd(event) {
-        event.target.classList.remove('dragging');
-        draggedContentId = null;
-        // Remove drag-over class from all folder buttons
-        document.querySelectorAll('.folder-btn').forEach(btn => {
-            btn.classList.remove('drag-over');
+function loadNetworkFolders(networkId) {
+    // Fetch folders for this network
+    fetch(`/folders?network_id=${networkId}`)
+        .then(response => response.json())
+        .then(folders => {
+            networkFolders[networkId] = folders;
+            renderFolders(folders.filter(f => !f.parent_id));
+        })
+        .catch(error => {
+            console.error('Error loading folders:', error);
+            renderFolders([]);
         });
-    }
+}
 
-    function handleFolderDragOver(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-        event.currentTarget.classList.add('drag-over');
-    }
+function renderFolders(folders) {
+    const grid = document.getElementById('foldersGrid');
 
-    function handleFolderDragLeave(event) {
-        event.currentTarget.classList.remove('drag-over');
-    }
-
-    async function handleFolderDrop(event, folderId) {
-        event.preventDefault();
-        event.currentTarget.classList.remove('drag-over');
-
-        const contentId = event.dataTransfer.getData('text/plain') || draggedContentId;
-        if (!contentId) return;
-
-        try {
-            const response = await fetch(`/content/${contentId}/move`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folder_id: folderId })
-            });
-
-            if (response.ok) {
-                // Update the content card's data-folder attribute
-                const card = document.querySelector(`.content-card[data-id="${contentId}"]`);
-                if (card) {
-                    card.dataset.folder = folderId || '';
-                }
-
-                // Update folder counts
-                updateFolderCounts();
-
-                // Re-apply filters to show/hide the moved content
-                applyFilters();
-
-                // Show success toast
-                showToast(true, 'Content Moved', folderId ? 'Content moved to folder' : 'Content removed from folder');
-            } else {
-                const data = await response.json();
-                showToast(false, 'Move Failed', data.error || 'Failed to move content');
-            }
-        } catch (error) {
-            showToast(false, 'Error', 'Failed to move content: ' + error.message);
-        }
-    }
-
-    // Toast notification function
-    function showToast(success, title, message) {
-        // Remove existing toast
-        const existingToast = document.querySelector('.drop-toast');
-        if (existingToast) existingToast.remove();
-
-        const toast = document.createElement('div');
-        toast.className = `drop-toast ${success ? 'success' : 'error'}`;
-        toast.innerHTML = `
-            <div class="toast-icon">${success ? '✅' : '❌'}</div>
-            <div class="toast-content">
-                <h4>${title}</h4>
-                <p>${message}</p>
+    if (folders.length === 0) {
+        grid.innerHTML = `
+            <div style="color: #64748b; font-size: 14px; padding: 20px;">
+                No folders yet. Click "+ New Folder" to create one.
             </div>
         `;
-        document.body.appendChild(toast);
-
-        // Show toast
-        setTimeout(() => toast.classList.add('show'), 10);
-
-        // Hide and remove after 3 seconds
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        return;
     }
 
-    // ==========================================================================
-    // PAGE INITIALIZATION
-    // ==========================================================================
+    grid.innerHTML = folders.map(folder => `
+        <div class="network-folder droppable-folder"
+             data-folder="${folder.id}"
+             onclick="selectFolder('${folder.id}', '${folder.name}')"
+             ondragover="handleFolderDragOver(event)"
+             ondragleave="handleFolderDragLeave(event)"
+             ondrop="handleFolderDrop(event, '${folder.id}')"
+             style="position: relative;">
+            <div class="network-folder-icon" style="color: ${folder.color};">${folder.icon}</div>
+            <div class="network-folder-name">${folder.name}</div>
+            <div class="network-folder-count" id="folder-count-${folder.id}">0 items</div>
+            <button onclick="event.stopPropagation(); deleteFolder('${folder.id}', '${folder.name}')"
+                    style="position: absolute; top: 4px; right: 4px; background: #fee2e2; border: none; border-radius: 4px; padding: 2px 6px; font-size: 12px; cursor: pointer; color: #dc2626; opacity: 0; transition: opacity 0.2s;"
+                    onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">×</button>
+        </div>
+    `).join('');
 
-    // Load sync status when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        loadSyncStatus();
+    updateFolderCounts();
+}
+
+function selectFolder(folderId, folderName) {
+    currentFolder = folderId;
+
+    // Add to folder path for breadcrumb
+    folderPath.push({ id: folderId, name: folderName });
+
+    // Update breadcrumb and back button
+    updateBreadcrumb();
+    updateBackButton();
+
+    // Update title
+    document.getElementById('contentSectionTitle').textContent = folderName;
+
+    // Load subfolders
+    const subfolders = (networkFolders[currentNetworkId] || []).filter(f => f.parent_id === folderId);
+    renderFolders(subfolders);
+
+    applyFilters();
+}
+
+function goToNetworkRoot() {
+    currentFolder = null;
+    folderPath = [];
+    updateBreadcrumb();
+    updateBackButton();
+
+    // Get current network name
+    const networkEl = document.querySelector(`.network-folder[data-network-id="${currentNetworkId}"]`);
+    const networkName = networkEl ? networkEl.querySelector('.network-folder-name').textContent : 'Network';
+    document.getElementById('contentSectionTitle').textContent = `${networkName} Content`;
+
+    // Load root folders for network
+    const rootFolders = (networkFolders[currentNetworkId] || []).filter(f => !f.parent_id);
+    renderFolders(rootFolders);
+
+    applyFilters();
+}
+
+function goBack() {
+    if (folderPath.length === 0) {
+        // Already at network root, do nothing
+        return;
+    } else if (folderPath.length === 1) {
+        // Go back to network root
+        goToNetworkRoot();
+    } else {
+        // Go back one level
+        folderPath.pop();
+        const parentFolder = folderPath[folderPath.length - 1];
+        currentFolder = parentFolder.id;
+
+        updateBreadcrumb();
+        updateBackButton();
+
+        document.getElementById('contentSectionTitle').textContent = parentFolder.name;
+
+        // Load subfolders of parent
+        const subfolders = (networkFolders[currentNetworkId] || []).filter(f => f.parent_id === parentFolder.id);
+        renderFolders(subfolders);
+
+        applyFilters();
+    }
+}
+
+function updateBackButton() {
+    const backBtn = document.getElementById('backButton');
+    if (backBtn) {
+        backBtn.style.display = folderPath.length > 0 ? 'block' : 'none';
+    }
+}
+
+function goToFolder(folderId, index) {
+    // Trim path to this folder
+    folderPath = folderPath.slice(0, index + 1);
+    currentFolder = folderId;
+
+    updateBreadcrumb();
+    updateBackButton();
+
+    const folder = folderPath[folderPath.length - 1];
+    document.getElementById('contentSectionTitle').textContent = folder.name;
+
+    // Load subfolders
+    const subfolders = (networkFolders[currentNetworkId] || []).filter(f => f.parent_id === folderId);
+    renderFolders(subfolders);
+
+    applyFilters();
+}
+
+function updateBreadcrumb() {
+    const breadcrumb = document.getElementById('folderBreadcrumb');
+    const networkEl = document.querySelector(`.network-folder[data-network-id="${currentNetworkId}"]`);
+    const networkName = networkEl ? networkEl.querySelector('.network-folder-name').textContent : 'Network';
+
+    let html = `<span class="breadcrumb-item" style="cursor: pointer; color: #667eea;" onclick="goToNetworkRoot()">${networkName}</span>`;
+
+    folderPath.forEach((folder, index) => {
+        html += ` <span style="color: #94a3b8;">/</span> `;
+        if (index === folderPath.length - 1) {
+            html += `<span style="color: #1e293b; font-weight: 600;">${folder.name}</span>`;
+        } else {
+            html += `<span class="breadcrumb-item" style="cursor: pointer; color: #667eea;" onclick="goToFolder('${folder.id}', ${index})">${folder.name}</span>`;
+        }
     });
 
+    breadcrumb.innerHTML = html;
+}
+
+function updateFolderCounts() {
+    const cards = document.querySelectorAll('.content-card');
+    const folderCounts = {};
+
+    cards.forEach(card => {
+        const folderId = card.dataset.folder;
+        if (folderId) {
+            folderCounts[folderId] = (folderCounts[folderId] || 0) + 1;
+        }
+    });
+
+    document.querySelectorAll('.network-folder[data-folder]').forEach(folder => {
+        const folderId = folder.dataset.folder;
+        const countEl = folder.querySelector('.network-folder-count');
+        if (countEl) {
+            countEl.textContent = `${folderCounts[folderId] || 0} items`;
+        }
+    });
+}
+
+// ==========================================================================
+// Drag and Drop Content to Folders
+// ==========================================================================
+let draggedContentId = null;
+let draggedContentTitle = null;
+
+function handleContentDragStart(event) {
+    draggedContentId = event.target.dataset.id;
+    draggedContentTitle = event.target.dataset.title;
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', draggedContentId);
+}
+
+function handleContentDragEnd(event) {
+    event.target.classList.remove('dragging');
+    draggedContentId = null;
+    draggedContentTitle = null;
+    // Remove any lingering drag-over states
+    document.querySelectorAll('.droppable-folder').forEach(f => {
+        f.classList.remove('drag-over');
+    });
+}
+
+function handleFolderDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move';
+    event.currentTarget.classList.add('drag-over');
+}
+
+function handleFolderDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove('drag-over');
+}
+
+async function handleFolderDrop(event, folderId) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove('drag-over');
+
+    if (!draggedContentId) return;
+
+    const contentId = draggedContentId;
+    const contentTitle = draggedContentTitle;
+    const folderName = event.currentTarget.querySelector('.network-folder-name').textContent;
+
+    try {
+        const response = await fetch(`/content/${contentId}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder_id: folderId })
+        });
+
+        if (response.ok) {
+            // Update the content card's folder attribute
+            const card = document.querySelector(`.content-card[data-id="${contentId}"]`);
+            if (card) {
+                card.dataset.folder = folderId;
+            }
+
+            showToast(true, 'Moved', `"${contentTitle}" moved to "${folderName}"`);
+            updateFolderCounts();
+            applyFilters();
+        } else {
+            const err = await response.json();
+            showToast(false, 'Error', err.error || 'Failed to move content');
+        }
+    } catch (error) {
+        showToast(false, 'Error', error.message);
+    }
+}
+
+// Drop on navigation bar to move content to network root (remove from folder)
+function handleNavBarDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move';
+    document.getElementById('folderNavBar').classList.add('drag-over');
+    document.getElementById('dropHint').style.display = 'block';
+}
+
+function handleNavBarDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('folderNavBar').classList.remove('drag-over');
+    document.getElementById('dropHint').style.display = 'none';
+}
+
+async function handleNavBarDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('folderNavBar').classList.remove('drag-over');
+    document.getElementById('dropHint').style.display = 'none';
+
+    if (!draggedContentId) return;
+
+    const contentId = draggedContentId;
+    const contentTitle = draggedContentTitle;
+
+    // Get network name for toast message
+    const networkEl = document.querySelector(`.network-folder[data-network-id="${currentNetworkId}"]`);
+    const networkName = networkEl ? networkEl.querySelector('.network-folder-name').textContent : 'Network';
+
+    try {
+        const response = await fetch(`/content/${contentId}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder_id: null })  // null removes from folder
+        });
+
+        if (response.ok) {
+            // Update the content card's folder attribute
+            const card = document.querySelector(`.content-card[data-id="${contentId}"]`);
+            if (card) {
+                card.dataset.folder = '';
+            }
+
+            showToast(true, 'Moved', `"${contentTitle}" moved to ${networkName} root`);
+            updateFolderCounts();
+            applyFilters();
+        } else {
+            const err = await response.json();
+            showToast(false, 'Error', err.error || 'Failed to move content');
+        }
+    } catch (error) {
+        showToast(false, 'Error', error.message);
+    }
+}
+
+// ==========================================================================
+// Filtering
+// ==========================================================================
+function searchContent(query) {
+    searchQuery = query.toLowerCase();
+    applyFilters();
+}
+
+function applyFilters() {
+    const cards = document.querySelectorAll('.content-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        let show = true;
+
+        // Network filter
+        if (currentNetwork) {
+            const networks = JSON.parse(card.dataset.networks || '[]');
+            show = networks.includes(currentNetwork);
+        }
+
+        // Folder filter
+        if (show) {
+            if (currentFolder) {
+                // Inside a folder - only show content in that specific folder
+                show = card.dataset.folder === currentFolder;
+            } else if (currentNetworkId) {
+                // At network root level - only show content NOT in any folder
+                show = !card.dataset.folder || card.dataset.folder === '';
+            }
+            // If no network selected (All Networks), show all content regardless of folder
+        }
+
+        // Search filter
+        if (searchQuery && show) {
+            const title = (card.dataset.title || '').toLowerCase();
+            show = title.includes(searchQuery);
+        }
+
+        card.style.display = show ? 'block' : 'none';
+        if (show) visibleCount++;
+    });
+
+    updateCounts();
+    updateFolderCounts();
+}
+
+function updateCounts() {
+    const cards = document.querySelectorAll('.content-card');
+    const networkCounts = {};
+
+    cards.forEach(card => {
+        // Count by network
+        const networks = JSON.parse(card.dataset.networks || '[]');
+        networks.forEach(n => {
+            networkCounts[n] = (networkCounts[n] || 0) + 1;
+        });
+    });
+
+    // Update network counts
+    document.querySelectorAll('.network-folder[data-network]').forEach(folder => {
+        const networkSlug = folder.dataset.network;
+        const countEl = folder.querySelector('.network-folder-count');
+        if (countEl && networkSlug) {
+            const count = networkCounts[networkSlug] || 0;
+            countEl.textContent = `${count} items`;
+        }
+    });
+}
+
+// ==========================================================================
+// Folder Management
+// ==========================================================================
+function openCreateFolder() {
+    if (!currentNetworkId) {
+        showToast(false, 'Error', 'Please select a network first');
+        return;
+    }
+    document.getElementById('createFolderModal').classList.add('active');
+}
+
+function closeCreateFolder() {
+    document.getElementById('createFolderModal').classList.remove('active');
+    document.getElementById('folderName').value = '';
+}
+
+document.querySelectorAll('.icon-option').forEach(opt => {
+    opt.addEventListener('click', function() {
+        document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedIcon = this.dataset.icon;
+    });
+});
+
+document.querySelectorAll('.color-option').forEach(opt => {
+    opt.addEventListener('click', function() {
+        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedColor = this.dataset.color;
+    });
+});
+
+document.getElementById('createFolderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('folderName').value;
+
+    if (!currentNetworkId) {
+        showToast(false, 'Error', 'Please select a network first');
+        return;
+    }
+
+    try {
+        const response = await fetch('/folders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                icon: selectedIcon,
+                color: selectedColor,
+                network_id: currentNetworkId,
+                parent_id: currentFolder  // Will be null if at network root
+            })
+        });
+
+        if (response.ok) {
+            const newFolder = await response.json();
+            showToast(true, 'Created', 'Folder created!');
+            closeCreateFolder();
+
+            // Reload folders for this network
+            loadNetworkFolders(currentNetworkId);
+        } else {
+            const data = await response.json();
+            showToast(false, 'Error', data.error);
+        }
+    } catch (error) {
+        showToast(false, 'Error', 'Failed to create folder');
+    }
+});
+
+async function deleteFolder(folderId, folderName) {
+    if (!confirm(`Delete folder "${folderName}"?`)) return;
+
+    try {
+        const response = await fetch(`/folders/${folderId}`, { method: 'DELETE' });
+        if (response.ok) {
+            showToast(true, 'Deleted', 'Folder deleted');
+            // Reload folders for this network
+            loadNetworkFolders(currentNetworkId);
+        } else {
+            showToast(false, 'Error', 'Failed to delete');
+        }
+    } catch (error) {
+        showToast(false, 'Error', error.message);
+    }
+}
+
+// ==========================================================================
+// Preview
+// ==========================================================================
+function previewContent(id, filename, title, duration, fileSize) {
+    currentPreviewId = id;
+    document.getElementById('previewModal').classList.add('active');
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewDuration').textContent = duration + 's';
+    document.getElementById('previewSize').textContent = (fileSize / 1024 / 1024).toFixed(1) + ' MB';
+
+    const container = document.getElementById('previewContainer');
+    const card = document.querySelector(`.content-card[data-id="${id}"]`);
+    const contentType = card?.dataset.contentType || 'video';
+    const url = '/cms/uploads/' + filename;
+
+    if (contentType === 'image') {
+        container.innerHTML = `<img src="${url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;">`;
+    } else {
+        container.innerHTML = `<video controls style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;"><source src="${url}" type="video/mp4"></video>`;
+    }
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.remove('active');
+    const video = document.querySelector('#previewContainer video');
+    if (video) video.pause();
+}
+
+// ==========================================================================
+// Toast
+// ==========================================================================
+function showToast(success, title, message) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${success ? 'success' : 'error'}`;
+    toast.innerHTML = `
+        <div class="toast-icon">${success ? '✅' : '❌'}</div>
+        <div class="toast-content">
+            <h4>${title}</h4>
+            <p>${message}</p>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ==========================================================================
+// Init
+// ==========================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    updateCounts();
+
+    // Select the first network by default
+    const firstNetwork = document.querySelector('.network-folder[data-network]');
+    if (firstNetwork) {
+        const slug = firstNetwork.dataset.network;
+        const networkId = firstNetwork.dataset.networkId;
+        const name = firstNetwork.querySelector('.network-folder-name').textContent;
+        selectNetwork(slug, name, networkId);
+    }
+});
 </script>
 {% endblock %}

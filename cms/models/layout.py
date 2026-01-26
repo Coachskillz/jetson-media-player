@@ -352,6 +352,32 @@ class ScreenLayer(db.Model):
         """
         return (self.x + self.width // 2, self.y + self.height // 2)
 
+    @property
+    def content(self):
+        """
+        Get the content associated with this layer.
+
+        Resolves content_id to either a Content or SyncedContent instance.
+
+        Returns:
+            Content or SyncedContent instance, or None if not found
+        """
+        if not self.content_id:
+            return None
+
+        # Import here to avoid circular imports
+        from cms.models.content import Content
+        from cms.models.synced_content import SyncedContent
+
+        # Try Content first (uploaded content)
+        content = db.session.get(Content, self.content_id)
+        if content:
+            return content
+
+        # Try SyncedContent (content catalog)
+        synced = db.session.get(SyncedContent, self.content_id)
+        return synced
+
     @classmethod
     def get_by_layout(cls, layout_id):
         """

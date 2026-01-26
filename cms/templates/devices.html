@@ -3,101 +3,147 @@
 {% block title %}Device Manager - Skillz Media Screens CMS{% endblock %}
 
 {% block extra_styles %}
-/* Locations Section */
-.locations-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin: 20px 0;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+/* Store Folders Grid */
+.stores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    padding: 20px;
 }
 
-.locations-header {
+.store-folder {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.store-folder:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #667eea;
+}
+
+.store-folder-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.store-folder-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.store-folder-location {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.store-folder-stats {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.store-folder-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.store-folder-stat .online-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+}
+
+/* Store Detail Modal */
+.store-detail-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.store-detail-modal.active {
+    display: flex;
+}
+
+.store-detail-content {
+    background: white;
+    border-radius: 16px;
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.store-detail-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
 }
 
-.locations-section h3 {
-    font-size: 18px;
-    color: #1e293b;
+.store-detail-header h3 {
+    font-size: 20px;
     font-weight: 700;
+    margin: 0;
 }
 
-.create-location-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
+.store-detail-header p {
     font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
+    opacity: 0.9;
+    margin: 4px 0 0 0;
 }
 
-.create-location-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.locations-grid {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.location-btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #f1f5f9;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-}
-
-.location-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.location-btn.active {
-    border-color: currentColor;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.location-btn .count {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.delete-location {
-    background: #ef4444;
-    color: white;
+.store-detail-close {
+    background: rgba(255,255,255,0.2);
     border: none;
-    border-radius: 6px;
-    padding: 2px 6px;
-    font-size: 12px;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 18px;
     cursor: pointer;
-    margin-left: 8px;
-    opacity: 0;
-    transition: opacity 0.2s;
+    transition: background 0.2s;
 }
 
-.location-btn:hover .delete-location {
-    opacity: 1;
+.store-detail-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.store-detail-screens {
+    padding: 20px;
+    max-height: calc(80vh - 100px);
+    overflow-y: auto;
+}
+
+.store-screens-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
 }
 
 /* Pairing Box */
@@ -310,15 +356,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.location-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    margin-top: 5px;
 }
 
 .badge-online {
@@ -802,28 +839,9 @@
 
 {% else %}
 <!-- Normal View -->
-<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">Screens</h2>
-
-<!-- Locations -->
-<div class="locations-section">
-    <div class="locations-header">
-        <h3>Locations</h3>
-        <button class="create-location-btn" onclick="openCreateLocation()">
-            + Create Location
-        </button>
-    </div>
-    <div class="locations-grid">
-        {% for location in locations %}
-        <button class="location-btn" style="color: {{ location.color }};" onclick="filterByLocation('{{ location.id }}')">
-            {{ location.icon }} {{ location.name }}
-            <span class="count" id="count-{{ location.id }}">0</span>
-            <button class="delete-location" onclick="event.stopPropagation(); deleteLocation('{{ location.id }}', '{{ location.name }}')">×</button>
-        </button>
-        {% endfor %}
-        {% if not locations %}
-        <p style="color: #64748b; font-size: 14px;">No locations created yet. Create a location to organize your screens.</p>
-        {% endif %}
-    </div>
+<div style="margin: 20px 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
+    <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">Screens</h2>
+    <span style="color: rgba(255,255,255,0.8); font-size: 16px; font-weight: 600;">{{ total_screen_count }} Total</span>
 </div>
 
 <!-- Networks and Screens Catalog -->
@@ -834,7 +852,7 @@
             <div class="network-header">
                 <div class="network-info">
                     <h3>{{ network.name }}</h3>
-                    <p>{{ network.description or 'No description' }}</p>
+                    <p>{{ network.store_count }} stores • {{ network.description or 'No description' }}</p>
                 </div>
                 <div class="network-stats">
                     <div class="network-stat">
@@ -848,34 +866,20 @@
                 </div>
             </div>
 
-            {% if network.screens %}
-            <div class="screens-grid">
-                {% for screen in network.screens %}
-                <div class="screen-card">
-                    <div class="screen-header">
-                        <div>
-                            <div class="screen-name">{{ screen.name }}</div>
-                            <div class="screen-id">{{ screen.device_id }}</div>
-                        </div>
-                        <div class="screen-status {{ screen.status }}">
-                            <span class="screen-status-dot"></span>
-                            {{ screen.status }}
-                        </div>
-                    </div>
-
-                    <div class="screen-details">
-                        <div class="screen-detail">
-                            <span class="screen-detail-label">Layout</span>
-                            <span class="screen-detail-value">{{ screen.layout_name }}</span>
-                        </div>
-                        <div class="screen-detail">
-                            <span class="screen-detail-label">Playing</span>
-                            <span class="screen-detail-value">{{ screen.current_playlist }}</span>
-                        </div>
-                    </div>
-
-                    <div class="screen-actions">
-                        <a href="/devices/{{ screen.device_id }}">Manage Screen &rarr;</a>
+            {% if network.stores %}
+            <div class="stores-grid">
+                {% for store in network.stores %}
+                <div class="store-folder"
+                     data-store-name="{{ store.name }}"
+                     data-store-city="{{ store.city or '' }}"
+                     data-store-state="{{ store.state or '' }}"
+                     data-screens='{{ store.screens|tojson }}'>
+                    <div class="store-folder-icon">📁</div>
+                    <div class="store-folder-name" title="{{ store.name }}">{{ store.name }}</div>
+                    <div class="store-folder-location">{{ store.city }}{% if store.state %}, {{ store.state }}{% endif %}</div>
+                    <div class="store-folder-stats">
+                        <span class="store-folder-stat">{{ store.screen_count }} screens</span>
+                        <span class="store-folder-stat"><span class="online-dot"></span> {{ store.online_count }} online</span>
                     </div>
                 </div>
                 {% endfor %}
@@ -883,7 +887,7 @@
             {% else %}
             <div class="empty-network">
                 <div class="empty-network-icon">&#128247;</div>
-                <h4>No screens in this network</h4>
+                <h4>No stores in this network</h4>
                 <p>Add screens to this network to see them here.</p>
             </div>
             {% endif %}
@@ -946,159 +950,109 @@
 </div>
 {% endif %}
 
-<!-- Create Location Modal -->
-<div class="modal" id="createLocationModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Create New Location</h3>
-            <button class="close-btn" onclick="closeCreateLocation()">&times;</button>
+<!-- Store Detail Modal -->
+<div class="store-detail-modal" id="storeDetailModal">
+    <div class="store-detail-content">
+        <div class="store-detail-header">
+            <div>
+                <h3 id="storeDetailName">Store Name</h3>
+                <p id="storeDetailLocation">Location</p>
+            </div>
+            <button class="store-detail-close" onclick="closeStoreDetail()">&times;</button>
         </div>
-
-        <form id="createLocationForm">
-            <div class="form-group">
-                <label>Location Name</label>
-                <input type="text" id="locationName" placeholder="e.g., Store A, Headquarters" required>
+        <div class="store-detail-screens">
+            <div class="store-screens-grid" id="storeScreensGrid">
+                <!-- Screens will be populated by JavaScript -->
             </div>
-
-            <div class="form-group">
-                <label>Address (Optional)</label>
-                <input type="text" id="locationAddress" placeholder="123 Main St, City, State">
-            </div>
-
-            <div class="form-group">
-                <label>Choose Icon</label>
-                <div class="icon-picker">
-                    <div class="icon-option selected" data-icon="📍">📍</div>
-                    <div class="icon-option" data-icon="🏢">🏢</div>
-                    <div class="icon-option" data-icon="🏪">🏪</div>
-                    <div class="icon-option" data-icon="🏬">🏬</div>
-                    <div class="icon-option" data-icon="🏭">🏭</div>
-                    <div class="icon-option" data-icon="🏛️">🏛️</div>
-                    <div class="icon-option" data-icon="🏟️">🏟️</div>
-                    <div class="icon-option" data-icon="🏨">🏨</div>
-                    <div class="icon-option" data-icon="🏦">🏦</div>
-                    <div class="icon-option" data-icon="🏥">🏥</div>
-                    <div class="icon-option" data-icon="⛪">⛪</div>
-                    <div class="icon-option" data-icon="🌆">🌆</div>
-                    <div class="icon-option" data-icon="🗺️">🗺️</div>
-                    <div class="icon-option" data-icon="🌍">🌍</div>
-                    <div class="icon-option" data-icon="🏠">🏠</div>
-                    <div class="icon-option" data-icon="🏡">🏡</div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Choose Color</label>
-                <div class="color-picker">
-                    <div class="color-option selected" style="background: #667eea;" data-color="#667eea"></div>
-                    <div class="color-option" style="background: #10b981;" data-color="#10b981"></div>
-                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6"></div>
-                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"></div>
-                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
-                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"></div>
-                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
-                    <div class="color-option" style="background: #14b8a6;" data-color="#14b8a6"></div>
-                    <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
-                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
-                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16"></div>
-                    <div class="color-option" style="background: #64748b;" data-color="#64748b"></div>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Create Location</button>
-        </form>
+        </div>
     </div>
 </div>
+
 {% endif %}
 
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    let selectedLocationIcon = '📍';
-    let selectedLocationColor = '#667eea';
+// Add click handlers to all store folders
+document.querySelectorAll('.store-folder').forEach(folder => {
+    folder.addEventListener('click', function() {
+        const storeName = this.dataset.storeName;
+        const storeCity = this.dataset.storeCity;
+        const storeState = this.dataset.storeState;
+        const screens = JSON.parse(this.dataset.screens || '[]');
 
-    // Create Location Modal
-    function openCreateLocation() {
-        document.getElementById('createLocationModal').classList.add('active');
-    }
-
-    function closeCreateLocation() {
-        document.getElementById('createLocationModal').classList.remove('active');
-    }
-
-    // Icon & Color selection for locations
-    document.querySelectorAll('#createLocationModal .icon-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('#createLocationModal .icon-option').forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedLocationIcon = this.dataset.icon;
-        });
+        openStoreDetail(storeName, storeCity, storeState, screens);
     });
+});
 
-    document.querySelectorAll('#createLocationModal .color-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('#createLocationModal .color-option').forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedLocationColor = this.dataset.color;
-        });
-    });
+function openStoreDetail(storeName, city, state, screens) {
+    document.getElementById('storeDetailName').textContent = storeName;
 
-    // Create location form
-    document.getElementById('createLocationForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('locationName').value;
-        const address = document.getElementById('locationAddress').value;
-
-        try {
-            const response = await fetch('/api/locations', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name: name,
-                    address: address,
-                    icon: selectedLocationIcon,
-                    color: selectedLocationColor
-                })
-            });
-
-            if (response.ok) {
-                location.reload();
-            } else {
-                const data = await response.json();
-                alert('Error: ' + data.error);
-            }
-        } catch (error) {
-            alert('Failed to create location');
-        }
-    });
-
-    // Delete location
-    async function deleteLocation(locationId, locationName) {
-        if (!confirm(`Delete location "${locationName}"? Screens will not be deleted.`)) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/locations/${locationId}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                location.reload();
-            } else {
-                alert('Failed to delete location');
-            }
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
+    // Build location string
+    let locationStr = screens.length + ' screen' + (screens.length > 1 ? 's' : '');
+    if (city) {
+        locationStr += ' • ' + city;
+        if (state) locationStr += ', ' + state;
     }
+    document.getElementById('storeDetailLocation').textContent = locationStr;
 
-    // Filter screens by location (future functionality)
-    function filterByLocation(locationId) {
-        // TODO: Filter network cards/screens by location
-        console.log('Filter by location:', locationId);
+    // Build screens grid
+    const grid = document.getElementById('storeScreensGrid');
+    grid.innerHTML = screens.map(screen => `
+        <div class="screen-card">
+            <div class="screen-header">
+                <div>
+                    <div class="screen-name">${escapeHtml(screen.name)}</div>
+                    <div class="screen-id">${escapeHtml(screen.device_id)}</div>
+                </div>
+                <div class="screen-status ${screen.status}">
+                    <span class="screen-status-dot"></span>
+                    ${screen.status}
+                </div>
+            </div>
+            <div class="screen-details">
+                <div class="screen-detail">
+                    <span class="screen-detail-label">Location</span>
+                    <span class="screen-detail-value">${escapeHtml(screen.screen_location || 'Unknown')}</span>
+                </div>
+                <div class="screen-detail">
+                    <span class="screen-detail-label">Playing</span>
+                    <span class="screen-detail-value">${escapeHtml(screen.current_playlist)}</span>
+                </div>
+            </div>
+            <div class="screen-actions">
+                <a href="/devices/${encodeURIComponent(screen.device_id)}">Manage Screen &rarr;</a>
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('storeDetailModal').classList.add('active');
+}
+
+function closeStoreDetail() {
+    document.getElementById('storeDetailModal').classList.remove('active');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Close modal on backdrop click
+document.getElementById('storeDetailModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeStoreDetail();
     }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeStoreDetail();
+    }
+});
 </script>
 {% endblock %}

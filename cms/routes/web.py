@@ -151,6 +151,7 @@ def devices_page():
     hubs = Hub.query.order_by(Hub.name).all()
     playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
     locations = Location.query.all()
+    total_screen_count = len(devices)
 
     # If filtering by hub, only show devices for that hub
     if filtered_hub:
@@ -189,18 +190,31 @@ def devices_page():
             filtered_hub=filtered_hub,
             hub_screens=hub_screen_list,
             playlists=playlists,
-            locations=locations
+            locations=locations,
+            total_screen_count=total_screen_count
         )
 
-    # Build network data with screens (same as dashboard)
+    # Build network data with stores (grouped by store_name)
     networks_raw = Network.query.order_by(Network.name).all()
     network_data = []
 
     for network in networks_raw:
         network_devices = Device.query.filter_by(network_id=network.id).filter(Device.status != 'pending').all()
-        screen_list = []
 
+        # Group devices by store_name
+        stores_dict = {}
         for device in network_devices:
+            store_key = device.store_name or 'Unassigned'
+            if store_key not in stores_dict:
+                stores_dict[store_key] = {
+                    'name': store_key,
+                    'city': device.store_city,
+                    'state': device.store_state,
+                    'screens': [],
+                    'screen_count': 0,
+                    'online_count': 0
+                }
+
             # Get layout info
             layout = None
             if device.layout_id:
@@ -212,7 +226,7 @@ def devices_page():
             if assignment and assignment.playlist:
                 current_playlist = assignment.playlist.name
 
-            screen_list.append({
+            screen_data = {
                 'id': device.id,
                 'device_id': device.device_id,
                 'name': device.name or device.device_id,
@@ -221,15 +235,28 @@ def devices_page():
                 'layout_name': layout.name if layout else 'No layout',
                 'layout_id': device.layout_id,
                 'current_playlist': current_playlist or 'No playlist',
-            })
+                'screen_location': device.screen_location or 'Unknown'
+            }
+
+            stores_dict[store_key]['screens'].append(screen_data)
+            stores_dict[store_key]['screen_count'] += 1
+            if device.status == 'active':
+                stores_dict[store_key]['online_count'] += 1
+
+        # Convert to list and sort by store name
+        stores_list = sorted(stores_dict.values(), key=lambda x: x['name'])
+
+        total_screens = sum(s['screen_count'] for s in stores_list)
+        total_online = sum(s['online_count'] for s in stores_list)
 
         network_data.append({
             'id': network.id,
             'name': network.name,
             'description': getattr(network, 'description', None),
-            'screen_count': len(screen_list),
-            'online_count': sum(1 for s in screen_list if s['status'] == 'active'),
-            'screens': screen_list
+            'screen_count': total_screens,
+            'online_count': total_online,
+            'store_count': len(stores_list),
+            'stores': stores_list
         })
 
     # Get unassigned devices (not part of any network)
@@ -248,7 +275,8 @@ def devices_page():
         filtered_hub=None,
         hub_screens=[],
         playlists=playlists,
-        locations=locations
+        locations=locations,
+        total_screen_count=total_screen_count
     )
 
 
@@ -373,8 +401,7 @@ def content_page():
         active_page='content',
         content=content,
         networks=networks,
-        organizations=organizations,  # Partner filter options
-        folders=Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
+        organizations=organizations  # Partner filter options
     )
 
 
@@ -390,22 +417,64 @@ def playlists_page():
     - Active status
 
     Also provides content list for adding items to playlists.
+    Uses same content source as Content Library (SyncedContent + Content).
 
     Returns:
         Rendered playlists.html template with playlist and content lists
     """
-    playlists = Playlist.query.order_by(Playlist.created_at.desc()).all()
-    content = Content.query.order_by(Content.original_name).all()
+    playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.created_at.desc()).all()
     networks = Network.query.order_by(Network.name).all()
-    folders = Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
+
+    # Use same content source as content_page for consistency
+    synced_items = SyncedContent.query.order_by(SyncedContent.synced_at.desc()).all()
+    content_items = Content.query.order_by(Content.created_at.desc()).all()
+
+    content = []
+
+    # Add synced content (same logic as content_page)
+    for item in synced_items:
+        folder = Folder.query.get(item.folder_id) if item.folder_id else None
+        content.append({
+            'id': item.id,
+            'original_name': item.title,
+            'filename': getattr(item, 'local_filename', None) or item.filename,
+            'duration': item.duration or 0,
+            'file_size': item.file_size or 0,
+            'network_ids': item.get_network_ids_list(),  # List of network IDs
+            'folder_id': item.folder_id,
+            'folder': folder,
+            'status': item.status,
+            'is_video': item.content_type == 'video',
+            'is_image': item.content_type == 'image',
+        })
+
+    # Add local content (not synced)
+    synced_uuids = {item.source_uuid for item in synced_items if item.source_uuid}
+    for item in content_items:
+        if item.catalog_asset_uuid and item.catalog_asset_uuid in synced_uuids:
+            continue  # Skip if already added from synced
+        folder = Folder.query.get(item.folder_id) if item.folder_id else None
+        network_ids = [item.network_id] if item.network_id else []
+        content.append({
+            'id': item.id,
+            'original_name': item.original_name or item.filename,
+            'filename': item.filename,
+            'duration': item.duration or 0,
+            'file_size': item.file_size or 0,
+            'network_ids': network_ids,  # List of network IDs
+            'folder_id': item.folder_id,
+            'folder': folder,
+            'status': item.status,
+            'is_video': item.is_video,
+            'is_image': item.is_image,
+        })
 
     return render_template(
         'playlists.html',
         active_page='playlists',
         playlists=playlists,
         content=content,
-        networks=networks,
-        folders=folders
+        networks=networks
     )
 
 
@@ -448,8 +517,15 @@ def device_detail_page(device_id):
                 'is_enabled': assignment.is_enabled if hasattr(assignment, 'is_enabled') else True
             })
 
-    # Get all available playlists for assignment dropdown
-    all_playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
+    # Get playlists for this device's network only
+    if device.network_id:
+        all_playlists = Playlist.query.filter_by(
+            is_active=True,
+            network_id=device.network_id
+        ).order_by(Playlist.name).all()
+    else:
+        # Fallback to all playlists if device has no network
+        all_playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
 
     # Trigger type info for the UI
     trigger_info = [
@@ -479,43 +555,37 @@ def device_detail_page(device_id):
         trigger_types=trigger_info
     )
 
-@web_bp.route('/login')
-def login_page():
-    """Render the login page."""
-    from flask_login import current_user
-    if current_user.is_authenticated:
-        return redirect(url_for('web.dashboard'))
-    return render_template('auth/login.html')
-
 @web_bp.route('/logout')
 def logout_page():
     """Handle logout and redirect to login."""
     from flask_login import logout_user
     logout_user()
-    return redirect(url_for('web.login_page'))
+    return redirect(url_for('web.login'))
 
 @web_bp.route('/login', methods=['GET', 'POST'])
-def web_login():
+def login():
     """Handle web login - both display form and process submission."""
     from flask import request, flash
-    from flask_login import current_user, login_user, login_required
+    from flask_login import current_user, login_user
     from cms.models.user import User
-    
+
     if current_user.is_authenticated:
         return redirect(url_for('web.dashboard'))
-    
+
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password')
-        remember = request.form.get('remember_me') == 'on'
-        
-        user = User.query.filter_by(email=email).first()
+        remember = request.form.get('remember_me') in ['on', '1', 'true', True]
+
+        # Case-insensitive email lookup
+        from sqlalchemy import func
+        user = User.query.filter(func.lower(User.email) == email).first()
         if user and user.check_password(password):
             login_user(user, remember=remember)
             return redirect(url_for('web.dashboard'))
         else:
             flash('Invalid email or password', 'error')
-    
+
     return render_template('auth/login.html')
 
 
@@ -615,31 +685,42 @@ def approve_pairing():
 @web_bp.route('/folders', methods=['GET'])
 @login_required
 def list_folders():
-    """Get all folders as a nested tree structure."""
-    # Get root folders (no parent)
-    root_folders = Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
-    return jsonify([f.to_dict(include_children=True) for f in root_folders])
+    """Get all folders, optionally filtered by network_id."""
+    network_id = request.args.get('network_id')
+
+    if network_id:
+        # Get all folders for this network (flat list for client-side processing)
+        folders = Folder.query.filter_by(network_id=network_id).order_by(Folder.name).all()
+        return jsonify([f.to_dict() for f in folders])
+    else:
+        # Get all root folders (no parent, no network) - legacy behavior
+        root_folders = Folder.query.filter_by(parent_id=None).order_by(Folder.name).all()
+        return jsonify([f.to_dict(include_children=True) for f in root_folders])
 
 
 @web_bp.route('/folders', methods=['POST'])
 @login_required
 def create_folder():
-    """Create a new folder."""
+    """Create a new folder within a network."""
     data = request.get_json()
-    
+
     if not data.get('name'):
         return jsonify({'error': 'Folder name is required'}), 400
-    
+
+    if not data.get('network_id'):
+        return jsonify({'error': 'Network ID is required'}), 400
+
     folder = Folder(
         name=data['name'],
         icon=data.get('icon', '📁'),
         color=data.get('color', '#667eea'),
-        parent_id=data.get('parent_id')  # None for root folders
+        network_id=data['network_id'],
+        parent_id=data.get('parent_id')  # None for root folders within network
     )
-    
+
     db.session.add(folder)
     db.session.commit()
-    
+
     return jsonify(folder.to_dict()), 201
 
 

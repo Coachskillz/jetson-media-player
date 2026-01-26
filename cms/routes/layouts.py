@@ -299,6 +299,125 @@ def get_layout(layout_id):
     return jsonify(layout.to_dict(include_layers=include_layers)), 200
 
 
+@layouts_bp.route('/<layout_id>/preview', methods=['GET'])
+def get_layout_preview(layout_id):
+    """
+    Get layout data formatted for preview display with content URLs.
+
+    Returns layout with layers including content URLs, thumbnails, and
+    media type information needed to render a visual preview.
+
+    Args:
+        layout_id: Layout UUID
+
+    Returns:
+        200: Layout preview data
+            {
+                "id": "uuid",
+                "name": "Layout Name",
+                "width": 1920,
+                "height": 1080,
+                "orientation": "landscape",
+                "layers": [
+                    {
+                        "id": "uuid",
+                        "name": "Zone 1",
+                        "x": 0,
+                        "y": 0,
+                        "width": 960,
+                        "height": 1080,
+                        "zIndex": 0,
+                        "contentSource": "static",
+                        "playlistName": "",
+                        "contentName": "video.mp4",
+                        "thumbnailUrl": "/api/v1/content/uuid/download",
+                        "contentUrl": "/api/v1/content/uuid/download",
+                        "mimeType": "video/mp4",
+                        "contentType": "video"
+                    }
+                ]
+            }
+        404: Layout not found
+    """
+    layout = db.session.get(ScreenLayout, layout_id)
+    if not layout:
+        return jsonify({'error': 'Layout not found'}), 404
+
+    layers_data = []
+    for idx, layer in enumerate(layout.layers.order_by(ScreenLayer.z_index).all()):
+        layer_data = {
+            'id': layer.id,
+            'name': layer.name or f'Zone {idx + 1}',
+            'x': layer.x,
+            'y': layer.y,
+            'width': layer.width,
+            'height': layer.height,
+            'zIndex': layer.z_index,
+            'contentSource': layer.content_source or 'none',
+            'playlistName': layer.playlist.name if layer.playlist else '',
+            'contentName': '',
+            'isPrimary': idx == 0,
+            'thumbnailUrl': None,
+            'contentUrl': None,
+            'mimeType': None,
+            'contentType': 'none'
+        }
+
+        # Get content details based on content source
+        if layer.content_source == 'static' and layer.content_id:
+            content = layer.content
+            if content:
+                # Handle both Content and SyncedContent
+                content_name = getattr(content, 'original_name', None) or getattr(content, 'title', '') or ''
+                mime_type = getattr(content, 'mime_type', None) or ''
+                content_format = getattr(content, 'format', None) or ''
+                thumbnail_url = getattr(content, 'thumbnail_url', None)
+
+                is_video = mime_type.startswith('video/') if mime_type else content_format in ['mp4', 'webm', 'mov', 'avi']
+                is_image = mime_type.startswith('image/') if mime_type else content_format in ['jpeg', 'jpg', 'png', 'gif', 'webp']
+
+                layer_data['contentName'] = content_name
+                layer_data['contentUrl'] = f'/api/v1/content/{content.id}/download'
+                layer_data['mimeType'] = mime_type or content_format
+                layer_data['contentType'] = 'video' if is_video else 'image' if is_image else 'other'
+
+                if thumbnail_url:
+                    layer_data['thumbnailUrl'] = thumbnail_url
+                elif is_image:
+                    layer_data['thumbnailUrl'] = f'/api/v1/content/{content.id}/download'
+
+        elif layer.content_source == 'playlist' and layer.playlist_id:
+            playlist = layer.playlist
+            if playlist:
+                layer_data['playlistName'] = playlist.name
+                # Get first item for preview
+                first_item = playlist.items.first()
+                if first_item and first_item.content:
+                    content = first_item.content
+                    mime_type = content.mime_type or ''
+                    is_video = mime_type.startswith('video/')
+                    is_image = mime_type.startswith('image/')
+
+                    layer_data['contentName'] = content.original_name or ''
+                    layer_data['contentUrl'] = f'/api/v1/content/{content.id}/download'
+                    layer_data['mimeType'] = mime_type
+                    layer_data['contentType'] = 'video' if is_video else 'image' if is_image else 'other'
+
+                    if is_image:
+                        layer_data['thumbnailUrl'] = f'/api/v1/content/{content.id}/download'
+
+        layers_data.append(layer_data)
+
+    return jsonify({
+        'id': layout.id,
+        'name': layout.name,
+        'width': layout.canvas_width,
+        'height': layout.canvas_height,
+        'orientation': layout.orientation,
+        'layers': layers_data
+    }), 200
+
+
 @layouts_bp.route('/<layout_id>', methods=['PUT'])
 def update_layout(layout_id):
     """
@@ -2695,3 +2814,15 @@ def device_layout_page(device_id):
         device_layouts=device_layouts,
         available_layouts=available_layouts
     )
+
+
+
+@layouts_web_bp.route('/layouts/zone-editor-test')
+def zone_editor_test():
+    """
+    Test page for the vanilla JS zone editor.
+
+    This is a standalone test page to verify drag-and-drop
+    functionality works correctly without Fabric.js.
+    """
+    return render_template('layouts/zone_editor_test.html')

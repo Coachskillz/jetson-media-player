@@ -1,814 +1,752 @@
 {% extends "base.html" %}
 
-{% block title %}Playlists - Skillz Media Screens CMS{% endblock %}
+{% block title %}Playlist Builder - Skillz Media Screens CMS{% endblock %}
 
 {% block extra_styles %}
-/* Two-Panel Layout: Content Browser (left) + Playlist Builder (right) */
-.layout {
+/* 3-Column Layout: Screens | Playlist Editor | Content Library */
+.playlist-builder-layout {
     display: grid;
-    grid-template-columns: 1fr 500px;
-    gap: 20px;
-    margin-top: 20px;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 16px;
+    height: calc(100vh - 100px);
+    margin-top: 16px;
 }
 
-.main-content {
-    min-width: 0;
-}
-
-.playlist-builder-panel {
-    position: sticky;
-    top: 20px;
-    height: fit-content;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-}
-
-/* Content Browser Panel Styles */
-.content-browser {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.content-browser h3 {
-    font-size: 18px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-.content-browser-header {
+/* Common Panel Styles */
+.panel {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-.content-browser-filters {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
+.panel-header {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
 }
 
-.filter-btn {
-    padding: 8px 16px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: #f1f5f9;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.filter-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.filter-btn.active {
-    border-color: #667eea;
-    background: #eef2ff;
-    color: #667eea;
-}
-
-.search-input {
-    flex: 1;
-    min-width: 200px;
-    padding: 10px 15px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
+.panel-header h3 {
     font-size: 14px;
-    transition: all 0.2s;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.content-browser-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 15px;
-    max-height: 500px;
-    overflow-y: auto;
-    padding: 5px;
-}
-
-.content-browser-item {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-    text-align: center;
-}
-
-.content-browser-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: #667eea;
-}
-
-.content-browser-item .content-icon {
-    font-size: 32px;
-    margin-bottom: 8px;
-}
-
-.content-browser-item .content-name {
-    font-size: 12px;
     font-weight: 600;
-    color: #1e293b;
+    color: #374151;
+    margin: 0;
+}
+
+.panel-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.panel-search input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 13px;
+}
+
+.panel-search .search-icon {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+/* ========================================
+   LEFT PANEL: Playlists by Network
+   ======================================== */
+.playlists-panel .panel-header {
+    padding-bottom: 12px;
+}
+
+.network-group {
+    margin-bottom: 16px;
+}
+
+.network-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.network-group-header:hover {
+    background: #e5e7eb;
+}
+
+.network-group-header .network-icon {
+    font-size: 14px;
+}
+
+.network-group-header .network-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.network-group-header .network-count {
+    font-size: 11px;
+    color: #9ca3af;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.network-group-header .expand-icon {
+    color: #9ca3af;
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.network-group.collapsed .expand-icon {
+    transform: rotate(-90deg);
+}
+
+.network-group.collapsed .playlist-list {
+    display: none;
+}
+
+.playlist-list {
+    padding-left: 12px;
+}
+
+.playlist-item-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 2px;
+}
+
+.playlist-item-link:hover {
+    background: #f3f4f6;
+}
+
+.playlist-item-link.active {
+    background: #eef2ff;
+    border-left: 3px solid #667eea;
+}
+
+.playlist-item-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 2px 4px;
+}
+
+.playlist-item-link .playlist-icon {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.playlist-item-link .playlist-name {
+    flex: 1;
+    font-size: 13px;
+    color: #374151;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-.content-browser-item .content-duration {
+.playlist-item-link .playlist-items-count {
     font-size: 11px;
-    color: #64748b;
-    margin-top: 4px;
+    color: #9ca3af;
 }
 
-/* Drag and Drop styles for content items */
-.content-browser-item[draggable="true"] {
-    cursor: grab;
+/* Playlist Action Buttons */
+.playlist-item-actions {
+    display: none;
+    gap: 2px;
 }
 
-.content-browser-item[draggable="true"]:active {
-    cursor: grabbing;
+.playlist-item-link:hover .playlist-item-actions {
+    display: flex;
 }
 
-.content-browser-item.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-    border-color: #667eea;
-    background: #eef2ff;
+.playlist-action-mini {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.6;
+    transition: all 0.15s;
 }
 
-.content-browser-empty {
+.playlist-action-mini:hover {
+    background: #e5e7eb;
+    opacity: 1;
+}
+
+.playlist-action-mini.delete:hover {
+    background: #fee2e2;
+}
+
+.no-playlists-msg {
+    padding: 12px;
     text-align: center;
-    padding: 40px 20px;
-    color: #94a3b8;
+    color: #9ca3af;
+    font-size: 12px;
+    font-style: italic;
 }
 
-/* Playlist Builder Panel Styles */
-.playlist-builder {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.playlist-builder h3 {
-    font-size: 18px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-.playlist-builder-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.playlist-selector {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.playlist-selector select {
-    flex: 1;
-    padding: 10px 15px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
+.create-playlist-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
     font-size: 14px;
-    background: white;
-}
-
-.playlist-items-container {
-    min-height: 200px;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 2px dashed #e2e8f0;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 12px;
     transition: all 0.2s;
 }
 
-.playlist-items-container.drag-over {
+.create-playlist-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.screen-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.screen-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 2px;
+}
+
+.screen-item:hover {
+    background: #f3f4f6;
+}
+
+.screen-item.active {
+    background: #eef2ff;
+}
+
+.screen-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.screen-checkbox:checked {
+    background: #667eea;
     border-color: #667eea;
-    background: #f8f9ff;
 }
 
-.playlist-items-container.awaiting-drop {
-    border-color: #10b981;
-    background: #f0fdf4;
-    border-style: solid;
-    animation: pulse-border 1s ease-in-out infinite;
+.screen-icon {
+    font-size: 16px;
+    color: #6b7280;
 }
 
-@keyframes pulse-border {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+.screen-name {
+    flex: 1;
+    font-size: 13px;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.playlist-item-drag-handle {
-    cursor: grab;
-    padding: 4px;
-    color: #94a3b8;
+.screen-count {
+    font-size: 12px;
+    color: #9ca3af;
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.screen-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.screen-status.online { background: #22c55e; }
+.screen-status.offline { background: #ef4444; }
+.screen-status.warning { background: #f59e0b; }
+.screen-status.info { background: #3b82f6; }
+
+/* ========================================
+   CENTER PANEL: Playlist Editor
+   ======================================== */
+.playlist-editor-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.playlist-title-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.playlist-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.playlist-title-input {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    border: none;
+    background: transparent;
+    outline: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 200px;
+}
+
+.playlist-title-input:focus {
+    background: #f3f4f6;
+}
+
+.edit-title-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #9ca3af;
     font-size: 14px;
-    margin-right: 4px;
 }
 
-.playlist-item-drag-handle:hover {
-    color: #667eea;
+.edit-title-btn:hover {
+    color: #374151;
 }
 
-.playlist-item-drag-indicator {
-    height: 3px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 3px;
-    margin: 4px 0;
-    opacity: 0;
-    transition: opacity 0.15s;
+.playlist-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
 }
 
-.playlist-item-drag-indicator.visible {
-    opacity: 1;
+.playlist-action-btn {
+    padding: 8px;
+    background: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 16px;
+    transition: all 0.15s;
+}
+
+.playlist-action-btn:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Stats Bar */
+.playlist-stats {
+    display: flex;
+    gap: 24px;
+    padding: 12px 20px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.playlist-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.playlist-stat strong {
+    color: #111827;
+    font-weight: 600;
+}
+
+.stat-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #667eea;
+}
+
+/* Selection Bar */
+.selection-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.select-all-checkbox {
+    width: 16px;
+    height: 16px;
+}
+
+/* Playlist Items */
+.playlist-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
 }
 
 .playlist-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    background: #f8fafc;
-    border-radius: 10px;
-    margin: 8px 0;
-    cursor: grab;
-    transition: all 0.2s;
-    border: 2px solid transparent;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.15s;
 }
 
 .playlist-item:hover {
-    background: #e0e7ff;
-    transform: translateX(4px);
+    background: #f9fafb;
 }
 
 .playlist-item.dragging {
-    opacity: 0.5;
-    border: 2px dashed #667eea;
+    background: #eef2ff;
+    opacity: 0.8;
 }
 
-.playlist-item-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.playlist-item.drag-over {
+    border-top: 2px solid #667eea;
 }
 
-.playlist-item-position {
+.item-number {
+    font-size: 13px;
+    color: #9ca3af;
     width: 24px;
-    height: 24px;
-    background: #667eea;
-    color: white;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.playlist-item-title {
-    font-weight: 600;
-    color: #1e293b;
-    font-size: 14px;
-}
-
-.playlist-item-duration {
-    font-size: 12px;
-    color: #64748b;
-}
-
-.playlist-item-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.playlist-item-duration-input {
-    width: 60px;
-    padding: 4px 8px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 12px;
     text-align: center;
 }
 
-.playlist-item-duration-input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+.item-thumbnail {
+    width: 80px;
+    height: 45px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.playlist-item-duration-wrapper {
+.item-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-thumbnail .no-thumb {
+    font-size: 24px;
+    color: #9ca3af;
+}
+
+.item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.item-type {
+    font-size: 11px;
+    color: #9ca3af;
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-.playlist-item-duration-hint {
-    font-size: 10px;
-    color: #94a3b8;
+.item-duration {
+    font-size: 13px;
+    color: #374151;
+    font-weight: 500;
     white-space: nowrap;
 }
 
-.playlist-item-duration-hint.video-hint {
-    background: #e0e7ff;
-    color: #4f46e5;
-    padding: 2px 6px;
-    border-radius: 4px;
+.item-duration .unit {
+    color: #9ca3af;
+    font-weight: 400;
+    margin-left: 2px;
 }
 
-.playlist-item-duration-hint.image-default {
-    background: #fef3c7;
-    color: #d97706;
-    padding: 2px 6px;
-    border-radius: 4px;
+.item-status {
+    color: #667eea;
+    font-size: 14px;
 }
 
-.playlist-item-duration-hint.custom {
-    background: #d1fae5;
-    color: #059669;
-    padding: 2px 6px;
-    border-radius: 4px;
+.item-actions {
+    display: flex;
+    gap: 4px;
 }
 
-.playlist-item-remove {
-    background: #fee2e2;
-    color: #ef4444;
+.item-action-btn {
+    padding: 6px;
+    background: none;
     border: none;
-    border-radius: 6px;
-    padding: 4px 8px;
     cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
+    color: #9ca3af;
+    border-radius: 4px;
+    transition: all 0.15s;
 }
 
-.playlist-item-remove:hover {
-    background: #ef4444;
-    color: white;
+.item-action-btn:hover {
+    background: #f3f4f6;
+    color: #374151;
 }
 
+.item-action-btn.delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Empty Playlist */
 .playlist-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #9ca3af;
     text-align: center;
-    padding: 40px 20px;
-    color: #94a3b8;
 }
 
 .playlist-empty-icon {
     font-size: 48px;
-    margin-bottom: 10px;
-    opacity: 0.5;
+    margin-bottom: 16px;
 }
 
-.playlist-stats {
-    display: flex;
-    justify-content: space-between;
-    padding: 15px;
-    background: #f8fafc;
-    border-radius: 10px;
-    margin-bottom: 15px;
-}
-
-.playlist-stat {
-    text-align: center;
-}
-
-.playlist-stat-label {
-    font-size: 11px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.playlist-stat-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-top: 4px;
-}
-
-/* Playlist Settings Section */
-.playlist-settings {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.playlist-settings h3 {
+.playlist-empty h4 {
     font-size: 16px;
-    color: #1e293b;
-    margin-bottom: 15px;
-    font-weight: 700;
+    color: #374151;
+    margin: 0 0 8px 0;
 }
 
-.settings-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.settings-grid .form-group {
+.playlist-empty p {
+    font-size: 13px;
     margin: 0;
 }
 
-.settings-row {
-    margin-bottom: 15px;
+/* ========================================
+   RIGHT PANEL: Content Library
+   ======================================== */
+.content-library-panel .panel-header {
+    padding-bottom: 12px;
 }
 
-.date-range-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.settings-label {
-    display: block;
-    margin-bottom: 6px;
-    color: #475569;
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.settings-select, .settings-input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 13px;
-    transition: all 0.2s;
-    background: white;
-}
-
-.settings-select:focus, .settings-input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.settings-select:disabled, .settings-input:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
-    cursor: not-allowed;
-}
-
-.settings-help {
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 4px;
-}
-
-.settings-save-indicator {
-    display: inline-block;
-    margin-left: 8px;
-    font-size: 12px;
-    color: #10b981;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.settings-save-indicator.visible {
-    opacity: 1;
-}
-
-.priority-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-left: 8px;
-}
-
-.priority-badge.normal {
-    background: #f1f5f9;
-    color: #64748b;
-}
-
-.priority-badge.high {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.priority-badge.interrupt {
-    background: #fee2e2;
-    color: #ef4444;
-}
-
-/* Legacy styles preserved for backward compatibility */
-.preview-panel {
-    position: sticky;
-    top: 20px;
-    height: fit-content;
-}
-
-.create-box {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.create-box h3 {
-    font-size: 18px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-.form-group {
-    margin: 15px 0;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #475569;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.form-group input, .form-group textarea, .form-group select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 70px;
-}
-
-.btn-success {
-    background: #10b981;
-    color: white;
-}
-
-.playlists-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-}
-
-.playlist-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s;
-}
-
-.playlist-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.playlist-header {
-    margin-bottom: 15px;
-}
-
-.playlist-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 8px;
-}
-
-.playlist-description {
-    color: #64748b;
-    font-size: 14px;
-    margin-bottom: 12px;
-    line-height: 1.5;
-}
-
-.trigger-display {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 15px;
-}
-
-.trigger-display.default {
-    background: #e0e7ff;
-    color: #3730a3;
-}
-
-.trigger-display.age {
-    background: #fce7f3;
-    color: #831843;
-}
-
-.trigger-display.loyalty {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.playlist-items {
-    border-top: 1px solid #e2e8f0;
-    padding-top: 15px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.item {
+.new-content-btn {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    background: #f8fafc;
-    border-radius: 10px;
-    margin: 8px 0;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.item:hover {
-    background: #e0e7ff;
-    transform: translateX(4px);
-}
-
-.item.playing {
-    background: #dbeafe;
-    border: 2px solid #3b82f6;
-}
-
-.item-info {
-    flex: 1;
-}
-
-.item-title {
-    font-weight: 600;
-    color: #1e293b;
-    font-size: 14px;
-}
-
-.item-duration {
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-.empty-playlist {
-    text-align: center;
-    padding: 30px;
-    color: #94a3b8;
-    font-size: 14px;
-}
-
-#createStatus {
-    margin-top: 15px;
-    padding: 12px;
-    border-radius: 10px;
-    display: none;
-    font-size: 14px;
+    gap: 4px;
+    padding: 6px 12px;
+    background: none;
+    border: 1px solid #667eea;
+    color: #667eea;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
 }
 
-.player-box {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+.new-content-btn:hover {
+    background: #eef2ff;
 }
 
-.player-box h3 {
-    font-size: 16px;
-    color: #1e293b;
-    margin-bottom: 15px;
-    font-weight: 700;
+/* Folder List */
+.folder-list {
+    margin-bottom: 16px;
 }
 
-.player-container {
-    position: relative;
-    width: 100%;
-    padding-bottom: 56.25%;
-    background: #000;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.player-container video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.player-info {
-    margin-top: 15px;
-}
-
-.player-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 10px;
-}
-
-.player-meta {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+.folder-item {
+    display: flex;
+    align-items: center;
     gap: 10px;
-    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 2px;
 }
 
-.meta-item {
-    background: #f8fafc;
-    padding: 12px;
-    border-radius: 8px;
+.folder-item:hover {
+    background: #f3f4f6;
 }
 
-.meta-label {
-    font-size: 11px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.folder-item.active {
+    background: #eef2ff;
 }
 
-.meta-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-top: 4px;
+.folder-icon {
+    font-size: 16px;
+    color: #6b7280;
 }
 
-.no-preview {
+.folder-name {
+    flex: 1;
+    font-size: 13px;
+    color: #374151;
+}
+
+/* Asset List */
+.asset-list {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 12px;
+}
+
+.asset-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: grab;
+    transition: all 0.15s;
+    margin-bottom: 4px;
+}
+
+.asset-item:hover {
+    background: #f3f4f6;
+}
+
+.asset-item.dragging {
+    opacity: 0.5;
+    background: #eef2ff;
+}
+
+.asset-item:active {
+    cursor: grabbing;
+}
+
+.asset-thumb {
+    width: 48px;
+    height: 32px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+}
+
+.asset-thumb img {
+    width: 100%;
     height: 100%;
-    color: #94a3b8;
-    flex-direction: column;
-    padding: 40px 20px;
+    object-fit: cover;
 }
 
-.no-preview svg {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 15px;
-    opacity: 0.3;
+.asset-thumb .no-thumb {
+    font-size: 16px;
+    color: #9ca3af;
 }
 
-.playlist-progress {
-    background: #e2e8f0;
-    height: 6px;
-    border-radius: 3px;
+.asset-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.asset-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
     overflow: hidden;
-    margin-top: 10px;
+    text-overflow: ellipsis;
 }
 
-.playlist-progress-fill {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    height: 100%;
-    transition: width 0.3s;
+.asset-meta {
+    font-size: 10px;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
 }
 
+/* Drop Zone Indicator */
+.drop-zone-active {
+    border: 2px dashed #667eea !important;
+    background: #eef2ff !important;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: white;
+    padding: 14px 20px;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10000;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast.success { border-left: 4px solid #667eea; }
+.toast.error { border-left: 4px solid #ef4444; }
+
+/* Modal */
 .modal {
     display: none;
     position: fixed;
@@ -828,12 +766,11 @@
 
 .modal-content {
     background: white;
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 600px;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
     width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .modal-header {
@@ -844,2061 +781,1669 @@
 }
 
 .modal-header h3 {
-    font-size: 22px;
-    color: #1e293b;
-    font-weight: 700;
+    font-size: 18px;
+    color: #111827;
+    font-weight: 600;
+    margin: 0;
 }
 
 .close-btn {
     background: none;
     border: none;
-    font-size: 28px;
+    font-size: 24px;
     cursor: pointer;
-    color: #64748b;
+    color: #9ca3af;
 }
 
-.content-selector {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px;
+.form-group {
+    margin-bottom: 16px;
 }
 
-.content-item {
-    padding: 12px;
-    border-radius: 8px;
-    margin: 5px 0;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
 }
 
-.content-item:hover {
-    background: #f1f5f9;
-}
-
-.content-item.selected {
-    background: #dbeafe;
-    border: 2px solid #3b82f6;
-}
-
-.info-box {
-    background: #fef3c7;
-    border-left: 4px solid #f59e0b;
-    padding: 15px 20px;
-    border-radius: 12px;
-    margin: 20px 0;
-}
-
-.info-box p {
-    color: #92400e;
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
     font-size: 14px;
-    line-height: 1.6;
-    margin: 5px 0;
 }
 
-/* Notification animations */
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes fadeOut {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-/* Playlist Catalog Card Styles */
-.playlist-catalog-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+.form-group input:focus, .form-group select:focus {
+    outline: none;
     border-color: #667eea;
 }
 
-.playlist-catalog-card:active {
-    transform: translateY(-2px);
+.btn {
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
 }
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
 {% endblock %}
 
 {% block content %}
-<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📋 Playlists</h2>
-
-<!-- Playlist Catalog Section -->
-<div class="playlist-catalog" style="margin-bottom: 30px;">
-    <div class="catalog-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="color: white; font-size: 18px; font-weight: 600; margin: 0;">All Playlists</h3>
-        <button class="btn btn-primary" onclick="openCreatePlaylistModal()">+ Create New Playlist</button>
-    </div>
-
-    {% if playlists %}
-    <div class="playlists-catalog-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
-        {% for playlist in playlists %}
-        <div class="playlist-catalog-card" onclick="selectPlaylistFromCatalog({{ playlist.id|tojson }})" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); cursor: pointer; transition: all 0.3s; border: 2px solid transparent;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                <div>
-                    <h4 style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 4px 0;">{{ playlist.name }}</h4>
-                    {% if playlist.description %}
-                    <p style="font-size: 13px; color: #64748b; margin: 0; line-height: 1.4;">{{ playlist.description[:60] }}{% if playlist.description|length > 60 %}...{% endif %}</p>
-                    {% endif %}
-                </div>
-                <span class="playlist-status-badge" style="background: {% if playlist.is_active %}#d1fae5{% else %}#fee2e2{% endif %}; color: {% if playlist.is_active %}#065f46{% else %}#991b1b{% endif %}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
-                    {% if playlist.is_active %}Active{% else %}Inactive{% endif %}
-                </span>
+<div class="playlist-builder-layout">
+    <!-- LEFT: Playlists by Network Panel -->
+    <div class="panel playlists-panel">
+        <div class="panel-header">
+            <h3 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 12px 0;">Playlists</h3>
+            <div class="panel-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Search playlists" id="playlistSearch" oninput="filterPlaylists(this.value)">
             </div>
-
-            <div style="display: flex; gap: 20px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
-                <div style="text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: #667eea;" id="catalog-items-{{ playlist.id }}">--</div>
-                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Items</div>
+            <button class="create-playlist-btn" onclick="openNewPlaylistModal()">
+                Create Playlist
+            </button>
+        </div>
+        <div class="panel-content" id="playlistsPanel">
+            <!-- Playlists by Network -->
+            {% for network in networks %}
+            <div class="network-group" data-network="{{ network.id }}">
+                <div class="network-group-header" onclick="toggleNetworkGroup(this)">
+                    <span class="network-icon">🌐</span>
+                    <span class="network-name">{{ network.name }}</span>
+                    <span class="network-count">{{ playlists|selectattr('network_id', 'equalto', network.id)|list|length }}</span>
+                    <span class="expand-icon">▼</span>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: #667eea;" id="catalog-duration-{{ playlist.id }}">--</div>
-                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Duration</div>
-                </div>
-                <div style="text-align: center; flex: 1;">
-                    <div style="font-size: 12px; font-weight: 600; color: #1e293b;">
-                        {% if playlist.trigger_type == 'manual' %}
-                        🔄 Default
-                        {% elif playlist.trigger_type == 'time' %}
-                        📅 Scheduled
-                        {% elif playlist.trigger_type == 'event' %}
-                            {% if playlist.trigger_config and 'age' in (playlist.trigger_config|default('', true)) %}
-                            👤 Age Targeted
-                            {% elif playlist.trigger_config and 'loyalty' in (playlist.trigger_config|default('', true)) %}
-                            ⭐ Loyalty
-                            {% else %}
-                            ⚡ Event
-                            {% endif %}
-                        {% else %}
-                        🔄 Default
-                        {% endif %}
+                <div class="playlist-list">
+                    {% for playlist in playlists if playlist.network_id == network.id %}
+                    <div class="playlist-item-link {% if current_playlist and current_playlist.id == playlist.id %}active{% endif %}"
+                         data-id="{{ playlist.id }}"
+                         data-network="{{ playlist.network_id }}">
+                        <div class="playlist-item-main" onclick="loadPlaylist('{{ playlist.id }}')">
+                            <span class="playlist-icon">📋</span>
+                            <span class="playlist-name">{{ playlist.name }}</span>
+                            <span class="playlist-items-count">{{ playlist.items.count() if playlist.items else 0 }}</span>
+                        </div>
+                        <div class="playlist-item-actions">
+                            <button class="playlist-action-mini" onclick="event.stopPropagation(); archivePlaylist('{{ playlist.id }}', '{{ playlist.name }}')" title="Archive">📥</button>
+                            <button class="playlist-action-mini delete" onclick="event.stopPropagation(); deletePlaylist('{{ playlist.id }}', '{{ playlist.name }}')" title="Delete">🗑️</button>
+                        </div>
                     </div>
-                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Trigger</div>
+                    {% else %}
+                    <div class="no-playlists-msg">No playlists in this network</div>
+                    {% endfor %}
                 </div>
             </div>
+            {% endfor %}
 
-            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn" onclick="event.stopPropagation(); selectPlaylistFromCatalog({{ playlist.id|tojson }})" style="flex: 1; padding: 8px 12px; font-size: 12px; background: #667eea; color: white; border-radius: 8px;">
-                    Edit
-                </button>
-                <button class="btn" onclick="event.stopPropagation(); previewPlaylistFromCatalog({{ playlist.id|tojson }}, {{ playlist.name|tojson }})" style="flex: 1; padding: 8px 12px; font-size: 12px; background: #64748b; color: white; border-radius: 8px;">
-                    Preview
-                </button>
-                <button class="btn" onclick="event.stopPropagation(); deletePlaylistFromCatalog({{ playlist.id|tojson }}, {{ playlist.name|tojson }})" style="padding: 8px 12px; font-size: 12px; background: #fee2e2; color: #ef4444; border-radius: 8px;">
-                    Delete
-                </button>
+            <!-- Unassigned Playlists -->
+            <div class="network-group" data-network="unassigned">
+                <div class="network-group-header" onclick="toggleNetworkGroup(this)">
+                    <span class="network-icon">📂</span>
+                    <span class="network-name">Unassigned</span>
+                    <span class="network-count">{{ playlists|rejectattr('network_id')|list|length }}</span>
+                    <span class="expand-icon">▼</span>
+                </div>
+                <div class="playlist-list">
+                    {% for playlist in playlists if not playlist.network_id %}
+                    <div class="playlist-item-link {% if current_playlist and current_playlist.id == playlist.id %}active{% endif %}"
+                         data-id="{{ playlist.id }}"
+                         data-network="">
+                        <div class="playlist-item-main" onclick="loadPlaylist('{{ playlist.id }}')">
+                            <span class="playlist-icon">📋</span>
+                            <span class="playlist-name">{{ playlist.name }}</span>
+                            <span class="playlist-items-count">{{ playlist.items.count() if playlist.items else 0 }}</span>
+                        </div>
+                        <div class="playlist-item-actions">
+                            <button class="playlist-action-mini" onclick="event.stopPropagation(); archivePlaylist('{{ playlist.id }}', '{{ playlist.name }}')" title="Archive">📥</button>
+                            <button class="playlist-action-mini delete" onclick="event.stopPropagation(); deletePlaylist('{{ playlist.id }}', '{{ playlist.name }}')" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="no-playlists-msg">No unassigned playlists</div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div style="background: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 40px; text-align: center;">
-        <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
-        <h4 style="color: #1e293b; font-size: 18px; margin-bottom: 8px;">No Playlists Yet</h4>
-        <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Create your first playlist to start organizing your content.</p>
-        <button class="btn btn-primary" onclick="openCreatePlaylistModal()">+ Create New Playlist</button>
+
+    <!-- CENTER: Playlist Editor -->
+    <div class="panel playlist-editor-panel">
+        <div class="playlist-title-bar">
+            <div class="playlist-title">
+                <input type="text" class="playlist-title-input" id="playlistName" value="{{ current_playlist.name if current_playlist else 'New Playlist' }}" onchange="updatePlaylistName()">
+                <button class="edit-title-btn">✏️</button>
+            </div>
+            <div class="playlist-actions">
+                <button class="playlist-action-btn" title="Undo">↩️</button>
+                <button class="playlist-action-btn" title="Refresh">🔄</button>
+                <button class="playlist-action-btn" title="Preview">👁️</button>
+                <button class="playlist-action-btn" title="Download">⬇️</button>
+                <button class="playlist-action-btn" title="Settings">⚙️</button>
+                <button class="playlist-action-btn" title="More">⋯</button>
+            </div>
+        </div>
+
+        <div class="playlist-stats">
+            <div class="playlist-stat">
+                Total size <strong id="totalSize">0 MB</strong>
+            </div>
+            <div class="playlist-stat">
+                Total time <strong id="totalTime">0</strong> sec
+            </div>
+            <div class="playlist-stat">
+                # of items <strong id="itemCount">0</strong>
+            </div>
+            <div class="playlist-stat">
+                <span class="stat-indicator"></span>
+            </div>
+        </div>
+
+        <div class="selection-bar">
+            <input type="checkbox" class="select-all-checkbox" id="selectAll" onchange="toggleSelectAll()">
+            <span>Selected (<span id="selectedCount">0</span>)</span>
+        </div>
+
+        <div class="playlist-items" id="playlistItems"
+             ondragover="handlePlaylistDragOver(event)"
+             ondragleave="handlePlaylistDragLeave(event)"
+             ondrop="handlePlaylistDrop(event)">
+            <!-- Playlist items will be rendered here -->
+            <div class="playlist-empty" id="playlistEmpty">
+                <div class="playlist-empty-icon">📋</div>
+                <h4>No items in playlist</h4>
+                <p>Drag content from the right panel to add items</p>
+            </div>
+        </div>
     </div>
-    {% endif %}
-</div>
 
-<!-- Playlist Builder Section -->
-<h3 style="color: white; font-size: 18px; font-weight: 600; margin: 30px 0 15px 0;">Playlist Builder</h3>
-
-<div class="layout">
-    <!-- Left Panel: Content Browser -->
-    <div class="main-content">
-        <div class="content-browser">
-            <div class="content-browser-header">
-                <h3>📂 Content Library</h3>
+    <!-- RIGHT: Content Library -->
+    <div class="panel content-library-panel">
+        <div class="panel-header">
+            <h3 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 12px 0;">Content</h3>
+            <div class="panel-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Search content" id="contentSearch" oninput="filterContent(this.value)">
             </div>
-
-            <!-- Content Type Filters -->
-            <div class="content-browser-filters">
-                <button class="filter-btn active" data-type="all" onclick="filterContent('all', this)">All</button>
-                <button class="filter-btn" data-type="video" onclick="filterContent('video', this)">🎬 Video</button>
-                <button class="filter-btn" data-type="image" onclick="filterContent('image', this)">🖼️ Image</button>
-                <button class="filter-btn" data-type="audio" onclick="filterContent('audio', this)">🎵 Audio</button>
-                <input type="text" class="search-input" id="contentSearch" placeholder="🔍 Search content..." oninput="searchContent(this.value)">
-            </div>
-
-            <!-- Folder Filters -->
-            {% if folders %}
-            <div class="content-browser-filters" style="margin-top: 10px;">
-                <button class="filter-btn folder-filter active" data-folder="" onclick="filterFolder(null, this)">📂 All Folders</button>
-                {% for folder in folders %}
-                <button class="filter-btn folder-filter" data-folder="{{ folder.id }}" onclick="filterFolder('{{ folder.id }}', this)" style="color: {{ folder.color }};">
-                    {{ folder.icon }} {{ folder.name }}
-                </button>
+        </div>
+        <div class="panel-content">
+            <!-- Networks as Folders -->
+            <div class="folder-list" id="networkList">
+                {% for network in networks %}
+                <div class="folder-item" data-network="{{ network.slug }}" data-network-id="{{ network.id }}" data-network-name="{{ network.name }}" onclick="selectContentNetwork('{{ network.slug }}', '{{ network.id }}', '{{ network.name }}')">
+                    <span class="folder-icon">📁</span>
+                    <span class="folder-name">{{ network.name }}</span>
+                </div>
                 {% endfor %}
             </div>
-            {% endif %}
 
-            <!-- Content Grid -->
-            <div class="content-browser-grid" id="contentBrowserGrid">
-                <div class="content-browser-empty">
-                    <p>Loading approved content...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Info Box -->
-        <div class="info-box" style="margin-top: 20px;">
-            <p><strong>💡 How to Build a Playlist:</strong></p>
-            <p><strong>1.</strong> Select a playlist from the dropdown on the right (or create a new one)</p>
-            <p><strong>2.</strong> <strong>Drag content</strong> from above into the playlist, or click to add</p>
-            <p><strong>3.</strong> Drag items to reorder, set durations, then save</p>
-        </div>
-    </div>
-
-    <!-- Right Panel: Playlist Builder -->
-    <div class="playlist-builder-panel">
-        <!-- Playlist Builder Section -->
-        <div class="playlist-builder">
-            <div class="playlist-builder-header">
-                <h3>🎯 Playlist Builder</h3>
-            </div>
-
-            <!-- Playlist Selector -->
-            <div class="playlist-selector">
-                <select id="playlistSelect" onchange="loadPlaylistForEdit(this.value)">
-                    <option value="">-- Select a Playlist --</option>
-                    {% for playlist in playlists %}
-                    <option value="{{ playlist.id }}">{{ playlist.name }}</option>
-                    {% endfor %}
-                </select>
-                <button class="btn btn-primary" onclick="openCreatePlaylistModal()">+ New</button>
-            </div>
-
-            <!-- Playlist Stats -->
-            <div class="playlist-stats" id="playlistStats">
-                <div class="playlist-stat">
-                    <div class="playlist-stat-label">Items</div>
-                    <div class="playlist-stat-value" id="statItemCount">0</div>
-                </div>
-                <div class="playlist-stat">
-                    <div class="playlist-stat-label">Total Duration</div>
-                    <div class="playlist-stat-value" id="statTotalDuration">0s</div>
-                </div>
-            </div>
-
-            <!-- Playlist Items Container (Drop Zone) -->
-            <div class="playlist-items-container" id="playlistItemsContainer"
-                 ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-                <div class="playlist-empty" id="playlistEmptyState">
-                    <div class="playlist-empty-icon">📋</div>
-                    <p>Select a playlist to edit<br>or create a new one</p>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" id="savePlaylistBtn" onclick="savePlaylistItems()" disabled style="flex: 1;">
-                    💾 Save Changes
-                </button>
-                <button class="btn" id="previewPlaylistBtn" onclick="previewCurrentPlaylist()" disabled style="flex: 1; background: #64748b; color: white;">
-                    ▶ Preview
-                </button>
-            </div>
-        </div>
-
-        <!-- Playlist Settings Section -->
-        <div class="playlist-settings" id="playlistSettingsSection" style="display: none;">
-            <h3>⚙️ Playlist Settings <span class="settings-save-indicator" id="settingsSaveIndicator">✓ Saved</span></h3>
-
-            <!-- Loop Mode & Priority Row -->
-            <div class="settings-grid">
-                <div class="form-group">
-                    <label class="settings-label">Loop Mode</label>
-                    <select class="settings-select" id="settingsLoopMode" onchange="updatePlaylistSettings()">
-                        <option value="continuous">🔄 Continuous</option>
-                        <option value="play_once">▶️ Play Once</option>
-                        <option value="scheduled">📅 Scheduled</option>
-                    </select>
-                    <div class="settings-help">How the playlist repeats</div>
-                </div>
-                <div class="form-group">
-                    <label class="settings-label">Priority</label>
-                    <select class="settings-select" id="settingsPriority" onchange="updatePlaylistSettings()">
-                        <option value="normal">Normal</option>
-                        <option value="high">⚡ High</option>
-                        <option value="interrupt">🚨 Interrupt (NCMEC)</option>
-                    </select>
-                    <div class="settings-help">Playback priority level</div>
-                </div>
-            </div>
-
-            <!-- Date Range Row -->
-            <div class="settings-row">
-                <label class="settings-label">Schedule Date Range <span style="font-weight: normal; color: #94a3b8;">(optional)</span></label>
-                <div class="date-range-row">
-                    <div>
-                        <input type="datetime-local" class="settings-input" id="settingsStartDate" onchange="updatePlaylistSettings()">
-                        <div class="settings-help">Start date</div>
-                    </div>
-                    <div>
-                        <input type="datetime-local" class="settings-input" id="settingsEndDate" onchange="updatePlaylistSettings()">
-                        <div class="settings-help">End date</div>
+            <!-- Folders Section (shown when a network is selected) -->
+            <div id="contentFoldersSection" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+                <!-- Navigation Bar -->
+                <div id="contentNavBar" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                    <button id="contentBackButton" onclick="goBackContent()" style="display: none; padding: 4px 8px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; font-size: 12px; color: #374151;">
+                        ←
+                    </button>
+                    <div id="contentBreadcrumb" style="flex: 1; font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                        <span style="color: #667eea; cursor: pointer;" onclick="goToContentNetworkRoot()">Network</span>
                     </div>
                 </div>
+                <!-- Folders Grid -->
+                <div id="contentFoldersGrid" style="margin-bottom: 8px;"></div>
             </div>
 
-            <!-- Total Duration Display -->
-            <div class="settings-row" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 13px; color: #64748b;">
-                        <strong>Total Duration:</strong>
-                    </span>
-                    <span id="settingsTotalDuration" style="font-size: 16px; font-weight: 700; color: #1e293b;">0s</span>
+            <!-- Approved Assets -->
+            <div class="asset-list" id="assetList" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+                {% for item in content if item.status == 'approved' %}
+                <div class="asset-item"
+                     data-id="{{ item.id }}"
+                     data-title="{{ item.original_name }}"
+                     data-duration="{{ item.duration or 10 }}"
+                     data-size="{{ item.file_size or 0 }}"
+                     data-filename="{{ item.filename }}"
+                     data-type="{% if item.is_video %}video{% elif item.is_image %}image{% else %}other{% endif %}"
+                     data-networks='{{ item.network_ids|tojson|safe }}'
+                     data-folder="{{ item.folder_id or '' }}"
+                     draggable="true"
+                     onclick="previewContent(this)"
+                     ondragstart="handleAssetDragStart(event)"
+                     ondragend="handleAssetDragEnd(event)">
+                    <div class="asset-thumb">
+                        <span class="no-thumb">{% if item.is_video %}🎬{% elif item.is_image %}🖼️{% else %}📄{% endif %}</span>
+                    </div>
+                    <div class="asset-info">
+                        <div class="asset-name">{{ item.original_name }}</div>
+                        <div class="asset-meta">
+                            <span>{% if item.is_video %}🎬{% elif item.is_image %}🖼️{% else %}📄{% endif %}</span>
+                            {{ item.duration or 10 }}s
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Create Playlist Modal -->
-<div class="modal" id="createPlaylistModal">
+<!-- New Playlist Modal -->
+<div class="modal" id="newPlaylistModal">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Create New Playlist</h3>
-            <button class="close-btn" onclick="closeCreatePlaylistModal()">&times;</button>
+            <button class="close-btn" onclick="closeNewPlaylistModal()">&times;</button>
         </div>
-
-        <form id="createPlaylistForm">
+        <form onsubmit="createPlaylist(event)">
             <div class="form-group">
                 <label>Playlist Name</label>
-                <input type="text" id="playlistName" placeholder="e.g., Store Promotions" required>
+                <input type="text" id="newPlaylistName" placeholder="Enter playlist name" required>
             </div>
             <div class="form-group">
-                <label>Description</label>
-                <textarea id="playlistDescription" placeholder="What is this playlist for?"></textarea>
+                <label>Network</label>
+                <select id="newPlaylistNetwork" required>
+                    <option value="">Select a network...</option>
+                    {% for network in networks %}
+                    <option value="{{ network.id }}">{{ network.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-
             <div class="form-group">
-                <label>Trigger Type</label>
-                <select id="triggerType" onchange="updateTriggerValue()">
-                    <option value="default">🔄 Default (Always Playing)</option>
-                    <option value="age">👤 Age Detection</option>
-                    <option value="loyalty">⭐ Loyalty (Facial Recognition)</option>
+                <label>Loop Mode</label>
+                <select id="newPlaylistLoop">
+                    <option value="continuous">Continuous (Loop forever)</option>
+                    <option value="play_once">Play Once</option>
+                    <option value="scheduled">Scheduled (Date range)</option>
                 </select>
             </div>
-
-            <div class="form-group" id="triggerValueGroup" style="display: none;">
-                <label id="triggerValueLabel">Trigger Value</label>
-                <select id="triggerValue">
-                    <!-- Options populated by JavaScript -->
+            <div class="form-group">
+                <label>Priority</label>
+                <select id="newPlaylistPriority">
+                    <option value="normal">Normal</option>
+                    <option value="high">High (Plays before normal)</option>
+                    <option value="interrupt">Interrupt (For alerts)</option>
                 </select>
             </div>
-
-            <button type="submit" class="btn btn-primary">Create Playlist</button>
-            <div id="createStatus"></div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Playlist</button>
         </form>
     </div>
 </div>
 
-<!-- Legacy Add Content Modal (preserved for backward compatibility) -->
-<div class="modal" id="addContentModal">
-    <div class="modal-content">
+<!-- Item Settings Modal -->
+<div class="modal" id="itemTriggerModal">
+    <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
-            <h3 id="modalTitle">Add Content to Playlist</h3>
-            <button class="close-btn" onclick="closeModal()">&times;</button>
+            <h3>Edit Item</h3>
+            <button class="close-btn" onclick="closeItemTriggerModal()">&times;</button>
         </div>
+        <form onsubmit="saveItemSettings(event)">
+            <input type="hidden" id="itemSettingsIndex">
 
-        <div class="form-group">
-            <label>Select Content</label>
-            <div class="content-selector" id="contentSelector">
-                {% if content %}
-                {% for item in content %}
-                <div class="content-item" data-id="{{ item.id }}" onclick="selectContent({{ item.id }})">
-                    <strong>{{ item.title }}</strong><br>
-                    <span style="font-size: 12px; color: #64748b;">{{ item.duration }}s • {{ item.filename }}</span>
+            <!-- Content Preview -->
+            <div style="background: #1a1a2e; border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+                <div id="itemPreview" style="width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; background: #0a0a10;">
+                    <span style="font-size: 48px; color: #4a4a6a;">🎬</span>
                 </div>
-                {% endfor %}
-                {% else %}
-                <div style="text-align: center; padding: 20px; color: #94a3b8;">
-                    No content available. Upload videos first!
+            </div>
+
+            <!-- Title -->
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="itemTitle" readonly style="background: #f9fafb; cursor: default;">
+            </div>
+
+            <!-- Duration Control -->
+            <div class="form-group">
+                <label>Duration (seconds)</label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button type="button" onclick="adjustDuration(-5)" style="width: 40px; height: 40px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; font-size: 18px; cursor: pointer;">−</button>
+                    <input type="number" id="itemDuration" min="1" max="300" style="flex: 1; text-align: center; font-size: 18px; font-weight: 600;">
+                    <button type="button" onclick="adjustDuration(5)" style="width: 40px; height: 40px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; font-size: 18px; cursor: pointer;">+</button>
                 </div>
-                {% endif %}
+                <small style="color: #6b7280; font-size: 11px; margin-top: 6px; display: block;">
+                    For images, set how long to display. Videos play their full length by default.
+                </small>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button type="button" class="btn" style="flex: 1; background: #f3f4f6; color: #374151;" onclick="closeItemTriggerModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Content Preview Modal -->
+<div class="modal" id="contentPreviewModal">
+    <div class="modal-content" style="max-width: 720px; padding: 0; overflow: hidden;">
+        <div class="modal-header" style="padding: 16px 20px; margin: 0; border-bottom: 1px solid #e5e7eb;">
+            <h3 id="previewTitle" style="margin: 0;">Content Preview</h3>
+            <button class="close-btn" onclick="closeContentPreview()">&times;</button>
+        </div>
+        <div style="background: #0a0a10; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative;">
+            <div id="previewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 48px; color: #4a4a6a;">🎬</span>
             </div>
         </div>
 
-        <button class="btn btn-primary" onclick="savePlaylistItem()">Add to Playlist</button>
+        <!-- Trim Controls (for video) -->
+        <div id="trimControls" style="padding: 16px 20px; background: #1a1a2e; display: none;">
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; color: #9ca3af;">Trim Video</span>
+                    <span id="trimDuration" style="font-size: 12px; color: #667eea; font-weight: 600;">0s selected</span>
+                </div>
+                <!-- Timeline slider -->
+                <div id="trimSliderContainer" style="position: relative; height: 48px; background: #2d2d44; border-radius: 6px; overflow: visible;">
+                    <!-- Background track -->
+                    <div style="position: absolute; top: 16px; left: 12px; right: 12px; height: 16px; background: #3d3d54; border-radius: 4px;"></div>
+                    <!-- Selected range highlight -->
+                    <div id="trimRangeHighlight" style="position: absolute; top: 16px; height: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; left: 12px; right: 12px;"></div>
+                    <!-- Start handle -->
+                    <div id="trimStartHandle"
+                         style="position: absolute; top: 8px; left: 0; width: 24px; height: 32px; background: #667eea; border-radius: 4px; cursor: ew-resize; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 10;"
+                         onmousedown="startDragHandle('start', event)"
+                         ontouchstart="startDragHandle('start', event)">
+                        <div style="width: 2px; height: 16px; background: rgba(255,255,255,0.5); border-radius: 1px;"></div>
+                    </div>
+                    <!-- End handle -->
+                    <div id="trimEndHandle"
+                         style="position: absolute; top: 8px; right: 0; width: 24px; height: 32px; background: #667eea; border-radius: 4px; cursor: ew-resize; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 10;"
+                         onmousedown="startDragHandle('end', event)"
+                         ontouchstart="startDragHandle('end', event)">
+                        <div style="width: 2px; height: 16px; background: rgba(255,255,255,0.5); border-radius: 1px;"></div>
+                    </div>
+                </div>
+                <!-- Time markers -->
+                <div style="display: flex; justify-content: space-between; margin: 4px 12px 0; font-size: 10px; color: #6b7280;">
+                    <span>0:00</span>
+                    <span id="trimTotalTime">0:00</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color: #9ca3af; display: block; margin-bottom: 4px;">Start Time</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="text" id="trimStartTime" value="00:00"
+                               style="flex: 1; padding: 8px 12px; background: #2d2d44; border: 1px solid #3d3d54; border-radius: 6px; color: white; font-family: monospace; font-size: 14px;"
+                               onchange="updateTrimFromInput()">
+                        <button type="button" onclick="setTrimStartFromVideo()"
+                                style="padding: 8px 12px; background: #667eea; border: none; border-radius: 6px; color: white; font-size: 12px; cursor: pointer;"
+                                title="Set to current video position">Set</button>
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; color: #9ca3af; display: block; margin-bottom: 4px;">End Time</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="text" id="trimEndTime" value="00:00"
+                               style="flex: 1; padding: 8px 12px; background: #2d2d44; border: 1px solid #3d3d54; border-radius: 6px; color: white; font-family: monospace; font-size: 14px;"
+                               onchange="updateTrimFromInput()">
+                        <button type="button" onclick="setTrimEndFromVideo()"
+                                style="padding: 8px 12px; background: #667eea; border: none; border-radius: 6px; color: white; font-size: 12px; cursor: pointer;"
+                                title="Set to current video position">Set</button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <button type="button" onclick="previewTrimmedSection()"
+                        style="flex: 1; padding: 8px 12px; background: transparent; border: 1px solid #667eea; border-radius: 6px; color: #667eea; font-size: 13px; cursor: pointer;">
+                    Preview Selection
+                </button>
+                <button type="button" onclick="resetTrim()"
+                        style="padding: 8px 12px; background: transparent; border: 1px solid #4a4a6a; border-radius: 6px; color: #9ca3af; font-size: 13px; cursor: pointer;">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Duration Controls (for non-video content) -->
+        <div id="durationControls" style="padding: 16px 20px; background: #1a1a2e; display: none;">
+            <label style="font-size: 12px; color: #9ca3af; display: block; margin-bottom: 8px;">Display Duration</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button type="button" onclick="adjustContentDuration(-5)"
+                        style="width: 40px; height: 40px; background: #2d2d44; border: 1px solid #3d3d54; border-radius: 8px; color: white; font-size: 18px; cursor: pointer;">−</button>
+                <input type="number" id="contentDuration" min="1" max="300" value="10"
+                       style="flex: 1; padding: 10px; background: #2d2d44; border: 1px solid #3d3d54; border-radius: 6px; color: white; font-size: 18px; font-weight: 600; text-align: center;">
+                <button type="button" onclick="adjustContentDuration(5)"
+                        style="width: 40px; height: 40px; background: #2d2d44; border: 1px solid #3d3d54; border-radius: 8px; color: white; font-size: 18px; cursor: pointer;">+</button>
+                <span style="color: #9ca3af; font-size: 14px;">seconds</span>
+            </div>
+        </div>
+
+        <div style="padding: 16px 20px; background: #f9fafb; border-top: 1px solid #e5e7eb;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px;">Original Duration</div>
+                    <div id="previewDuration" style="font-size: 14px; font-weight: 600; color: #111827;">--</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px;">Type</div>
+                    <div id="previewType" style="font-size: 14px; font-weight: 600; color: #111827;">--</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px;">Size</div>
+                    <div id="previewSize" style="font-size: 14px; font-weight: 600; color: #111827;">--</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="addPreviewedContentToPlaylist()">
+                Add to Playlist
+            </button>
+        </div>
     </div>
 </div>
+
+<!-- Create Folder Modal -->
+<div class="modal" id="createFolderModal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3>Create New Folder</h3>
+            <button class="close-btn" onclick="closeCreateFolderModal()">&times;</button>
+        </div>
+        <form onsubmit="createFolder(event)">
+            <div class="form-group">
+                <label>Folder Name</label>
+                <input type="text" id="newFolderName" placeholder="Enter folder name" required>
+                <small style="color: #6b7280; font-size: 11px; margin-top: 4px; display: block;">
+                    Examples: Summer Campaign, Store Promos, Q1 2026, Holiday Specials
+                </small>
+            </div>
+            <div class="form-group">
+                <label>Icon</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="icon-btn active" data-icon="📁" onclick="selectFolderIcon(this)">📁</button>
+                    <button type="button" class="icon-btn" data-icon="📂" onclick="selectFolderIcon(this)">📂</button>
+                    <button type="button" class="icon-btn" data-icon="🎬" onclick="selectFolderIcon(this)">🎬</button>
+                    <button type="button" class="icon-btn" data-icon="🖼️" onclick="selectFolderIcon(this)">🖼️</button>
+                    <button type="button" class="icon-btn" data-icon="🎵" onclick="selectFolderIcon(this)">🎵</button>
+                    <button type="button" class="icon-btn" data-icon="📊" onclick="selectFolderIcon(this)">📊</button>
+                    <button type="button" class="icon-btn" data-icon="🏷️" onclick="selectFolderIcon(this)">🏷️</button>
+                    <button type="button" class="icon-btn" data-icon="⭐" onclick="selectFolderIcon(this)">⭐</button>
+                    <button type="button" class="icon-btn" data-icon="🏪" onclick="selectFolderIcon(this)">🏪</button>
+                    <button type="button" class="icon-btn" data-icon="📅" onclick="selectFolderIcon(this)">📅</button>
+                    <button type="button" class="icon-btn" data-icon="🎯" onclick="selectFolderIcon(this)">🎯</button>
+                    <button type="button" class="icon-btn" data-icon="💰" onclick="selectFolderIcon(this)">💰</button>
+                </div>
+                <input type="hidden" id="newFolderIcon" value="📁">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Folder</button>
+        </form>
+    </div>
+</div>
+
+<style>
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.icon-btn:hover {
+    border-color: #667eea;
+    background: #eef2ff;
+}
+.icon-btn.active {
+    border-color: #667eea;
+    background: #eef2ff;
+}
+.subfolder-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.subfolder-item:hover {
+    background: #eef2ff;
+}
+.subfolder-item .folder-icon {
+    font-size: 16px;
+}
+.subfolder-item .folder-name {
+    flex: 1;
+    font-size: 13px;
+    color: #374151;
+}
+.breadcrumb-item {
+    color: #667eea;
+    cursor: pointer;
+}
+.breadcrumb-item:hover {
+    text-decoration: underline;
+}
+.breadcrumb-separator {
+    color: #9ca3af;
+    margin: 0 2px;
+}
+</style>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // State variables for the two-panel playlist builder
-    let currentPlaylistId = null;
-    let selectedContentId = null;
-    let playlistQueue = [];
-    let currentVideoIndex = 0;
-    let currentPlaylistName = '';
-    let approvedContent = []; // Content items loaded from API
-    let currentPlaylistItems = []; // Items in the current playlist being edited
-    let currentTypeFilter = 'all';
-    let currentSearchQuery = '';
-    let currentFolderFilter = null;
+// Playlist state
+let playlistItems = [];
+let currentPlaylistId = null;
+let selectedItems = new Set();
+let draggedAsset = null;
 
-    const triggerValues = {
-        age: ['Adult (27-61)', 'Senior (61+)'],
-        loyalty: ['Recognized Customer']
-    };
+// Folder navigation state
+let currentNetworkId = null;
+let currentFolderId = null;
+let folderPath = []; // Array of {id, name} for breadcrumb
 
-    // =====================================================
-    // Create Playlist Modal Functions
-    // =====================================================
+// ==========================================================================
+// Initialize
+// ==========================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Load existing playlist if any
+    {% if current_playlist %}
+    currentPlaylistId = '{{ current_playlist.id }}';
+    playlistItems = {{ current_playlist.items|tojson|safe if current_playlist.items else '[]' }};
+    renderPlaylistItems();
+    {% endif %}
+    updateStats();
 
-    function openCreatePlaylistModal() {
-        document.getElementById('createPlaylistModal').classList.add('active');
+    // Select the first network by default in content panel
+    const firstNetwork = document.querySelector('#networkList .folder-item[data-network]');
+    if (firstNetwork) {
+        const slug = firstNetwork.dataset.network;
+        const networkId = firstNetwork.dataset.networkId;
+        const name = firstNetwork.dataset.networkName;
+        selectContentNetwork(slug, networkId, name);
     }
+});
 
-    function closeCreatePlaylistModal() {
-        document.getElementById('createPlaylistModal').classList.remove('active');
-        document.getElementById('playlistName').value = '';
-        document.getElementById('playlistDescription').value = '';
-        document.getElementById('triggerType').value = 'default';
-        document.getElementById('triggerValueGroup').style.display = 'none';
-        document.getElementById('createStatus').style.display = 'none';
-    }
+// ==========================================================================
+// Playlist Panel Functions
+// ==========================================================================
+function toggleNetworkGroup(header) {
+    const group = header.closest('.network-group');
+    group.classList.toggle('collapsed');
+}
 
-    function updateTriggerValue() {
-        const triggerType = document.getElementById('triggerType').value;
-        const triggerValueGroup = document.getElementById('triggerValueGroup');
-        const triggerValue = document.getElementById('triggerValue');
-        const triggerValueLabel = document.getElementById('triggerValueLabel');
-
-        if (triggerType === 'default') {
-            triggerValueGroup.style.display = 'none';
-        } else {
-            triggerValueGroup.style.display = 'block';
-
-            const options = triggerValues[triggerType] || [];
-            triggerValue.innerHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-
-            if (triggerType === 'age') {
-                triggerValueLabel.textContent = 'Target Age Group';
-            } else if (triggerType === 'loyalty') {
-                triggerValueLabel.textContent = 'Customer Type';
-            }
-        }
-    }
-
-    document.getElementById('createPlaylistForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('playlistName').value;
-        const description = document.getElementById('playlistDescription').value;
-        const formTriggerType = document.getElementById('triggerType').value;
-        const triggerValue = formTriggerType === 'default' ? '' : document.getElementById('triggerValue').value;
-        const statusDiv = document.getElementById('createStatus');
-
-        // Map form trigger types to valid API trigger types
-        // API accepts: 'manual', 'time', 'event'
-        // Form has: 'default' (always playing), 'age' (demographic), 'loyalty' (facial recognition)
-        let apiTriggerType = 'manual';
-        let triggerConfig = null;
-
-        if (formTriggerType === 'default') {
-            apiTriggerType = 'manual';
-            triggerConfig = null;
-        } else if (formTriggerType === 'age') {
-            apiTriggerType = 'event';
-            triggerConfig = JSON.stringify({ type: 'age', value: triggerValue });
-        } else if (formTriggerType === 'loyalty') {
-            apiTriggerType = 'event';
-            triggerConfig = JSON.stringify({ type: 'loyalty', value: triggerValue });
-        }
-
-        try {
-            const response = await fetch('/api/v1/playlists', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name,
-                    description,
-                    trigger_type: apiTriggerType,
-                    trigger_config: triggerConfig
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#d1fae5';
-                statusDiv.style.color = '#065f46';
-                statusDiv.textContent = '✅ Playlist created! Refreshing...';
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                statusDiv.style.display = 'block';
-                statusDiv.style.background = '#fee2e2';
-                statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = '❌ ' + (data.error || 'Failed to create playlist');
-            }
-        } catch (error) {
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fee2e2';
-            statusDiv.style.color = '#991b1b';
-            statusDiv.textContent = '❌ Error: ' + error.message;
-        }
+function filterPlaylists(query) {
+    const items = document.querySelectorAll('.playlist-item-link');
+    const q = query.toLowerCase();
+    items.forEach(item => {
+        const name = item.querySelector('.playlist-name').textContent.toLowerCase();
+        item.style.display = name.includes(q) ? 'flex' : 'none';
     });
 
-    // =====================================================
-    // Content Browser Functions (Left Panel)
-    // =====================================================
-
-    let searchDebounceTimer = null;
-
-    async function loadApprovedContent() {
-        const grid = document.getElementById('contentBrowserGrid');
-        grid.innerHTML = '<div class="content-browser-empty"><p>Loading approved content...</p></div>';
-
-        try {
-            const response = await fetch('/api/v1/playlists/approved-content');
-            if (!response.ok) throw new Error('Failed to load content');
-
-            const data = await response.json();
-            // API returns { content: [...], count: N }
-            // Store all content, then filter client-side
-            allApprovedContent = data.content || [];
-            applyContentFilters();
-        } catch (error) {
-            grid.innerHTML = `<div class="content-browser-empty"><p>Failed to load content: ${error.message}</p></div>`;
-        }
+    // Show all network groups when filtering
+    if (q) {
+        document.querySelectorAll('.network-group').forEach(g => g.classList.remove('collapsed'));
     }
+}
 
-    // Store all content for client-side filtering
-    let allApprovedContent = [];
+async function loadPlaylist(playlistId) {
+    try {
+        const response = await fetch(`/api/v1/playlists/${playlistId}`);
+        if (response.ok) {
+            const playlist = await response.json();
+            currentPlaylistId = playlist.id;
+            document.getElementById('playlistName').value = playlist.name;
 
-    function applyContentFilters() {
-        // Filter content based on type, search, and folder
-        approvedContent = allApprovedContent.filter(item => {
-            // Type filter
-            if (currentTypeFilter !== 'all') {
-                const itemType = item.content_type || getContentTypeFromFilename(item);
-                if (itemType !== currentTypeFilter) return false;
-            }
-
-            // Search filter
-            if (currentSearchQuery) {
-                const searchLower = currentSearchQuery.toLowerCase();
-                const name = (item.original_name || item.filename || '').toLowerCase();
-                if (!name.includes(searchLower)) return false;
-            }
-
-            // Folder filter
-            if (currentFolderFilter) {
-                if (item.folder_id !== currentFolderFilter) return false;
-            }
-
-            return true;
-        });
-
-        renderContentBrowser();
-    }
-
-    function renderContentBrowser() {
-        const grid = document.getElementById('contentBrowserGrid');
-
-        if (approvedContent.length === 0) {
-            const typeLabel = currentTypeFilter === 'all' ? 'approved' : currentTypeFilter;
-            const searchSuffix = currentSearchQuery ? ` matching "${currentSearchQuery}"` : '';
-            grid.innerHTML = `
-                <div class="content-browser-empty">
-                    <p>No ${typeLabel} content found${searchSuffix}</p>
-                </div>
-            `;
-            return;
-        }
-
-        grid.innerHTML = approvedContent.map(item => {
-            const icon = getContentIcon(item);
-            const displayName = item.original_name || item.filename || 'Unknown';
-            const duration = item.duration ? formatDuration(item.duration) : (item.content_type === 'image' ? '10s' : '--');
-            // Escape the display name for title attribute
-            const escapedName = displayName.replace(/"/g, '&quot;');
-            // JSON encode the item data for drag transfer
-            const itemDataJson = JSON.stringify({
-                id: item.id,
-                filename: item.filename,
-                original_name: item.original_name,
-                content_type: item.content_type,
-                duration: item.duration
-            }).replace(/"/g, '&quot;');
-            return `
-                <div class="content-browser-item"
-                     draggable="true"
-                     data-content-id="${item.id}"
-                     data-content-json="${itemDataJson}"
-                     onclick="addContentToPlaylist('${item.id}')"
-                     ondragstart="handleContentDragStart(event, '${item.id}')"
-                     ondragend="handleContentDragEnd(event)"
-                     title="${escapedName} - Click or drag to add">
-                    <div class="content-icon">${icon}</div>
-                    <div class="content-name">${escapeHtml(displayName)}</div>
-                    <div class="content-duration">${duration}</div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function getContentIcon(item) {
-        // Use content_type from API response if available
-        const type = item.content_type || getContentTypeFromFilename(item);
-        switch (type) {
-            case 'video': return '🎬';
-            case 'image': return '🖼️';
-            case 'audio': return '🎵';
-            default: return '📄';
-        }
-    }
-
-    function getContentTypeFromFilename(item) {
-        // Fallback to filename-based detection
-        const filename = (item.filename || '').toLowerCase();
-        if (filename.match(/\.(mp4|avi|mov|mkv|webm)$/)) return 'video';
-        if (filename.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) return 'image';
-        if (filename.match(/\.(mp3|wav|ogg|aac)$/)) return 'audio';
-        return 'unknown';
-    }
-
-    function filterContent(type, btn) {
-        currentTypeFilter = type;
-        document.querySelectorAll('.filter-btn[data-type]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Apply client-side filter
-        applyContentFilters();
-    }
-
-    function filterFolder(folderId, btn) {
-        currentFolderFilter = folderId;
-        document.querySelectorAll('.folder-filter').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Apply client-side filter
-        applyContentFilters();
-    }
-
-    function searchContent(query) {
-        // Debounce search
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-            currentSearchQuery = query.trim();
-            applyContentFilters();
-        }, 300);
-    }
-
-    // =====================================================
-    // Playlist Builder Functions (Right Panel)
-    // =====================================================
-
-    async function loadPlaylistForEdit(playlistId) {
-        currentPlaylistId = playlistId;
-        const container = document.getElementById('playlistItemsContainer');
-        const saveBtn = document.getElementById('savePlaylistBtn');
-        const previewBtn = document.getElementById('previewPlaylistBtn');
-        const settingsSection = document.getElementById('playlistSettingsSection');
-
-        if (!playlistId) {
-            container.innerHTML = `
-                <div class="playlist-empty" id="playlistEmptyState">
-                    <div class="playlist-empty-icon">📋</div>
-                    <p>Select a playlist to edit<br>or create a new one</p>
-                </div>
-            `;
-            saveBtn.disabled = true;
-            previewBtn.disabled = true;
-            settingsSection.style.display = 'none';
-            updatePlaylistStats(0, 0);
-            currentPlaylistItems = [];
-            clearPlaylistSettings();
-            return;
-        }
-
-        container.innerHTML = '<div class="playlist-empty"><p>Loading playlist...</p></div>';
-
-        try {
-            // Use the preview endpoint to get full playlist details including items with content
-            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
-            if (!response.ok) throw new Error('Failed to load playlist');
-
-            const playlistData = await response.json();
-
-            // Transform items to the format expected by renderPlaylistItems
-            currentPlaylistItems = (playlistData.items || []).map(item => ({
-                id: item.id,
-                content_id: item.content_id,
-                position: item.position,
-                title: item.content ? (item.content.original_name || item.content.filename) : 'Unknown',
-                filename: item.content ? item.content.filename : '',
-                content_type: item.content ? item.content.content_type : 'unknown',
-                duration: item.effective_duration || item.content?.duration || 10,
-                duration_override: item.duration_override,
-                content_missing: item.content_missing || false
+            // Load playlist items
+            playlistItems = (playlist.items || []).map(item => ({
+                id: item.id || Date.now().toString(),
+                contentId: item.content_id,
+                title: item.content?.title || item.title || 'Unknown',
+                duration: item.duration || item.content?.duration || 0,
+                size: item.content?.file_size || 0,
+                filename: item.content?.local_filename || item.content?.filename || '',
+                type: item.content?.content_type || 'video',
+                thumbnail: item.content?.thumbnail_url || null
             }));
 
             renderPlaylistItems();
-            saveBtn.disabled = false;
-            previewBtn.disabled = currentPlaylistItems.length === 0;
-            settingsSection.style.display = 'block';
+            updateStats();
 
-            // Load playlist settings
-            loadPlaylistSettings(playlistData);
-        } catch (error) {
-            container.innerHTML = `<div class="playlist-empty"><p>Failed to load playlist: ${error.message}</p></div>`;
-            currentPlaylistItems = [];
-            clearPlaylistSettings();
-        }
-    }
-
-    // =====================================================
-    // Playlist Settings Functions
-    // =====================================================
-
-    function loadPlaylistSettings(playlistData) {
-        // Set loop mode
-        const loopModeSelect = document.getElementById('settingsLoopMode');
-        loopModeSelect.value = playlistData.loop_mode || 'continuous';
-
-        // Set priority
-        const prioritySelect = document.getElementById('settingsPriority');
-        prioritySelect.value = playlistData.priority || 'normal';
-
-        // Set date range
-        const startDateInput = document.getElementById('settingsStartDate');
-        const endDateInput = document.getElementById('settingsEndDate');
-
-        if (playlistData.start_date) {
-            // Convert ISO string to datetime-local format (remove timezone info)
-            startDateInput.value = formatDateTimeForInput(playlistData.start_date);
-        } else {
-            startDateInput.value = '';
-        }
-
-        if (playlistData.end_date) {
-            endDateInput.value = formatDateTimeForInput(playlistData.end_date);
-        } else {
-            endDateInput.value = '';
-        }
-
-        // Update total duration in settings section
-        updateSettingsTotalDuration();
-    }
-
-    function clearPlaylistSettings() {
-        document.getElementById('settingsLoopMode').value = 'continuous';
-        document.getElementById('settingsPriority').value = 'normal';
-        document.getElementById('settingsStartDate').value = '';
-        document.getElementById('settingsEndDate').value = '';
-        document.getElementById('settingsTotalDuration').textContent = '0s';
-    }
-
-    function formatDateTimeForInput(isoString) {
-        // Convert ISO string to datetime-local format (YYYY-MM-DDTHH:MM)
-        if (!isoString) return '';
-        const date = new Date(isoString);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-
-    function updateSettingsTotalDuration() {
-        const totalDuration = currentPlaylistItems.reduce((sum, item) => {
-            const isImage = item.content_type === 'image';
-            if (item.duration_override !== null && item.duration_override !== undefined) {
-                return sum + item.duration_override;
-            } else if (isImage) {
-                return sum + 10;
-            } else {
-                return sum + (item.duration || 10);
-            }
-        }, 0);
-        document.getElementById('settingsTotalDuration').textContent = formatDuration(totalDuration);
-    }
-
-    let settingsUpdateTimer = null;
-
-    async function updatePlaylistSettings() {
-        if (!currentPlaylistId) return;
-
-        // Debounce to avoid too many API calls
-        clearTimeout(settingsUpdateTimer);
-        settingsUpdateTimer = setTimeout(async () => {
-            await savePlaylistSettingsToServer();
-        }, 500);
-    }
-
-    async function savePlaylistSettingsToServer() {
-        if (!currentPlaylistId) return;
-
-        const loopMode = document.getElementById('settingsLoopMode').value;
-        const priority = document.getElementById('settingsPriority').value;
-        const startDateValue = document.getElementById('settingsStartDate').value;
-        const endDateValue = document.getElementById('settingsEndDate').value;
-
-        // Validate date range
-        if (startDateValue && endDateValue) {
-            const startDate = new Date(startDateValue);
-            const endDate = new Date(endDateValue);
-            if (startDate >= endDate) {
-                showNotification('Start date must be before end date', 'error');
-                return;
-            }
-        }
-
-        const indicator = document.getElementById('settingsSaveIndicator');
-
-        try {
-            const response = await fetch(`/api/v1/playlists/${currentPlaylistId}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    loop_mode: loopMode,
-                    priority: priority,
-                    start_date: startDateValue ? new Date(startDateValue).toISOString() : null,
-                    end_date: endDateValue ? new Date(endDateValue).toISOString() : null
-                })
+            // Update active state in sidebar
+            document.querySelectorAll('.playlist-item-link').forEach(el => {
+                el.classList.remove('active');
+                if (el.dataset.id === playlistId) {
+                    el.classList.add('active');
+                }
             });
 
-            if (response.ok) {
-                // Show save indicator
-                indicator.classList.add('visible');
-                setTimeout(() => {
-                    indicator.classList.remove('visible');
-                }, 2000);
-            } else {
-                const data = await response.json();
-                showNotification(data.error || 'Failed to save settings', 'error');
-            }
-        } catch (error) {
-            showNotification('Failed to save settings: ' + error.message, 'error');
-        }
-    }
-
-    function renderPlaylistItems() {
-        const container = document.getElementById('playlistItemsContainer');
-
-        if (currentPlaylistItems.length === 0) {
-            container.innerHTML = `
-                <div class="playlist-empty">
-                    <div class="playlist-empty-icon">📂</div>
-                    <p>This playlist is empty<br>Click content on the left to add items</p>
-                </div>
-            `;
-            updatePlaylistStats(0, 0);
-            return;
-        }
-
-        let totalDuration = 0;
-        let html = '';
-
-        currentPlaylistItems.forEach((item, index) => {
-            const isImage = item.content_type === 'image';
-            const isVideo = item.content_type === 'video';
-            const inherentDuration = item.duration || null;
-            const hasOverride = item.duration_override !== null && item.duration_override !== undefined;
-
-            // For images: use override if set, otherwise default to 10s
-            // For videos: use override if set, otherwise use inherent duration
-            let displayDuration;
-            if (hasOverride) {
-                displayDuration = item.duration_override;
-            } else if (isImage) {
-                displayDuration = 10; // Default for images
-            } else {
-                displayDuration = inherentDuration || 10;
-            }
-
-            totalDuration += displayDuration;
-            const itemIcon = getPlaylistItemIcon(item);
-            const displayTitle = escapeHtml(item.title || 'Unknown');
-
-            // Build duration hint based on content type and override status
-            let durationHint = '';
-            if (isVideo && inherentDuration && !hasOverride) {
-                durationHint = `<span class="playlist-item-duration-hint video-hint" title="Video inherent duration">video</span>`;
-            } else if (isImage && !hasOverride) {
-                durationHint = `<span class="playlist-item-duration-hint image-default" title="Default duration for images">default</span>`;
-            } else if (hasOverride) {
-                durationHint = `<span class="playlist-item-duration-hint custom" title="Custom duration set">custom</span>`;
-            }
-
-            // Add drag indicator before each item (for drop position)
-            html += `<div class="playlist-item-drag-indicator" id="drag-indicator-${index}"></div>`;
-
-            html += `
-                <div class="playlist-item" draggable="true" data-index="${index}"
-                     ondragstart="handleDragStart(event, ${index})"
-                     ondragend="handleDragEnd(event)"
-                     ondragover="handleItemDragOver(event, ${index})">
-                    <div class="playlist-item-info">
-                        <span class="playlist-item-drag-handle" title="Drag to reorder">⋮⋮</span>
-                        <div class="playlist-item-position">${index + 1}</div>
-                        <div>
-                            <div class="playlist-item-title">${itemIcon} ${displayTitle}</div>
-                            <div class="playlist-item-duration">${escapeHtml(item.filename || '')}</div>
-                        </div>
-                    </div>
-                    <div class="playlist-item-actions">
-                        <div class="playlist-item-duration-wrapper">
-                            <input type="number" class="playlist-item-duration-input"
-                                   value="${displayDuration}" min="1"
-                                   title="${isVideo && inherentDuration ? `Original: ${inherentDuration}s - Edit to override` : 'Duration in seconds'}"
-                                   onchange="updateItemDuration(${index}, this.value)"
-                                   data-original="${inherentDuration || ''}"
-                                   data-content-type="${item.content_type || 'unknown'}">
-                            <span style="font-size: 11px; color: #64748b;">sec</span>
-                            ${durationHint}
-                        </div>
-                        <button class="playlist-item-remove" onclick="removePlaylistItem(${index})" title="Remove item">✕</button>
-                    </div>
-                </div>
-            `;
-        });
-
-        // Add final drag indicator (for dropping at the end)
-        html += `<div class="playlist-item-drag-indicator" id="drag-indicator-${currentPlaylistItems.length}"></div>`;
-
-        container.innerHTML = html;
-        updatePlaylistStats(currentPlaylistItems.length, totalDuration);
-        updateSettingsTotalDuration();
-    }
-
-    function handleItemDragOver(event, index) {
-        // This helps with more precise drop positioning within items
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-    function getPlaylistItemIcon(item) {
-        // Use content_type if available, otherwise fallback to filename detection
-        const type = item.content_type || getContentTypeFromFilename(item);
-        switch (type) {
-            case 'video': return '🎬';
-            case 'image': return '🖼️';
-            case 'audio': return '🎵';
-            default: return '📄';
-        }
-    }
-
-    function updatePlaylistStats(itemCount, totalDuration) {
-        document.getElementById('statItemCount').textContent = itemCount;
-        document.getElementById('statTotalDuration').textContent = formatDuration(totalDuration);
-    }
-
-    function formatDuration(seconds) {
-        if (seconds < 60) return `${seconds}s`;
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}m ${secs}s`;
-    }
-
-    function addContentToPlaylist(contentId) {
-        if (!currentPlaylistId) {
-            showNotification('Please select a playlist first from the dropdown above', 'warning');
-            // Highlight the playlist selector
-            const selector = document.getElementById('playlistSelect');
-            if (selector) {
-                selector.style.border = '2px solid #f59e0b';
-                selector.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.3)';
-                setTimeout(() => {
-                    selector.style.border = '';
-                    selector.style.boxShadow = '';
-                }, 2000);
-            }
-            return;
-        }
-
-        const content = approvedContent.find(c => c.id === contentId);
-        if (!content) {
-            showNotification('Content not found', 'error');
-            return;
-        }
-
-        // Determine default duration: use content duration, or 10s for images
-        const defaultDuration = content.duration || (content.content_type === 'image' ? 10 : null);
-
-        // Add to current items (will be saved when user clicks Save)
-        const newItem = {
-            content_id: contentId,
-            title: content.original_name || content.filename || 'Unknown',
-            filename: content.filename,
-            content_type: content.content_type,
-            duration: defaultDuration,
-            duration_override: null
-        };
-
-        currentPlaylistItems.push(newItem);
-        renderPlaylistItems();
-        document.getElementById('previewPlaylistBtn').disabled = false;
-        markPlaylistDirty();
-
-        // Show success feedback
-        showNotification(`Added "${newItem.title}" to playlist`, 'success');
-    }
-
-    function removePlaylistItem(index) {
-        currentPlaylistItems.splice(index, 1);
-        renderPlaylistItems();
-        document.getElementById('previewPlaylistBtn').disabled = currentPlaylistItems.length === 0;
-        markPlaylistDirty();
-    }
-
-    function updateItemDuration(index, value) {
-        const duration = parseInt(value) || 10;
-        const item = currentPlaylistItems[index];
-        const isImage = item.content_type === 'image';
-        const inherentDuration = item.duration || null;
-
-        // Determine if this is a custom override or just setting back to default
-        // For images: default is 10s
-        // For videos: default is the inherent duration
-        const defaultDuration = isImage ? 10 : (inherentDuration || 10);
-
-        if (duration === defaultDuration && !item.duration_override) {
-            // Already at default, no need to set override
-            item.duration_override = null;
-        } else if (duration === defaultDuration) {
-            // Changed back to default, clear override
-            item.duration_override = null;
+            showToast(true, 'Loaded', `Playlist "${playlist.name}" loaded`);
         } else {
-            // Custom duration set
-            item.duration_override = duration;
+            showToast(false, 'Error', 'Failed to load playlist');
         }
+    } catch (error) {
+        showToast(false, 'Error', error.message);
+    }
+}
 
-        // Recalculate total duration
-        const totalDuration = currentPlaylistItems.reduce((sum, item) => {
-            const isImg = item.content_type === 'image';
-            if (item.duration_override !== null && item.duration_override !== undefined) {
-                return sum + item.duration_override;
-            } else if (isImg) {
-                return sum + 10;
-            } else {
-                return sum + (item.duration || 10);
+function addPlaylistToSidebar(playlist) {
+    const networkId = playlist.network_id || '';
+
+    // Create playlist item element
+    const newItem = document.createElement('div');
+    newItem.className = 'playlist-item-link active';
+    newItem.dataset.id = playlist.id;
+    newItem.dataset.network = networkId;
+    newItem.onclick = () => loadPlaylist(playlist.id);
+    newItem.innerHTML = `
+        <span class="playlist-icon">📋</span>
+        <span class="playlist-name">${escapeHtml(playlist.name)}</span>
+        <span class="playlist-items-count">0</span>
+    `;
+
+    // Remove active from other items
+    document.querySelectorAll('.playlist-item-link').forEach(el => el.classList.remove('active'));
+
+    // Add to network-specific section or unassigned
+    if (networkId) {
+        const networkGroup = document.querySelector(`.network-group[data-network="${networkId}"] .playlist-list`);
+        if (networkGroup) {
+            const networkNoMsg = networkGroup.querySelector('.no-playlists-msg');
+            if (networkNoMsg) networkNoMsg.remove();
+
+            networkGroup.insertBefore(newItem, networkGroup.firstChild);
+
+            // Update network count
+            const networkCount = networkGroup.closest('.network-group').querySelector('.network-count');
+            if (networkCount) {
+                networkCount.textContent = parseInt(networkCount.textContent) + 1;
             }
-        }, 0);
-        document.getElementById('statTotalDuration').textContent = formatDuration(totalDuration);
+        }
+    } else {
+        // Add to unassigned section
+        const unassignedGroup = document.querySelector('.network-group[data-network="unassigned"] .playlist-list');
+        if (unassignedGroup) {
+            const unassignedNoMsg = unassignedGroup.querySelector('.no-playlists-msg');
+            if (unassignedNoMsg) unassignedNoMsg.remove();
 
-        // Re-render to update the duration hint badges
-        renderPlaylistItems();
-        markPlaylistDirty();
-    }
+            unassignedGroup.insertBefore(newItem, unassignedGroup.firstChild);
 
-    // =====================================================
-    // Drag and Drop Functions for Playlist Reordering
-    // =====================================================
-
-    let draggedIndex = null;
-    let dragOverIndex = null;
-    let draggedContentId = null;  // For content browser drag
-
-    // =====================================================
-    // Content Browser Drag Handlers
-    // =====================================================
-
-    function handleContentDragStart(event, contentId) {
-        draggedContentId = contentId;
-        draggedIndex = null;  // Clear playlist item drag
-        event.dataTransfer.setData('application/content-id', contentId);
-        event.dataTransfer.effectAllowed = 'copy';
-
-        // Visual feedback
-        event.target.classList.add('dragging');
-
-        // Highlight the drop zone
-        const container = document.getElementById('playlistItemsContainer');
-        container.classList.add('awaiting-drop');
-    }
-
-    function handleContentDragEnd(event) {
-        event.target.classList.remove('dragging');
-        draggedContentId = null;
-
-        // Remove drop zone highlight
-        const container = document.getElementById('playlistItemsContainer');
-        container.classList.remove('awaiting-drop');
-        container.classList.remove('drag-over');
-
-        // Remove all drag indicators
-        document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
-            el.classList.remove('visible');
-        });
-    }
-
-    // =====================================================
-    // Playlist Item Drag Handlers (for reordering)
-    // =====================================================
-
-    function handleDragStart(event, index) {
-        draggedIndex = index;
-        draggedContentId = null;  // Clear content drag
-        event.dataTransfer.setData('text/plain', index.toString());
-        event.dataTransfer.effectAllowed = 'move';
-        // Add dragging class after a small delay for visual feedback
-        setTimeout(() => {
-            event.target.classList.add('dragging');
-        }, 0);
-    }
-
-    function handleDragEnd(event) {
-        event.target.classList.remove('dragging');
-        draggedIndex = null;
-        dragOverIndex = null;
-        // Remove all drag indicators
-        document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
-            el.classList.remove('visible');
-        });
-    }
-
-    function handleDragOver(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-
-        const container = document.getElementById('playlistItemsContainer');
-        container.classList.add('drag-over');
-
-        // Find which item we're dragging over
-        const items = container.querySelectorAll('.playlist-item');
-        const containerRect = container.getBoundingClientRect();
-        const mouseY = event.clientY;
-
-        // Hide all indicators first
-        document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
-            el.classList.remove('visible');
-        });
-
-        // Find the closest drop position
-        let closestIndex = -1;
-        let closestDistance = Infinity;
-        let insertBefore = true;
-
-        items.forEach((item, index) => {
-            if (index === draggedIndex) return;
-
-            const rect = item.getBoundingClientRect();
-            const itemMiddle = rect.top + rect.height / 2;
-            const distance = Math.abs(mouseY - itemMiddle);
-
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestIndex = index;
-                insertBefore = mouseY < itemMiddle;
+            // Update unassigned count
+            const unassignedCount = unassignedGroup.closest('.network-group').querySelector('.network-count');
+            if (unassignedCount) {
+                unassignedCount.textContent = parseInt(unassignedCount.textContent) + 1;
             }
+        }
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ==========================================================================
+// Content Library
+// ==========================================================================
+// Content Library - Filter and Navigation
+// ==========================================================================
+let contentNetworkFolders = {}; // Store folders by network
+let contentSearchQuery = '';
+let currentNetworkSlug = null; // For filtering content (uses slug)
+
+function filterContent(query) {
+    contentSearchQuery = query.toLowerCase();
+    filterContentAssets();
+}
+
+function selectContentNetwork(networkSlug, networkId, networkName) {
+    currentNetworkSlug = networkSlug;  // For content filtering
+    currentNetworkId = networkId;       // For folder API calls
+    currentFolderId = null;
+    folderPath = [];
+
+    // Update active network folder
+    document.querySelectorAll('#networkList .folder-item').forEach(f => f.classList.remove('active'));
+    const selected = document.querySelector(`#networkList .folder-item[data-network="${networkSlug || ''}"]`);
+    if (selected) selected.classList.add('active');
+
+    // Show/hide folders section
+    const foldersSection = document.getElementById('contentFoldersSection');
+    if (networkId) {
+        foldersSection.style.display = 'block';
+        loadContentNetworkFolders(networkId, networkName);
+    } else {
+        foldersSection.style.display = 'none';
+    }
+
+    updateContentBackButton();
+    filterContentAssets();
+}
+
+function loadContentNetworkFolders(networkId, networkName) {
+    // Fetch folders for this network from API
+    fetch(`/folders?network_id=${networkId}`)
+        .then(response => response.json())
+        .then(folders => {
+            contentNetworkFolders[networkId] = folders;
+            renderContentFolders(folders.filter(f => !f.parent_id));
+            updateContentBreadcrumb(networkName);
+        })
+        .catch(error => {
+            console.error('Error loading folders:', error);
+            renderContentFolders([]);
         });
+}
 
-        // Show the appropriate indicator
-        if (closestIndex !== -1) {
-            const indicatorIndex = insertBefore ? closestIndex : closestIndex + 1;
-            const indicator = document.getElementById(`drag-indicator-${indicatorIndex}`);
-            if (indicator) {
-                indicator.classList.add('visible');
-            }
-            dragOverIndex = indicatorIndex;
-        }
+function renderContentFolders(folders) {
+    const grid = document.getElementById('contentFoldersGrid');
+
+    if (folders.length === 0) {
+        grid.innerHTML = '<div style="font-size: 11px; color: #9ca3af; padding: 8px; font-style: italic;">No folders</div>';
+        return;
     }
 
-    function handleDragLeave(event) {
-        // Only remove drag-over if leaving the container entirely
-        const container = document.getElementById('playlistItemsContainer');
-        const relatedTarget = event.relatedTarget;
+    grid.innerHTML = folders.map(folder => `
+        <div class="subfolder-item" onclick="selectContentFolder('${folder.id}', '${escapeHtml(folder.name)}')" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 4px; cursor: pointer; transition: background 0.15s;">
+            <span style="font-size: 14px; color: ${folder.color || '#6b7280'};">${folder.icon || '📁'}</span>
+            <span style="flex: 1; font-size: 12px; color: #374151;">${escapeHtml(folder.name)}</span>
+            <span style="color: #9ca3af; font-size: 10px;">›</span>
+        </div>
+    `).join('');
+}
 
-        if (!container.contains(relatedTarget)) {
-            container.classList.remove('drag-over');
-            document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
-                el.classList.remove('visible');
-            });
-        }
+function selectContentFolder(folderId, folderName) {
+    currentFolderId = folderId;
+    folderPath.push({ id: folderId, name: folderName });
+
+    updateContentBreadcrumb();
+    updateContentBackButton();
+
+    // Load subfolders
+    const subfolders = (contentNetworkFolders[currentNetworkId] || []).filter(f => f.parent_id === folderId);
+    renderContentFolders(subfolders);
+
+    filterContentAssets();
+}
+
+function goToContentNetworkRoot() {
+    currentFolderId = null;
+    folderPath = [];
+
+    updateContentBreadcrumb();
+    updateContentBackButton();
+
+    // Load root folders
+    const rootFolders = (contentNetworkFolders[currentNetworkId] || []).filter(f => !f.parent_id);
+    renderContentFolders(rootFolders);
+
+    filterContentAssets();
+}
+
+function goBackContent() {
+    if (folderPath.length === 0) {
+        return;
+    } else if (folderPath.length === 1) {
+        goToContentNetworkRoot();
+    } else {
+        folderPath.pop();
+        const parentFolder = folderPath[folderPath.length - 1];
+        currentFolderId = parentFolder.id;
+
+        updateContentBreadcrumb();
+        updateContentBackButton();
+
+        // Load subfolders of parent
+        const subfolders = (contentNetworkFolders[currentNetworkId] || []).filter(f => f.parent_id === parentFolder.id);
+        renderContentFolders(subfolders);
+
+        filterContentAssets();
+    }
+}
+
+function goToContentFolder(folderId, index) {
+    folderPath = folderPath.slice(0, index + 1);
+    currentFolderId = folderId;
+
+    updateContentBreadcrumb();
+    updateContentBackButton();
+
+    // Load subfolders
+    const subfolders = (contentNetworkFolders[currentNetworkId] || []).filter(f => f.parent_id === folderId);
+    renderContentFolders(subfolders);
+
+    filterContentAssets();
+}
+
+function updateContentBreadcrumb(networkName) {
+    const breadcrumb = document.getElementById('contentBreadcrumb');
+    if (!networkName) {
+        const networkEl = document.querySelector(`#networkList .folder-item[data-network="${currentNetworkSlug}"]`);
+        networkName = networkEl ? networkEl.dataset.networkName : 'Network';
     }
 
-    function handleDrop(event) {
-        event.preventDefault();
-        const container = document.getElementById('playlistItemsContainer');
-        container.classList.remove('drag-over');
-        container.classList.remove('awaiting-drop');
+    let html = `<span style="color: #667eea; cursor: pointer;" onclick="goToContentNetworkRoot()">${escapeHtml(networkName)}</span>`;
 
-        // Hide all drag indicators
-        document.querySelectorAll('.playlist-item-drag-indicator').forEach(el => {
-            el.classList.remove('visible');
-        });
-
-        // Check if this is a content drop from the browser
-        const contentId = event.dataTransfer.getData('application/content-id');
-        if (contentId) {
-            // This is new content being dropped from the browser
-            handleContentDrop(contentId);
-            return;
-        }
-
-        // Otherwise, this is a reorder of existing playlist items
-        const fromIndex = parseInt(event.dataTransfer.getData('text/plain'), 10);
-
-        if (isNaN(fromIndex) || dragOverIndex === null || dragOverIndex === undefined) {
-            return;
-        }
-
-        // Calculate the actual target index
-        let toIndex = dragOverIndex;
-        if (fromIndex < toIndex) {
-            toIndex -= 1;  // Adjust because we're removing from before the drop point
-        }
-
-        // Don't do anything if dropping in the same position
-        if (fromIndex === toIndex) {
-            return;
-        }
-
-        // Reorder the array
-        const item = currentPlaylistItems.splice(fromIndex, 1)[0];
-        currentPlaylistItems.splice(toIndex, 0, item);
-
-        // Re-render the playlist items
-        renderPlaylistItems();
-
-        // Mark as dirty (unsaved changes)
-        markPlaylistDirty();
-    }
-
-    function handleContentDrop(contentId) {
-        // Handle dropping content from the browser into the playlist
-        if (!currentPlaylistId) {
-            showNotification('Please select a playlist first', 'warning');
-            // Highlight the playlist selector
-            const selector = document.getElementById('playlistSelect');
-            if (selector) {
-                selector.style.border = '2px solid #f59e0b';
-                selector.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.3)';
-                setTimeout(() => {
-                    selector.style.border = '';
-                    selector.style.boxShadow = '';
-                }, 2000);
-            }
-            return;
-        }
-
-        const content = approvedContent.find(c => c.id === contentId);
-        if (!content) {
-            showNotification('Content not found', 'error');
-            return;
-        }
-
-        // Determine default duration
-        const defaultDuration = content.duration || (content.content_type === 'image' ? 10 : null);
-
-        // Create new item
-        const newItem = {
-            content_id: contentId,
-            title: content.original_name || content.filename || 'Unknown',
-            filename: content.filename,
-            content_type: content.content_type,
-            duration: defaultDuration,
-            duration_override: null
-        };
-
-        // Add at the drop position or at the end
-        if (dragOverIndex !== null && dragOverIndex !== undefined) {
-            currentPlaylistItems.splice(dragOverIndex, 0, newItem);
+    folderPath.forEach((folder, index) => {
+        html += ` <span style="color: #94a3b8;">/</span> `;
+        if (index === folderPath.length - 1) {
+            html += `<span style="color: #1e293b; font-weight: 500;">${escapeHtml(folder.name)}</span>`;
         } else {
-            currentPlaylistItems.push(newItem);
+            html += `<span style="color: #667eea; cursor: pointer;" onclick="goToContentFolder('${folder.id}', ${index})">${escapeHtml(folder.name)}</span>`;
         }
-
-        renderPlaylistItems();
-        document.getElementById('previewPlaylistBtn').disabled = false;
-        markPlaylistDirty();
-
-        // Show success feedback
-        showNotification(`Added "${newItem.title}" to playlist`, 'success');
-    }
-
-    function markPlaylistDirty() {
-        const saveBtn = document.getElementById('savePlaylistBtn');
-        if (saveBtn && !saveBtn.textContent.includes('*')) {
-            saveBtn.innerHTML = '💾 Save Changes *';
-        }
-    }
-
-    // =====================================================
-    // Save and Preview Functions
-    // =====================================================
-
-    // Track original items for comparison during save
-    let originalPlaylistItems = [];
-
-    async function savePlaylistItems() {
-        if (!currentPlaylistId) {
-            showNotification('No playlist selected', 'error');
-            return;
-        }
-
-        const saveBtn = document.getElementById('savePlaylistBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '⏳ Saving...';
-        saveBtn.disabled = true;
-
-        try {
-            // Get current items from server to determine what changed
-            const currentServerResponse = await fetch(`/api/v1/playlists/${currentPlaylistId}/preview`);
-            const serverData = await currentServerResponse.json();
-            const serverItems = serverData.items || [];
-            const serverItemIds = new Set(serverItems.map(item => item.id));
-
-            // Identify items to add (new items don't have an 'id' from server)
-            const itemsToAdd = currentPlaylistItems.filter(item => !item.id || !serverItemIds.has(item.id));
-
-            // Identify items to remove (server items not in our current list)
-            const currentItemIds = new Set(currentPlaylistItems.filter(item => item.id).map(item => item.id));
-            const itemsToRemove = serverItems.filter(item => !currentItemIds.has(item.id));
-
-            // Identify existing items to potentially reorder or update duration
-            const existingItems = currentPlaylistItems.filter(item => item.id && serverItemIds.has(item.id));
-
-            let hasErrors = false;
-
-            // 1. Remove items that are no longer in the list
-            for (const item of itemsToRemove) {
-                try {
-                    const response = await fetch(`/api/v1/playlists/${currentPlaylistId}/items/${item.id}`, {
-                        method: 'DELETE'
-                    });
-                    if (!response.ok) {
-                        hasErrors = true;
-                    }
-                } catch (error) {
-                    hasErrors = true;
-                }
-            }
-
-            // 2. Add new items
-            for (let i = 0; i < itemsToAdd.length; i++) {
-                const item = itemsToAdd[i];
-                try {
-                    const response = await fetch(`/api/v1/playlists/${currentPlaylistId}/items`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            content_id: item.content_id,
-                            duration_override: item.duration_override || null
-                        })
-                    });
-
-                    if (response.ok) {
-                        const newItem = await response.json();
-                        // Update item with server-assigned ID
-                        item.id = newItem.id;
-                    } else {
-                        hasErrors = true;
-                    }
-                } catch (error) {
-                    hasErrors = true;
-                }
-            }
-
-            // 3. Reorder all items to match current order
-            const orderedItemIds = currentPlaylistItems
-                .filter(item => item.id)
-                .map(item => item.id);
-
-            if (orderedItemIds.length > 0) {
-                try {
-                    const reorderResponse = await fetch(`/api/v1/playlists/${currentPlaylistId}/items/reorder`, {
-                        method: 'PUT',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            item_ids: orderedItemIds
-                        })
-                    });
-
-                    if (!reorderResponse.ok) {
-                        hasErrors = true;
-                    }
-                } catch (error) {
-                    hasErrors = true;
-                }
-            }
-
-            // 4. Update duration overrides for existing items
-            // Note: This would require an additional API endpoint for updating item properties
-            // For now, we handle this by using the playlist item's duration_override from the add call
-
-            if (hasErrors) {
-                showNotification('Some changes may not have been saved. Please verify and try again.', 'warning');
-            } else {
-                showNotification('Playlist saved successfully!', 'success');
-                saveBtn.innerHTML = '💾 Save Changes';
-            }
-
-            // Reload the playlist to get fresh data from server
-            await loadPlaylistForEdit(currentPlaylistId);
-
-            // Update catalog stats for this playlist
-            await updateSinglePlaylistStats(currentPlaylistId);
-
-        } catch (error) {
-            showNotification('Failed to save playlist: ' + error.message, 'error');
-        } finally {
-            saveBtn.disabled = false;
-            if (saveBtn.innerHTML === '⏳ Saving...') {
-                saveBtn.innerHTML = originalText;
-            }
-        }
-    }
-
-    function previewCurrentPlaylist() {
-        if (!currentPlaylistId || currentPlaylistItems.length === 0) {
-            showNotification('Add items to the playlist first', 'warning');
-            return;
-        }
-
-        // Get playlist name from select element
-        const playlistSelect = document.getElementById('playlistSelect');
-        const selectedOption = playlistSelect.options[playlistSelect.selectedIndex];
-        const playlistName = selectedOption ? selectedOption.text : 'Playlist';
-
-        // Build the preview queue from current items
-        playlistQueue = currentPlaylistItems.map(item => ({
-            filename: item.filename || '',
-            title: item.title || 'Unknown',
-            duration: item.duration_override || item.duration || 10,
-            content_type: item.content_type || 'video'
-        }));
-
-        currentVideoIndex = 0;
-        currentPlaylistName = playlistName;
-
-        // Check if there's a player container, otherwise open in a modal
-        const playerContainer = document.getElementById('playerContainer');
-
-        if (playerContainer) {
-            // Use existing player
-            const totalDuration = playlistQueue.reduce((sum, item) => sum + item.duration, 0);
-            document.getElementById('playerTotalDuration').textContent = totalDuration + 's total';
-            document.getElementById('playerInfo').style.display = 'block';
-            playNextVideoFromBuilder(0);
-        } else {
-            // Open preview in a new window or modal
-            openPreviewModal();
-        }
-    }
-
-    function playNextVideoFromBuilder(index) {
-        if (index >= playlistQueue.length) {
-            index = 0;
-        }
-
-        currentVideoIndex = index;
-        const item = playlistQueue[index];
-        const playerContainer = document.getElementById('playerContainer');
-
-        if (!playerContainer) return;
-
-        if (item.content_type === 'video') {
-            playerContainer.innerHTML = `
-                <video id="previewVideo" autoplay controls>
-                    <source src="/cms/uploads/${item.filename}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            `;
-
-            const video = document.getElementById('previewVideo');
-            if (video) {
-                video.addEventListener('ended', () => {
-                    playNextVideoFromBuilder(currentVideoIndex + 1);
-                });
-            }
-        } else if (item.content_type === 'image') {
-            playerContainer.innerHTML = `
-                <img src="/cms/uploads/${item.filename}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${escapeHtml(item.title)}">
-            `;
-
-            // Auto-advance after duration
-            setTimeout(() => {
-                playNextVideoFromBuilder(currentVideoIndex + 1);
-            }, item.duration * 1000);
-        } else {
-            playerContainer.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8;">
-                    <p>Preview not available for this content type</p>
-                </div>
-            `;
-        }
-
-        // Update player info
-        const playerTitle = document.getElementById('playerTitle');
-        const playerPosition = document.getElementById('playerPosition');
-        const progressFill = document.getElementById('progressFill');
-
-        if (playerTitle) playerTitle.textContent = `${currentPlaylistName} - ${item.title}`;
-        if (playerPosition) playerPosition.textContent = `${index + 1} of ${playlistQueue.length}`;
-
-        const progress = ((index + 1) / playlistQueue.length) * 100;
-        if (progressFill) progressFill.style.width = progress + '%';
-    }
-
-    function openPreviewModal() {
-        // Create a simple preview modal if one doesn't exist
-        let modal = document.getElementById('previewModal');
-
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'previewModal';
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 800px;">
-                    <div class="modal-header">
-                        <h3>Preview: <span id="previewPlaylistName"></span></h3>
-                        <button class="close-btn" onclick="closePreviewModal()">&times;</button>
-                    </div>
-                    <div class="player-container" id="playerContainer"></div>
-                    <div class="player-info" id="playerInfo" style="margin-top: 15px;">
-                        <div class="player-title" id="playerTitle">Loading...</div>
-                        <div class="player-meta" style="margin-top: 10px;">
-                            <div class="meta-item">
-                                <div class="meta-label">Position</div>
-                                <div class="meta-value" id="playerPosition">-</div>
-                            </div>
-                            <div class="meta-item">
-                                <div class="meta-label">Total Duration</div>
-                                <div class="meta-value" id="playerTotalDuration">-</div>
-                            </div>
-                        </div>
-                        <div class="playlist-progress" style="margin-top: 10px;">
-                            <div class="playlist-progress-fill" id="progressFill" style="width: 0%;"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        modal.classList.add('active');
-        document.getElementById('previewPlaylistName').textContent = currentPlaylistName;
-
-        // Start preview
-        const totalDuration = playlistQueue.reduce((sum, item) => sum + item.duration, 0);
-        document.getElementById('playerTotalDuration').textContent = totalDuration + 's total';
-        playNextVideoFromBuilder(0);
-    }
-
-    function closePreviewModal() {
-        const modal = document.getElementById('previewModal');
-        if (modal) {
-            modal.classList.remove('active');
-            // Stop any playing video
-            const video = document.getElementById('previewVideo');
-            if (video) {
-                video.pause();
-            }
-        }
-    }
-
-    function showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = 'notification notification-' + type;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 10px;
-            color: white;
-            font-weight: 500;
-            z-index: 10000;
-            animation: slideIn 0.3s ease-out;
-            max-width: 350px;
-        `;
-
-        switch (type) {
-            case 'success':
-                notification.style.background = '#10b981';
-                break;
-            case 'error':
-                notification.style.background = '#ef4444';
-                break;
-            case 'warning':
-                notification.style.background = '#f59e0b';
-                break;
-            default:
-                notification.style.background = '#3b82f6';
-        }
-
-        notification.textContent = message;
-        document.body.appendChild(notification);
-
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'fadeOut 0.3s ease-out forwards';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
-    async function loadPlaylistItems(playlistId) {
-        try {
-            // Use the preview endpoint to get playlist items with content details
-            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
-            const data = await response.json();
-            const items = data.items || [];
-
-            const container = document.getElementById(`playlist-${playlistId}-items`);
-
-            if (items.length === 0) {
-                container.innerHTML = '<div class="empty-playlist">No content added yet</div>';
-            } else {
-                container.innerHTML = items.map((item, index) => {
-                    const title = item.content ? (item.content.original_name || item.content.filename) : 'Unknown';
-                    const filename = item.content ? item.content.filename : '';
-                    const duration = item.effective_duration || item.content?.duration || 10;
-                    return `
-                        <div class="item" id="item-${playlistId}-${index}" onclick="previewSingleItem('${filename}', '${escapeHtml(title)}', ${duration}, ${index + 1})">
-                            <div class="item-info">
-                                <div class="item-title">${index + 1}. ${escapeHtml(title)}</div>
-                                <div class="item-duration">${duration}s</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-        } catch (error) {
-            const container = document.getElementById(`playlist-${playlistId}-items`);
-            container.innerHTML = '<div class="empty-playlist">Error loading items</div>';
-        }
-    }
-
-    function previewSingleItem(filename, title, duration, position) {
-        const playerContainer = document.getElementById('playerContainer');
-        const playerInfo = document.getElementById('playerInfo');
-
-        playerContainer.innerHTML = `
-            <video controls autoplay>
-                <source src="/cms/uploads/${filename}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        `;
-
-        document.getElementById('playerTitle').textContent = title;
-        document.getElementById('playerPosition').textContent = 'Video ' + position;
-        document.getElementById('playerTotalDuration').textContent = duration + 's';
-        document.getElementById('progressFill').style.width = '0%';
-
-        playerInfo.style.display = 'block';
-    }
-
-    async function previewEntirePlaylist(playlistId, playlistName) {
-        try {
-            // Use the preview endpoint
-            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
-            const data = await response.json();
-            const items = data.items || [];
-
-            if (items.length === 0) {
-                alert('This playlist is empty! Add content first.');
-                return;
-            }
-
-            // Transform items to include filename and duration for video playback
-            playlistQueue = items.map(item => ({
-                filename: item.content ? item.content.filename : '',
-                title: item.content ? (item.content.original_name || item.content.filename) : 'Unknown',
-                duration: item.effective_duration || item.content?.duration || 10
-            }));
-            currentVideoIndex = 0;
-            currentPlaylistName = playlistName;
-
-            const totalDuration = playlistQueue.reduce((sum, item) => sum + item.duration, 0);
-            document.getElementById('playerTotalDuration').textContent = totalDuration + 's total';
-
-            document.getElementById('playerInfo').style.display = 'block';
-
-            playNextVideo(playlistId);
-        } catch (error) {
-            alert('Failed to load playlist');
-        }
-    }
-
-    function playNextVideo(playlistId) {
-        if (currentVideoIndex >= playlistQueue.length) {
-            currentVideoIndex = 0;
-        }
-
-        const item = playlistQueue[currentVideoIndex];
-        const playerContainer = document.getElementById('playerContainer');
-
-        document.querySelectorAll('.item').forEach(el => el.classList.remove('playing'));
-        const currentItem = document.getElementById(`item-${playlistId}-${currentVideoIndex}`);
-        if (currentItem) {
-            currentItem.classList.add('playing');
-            currentItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        playerContainer.innerHTML = `
-            <video id="playlistVideo" autoplay>
-                <source src="/cms/uploads/${item.filename}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        `;
-
-        const video = document.getElementById('playlistVideo');
-
-        document.getElementById('playerTitle').textContent = `${currentPlaylistName} - ${item.title}`;
-        document.getElementById('playerPosition').textContent = `${currentVideoIndex + 1} of ${playlistQueue.length}`;
-
-        const progress = ((currentVideoIndex + 1) / playlistQueue.length) * 100;
-        document.getElementById('progressFill').style.width = progress + '%';
-
-        video.addEventListener('ended', () => {
-            currentVideoIndex++;
-            playNextVideo(playlistId);
-        });
-    }
-
-    {% for playlist in playlists %}
-    loadPlaylistItems({{ playlist.id }});
-    {% endfor %}
-
-    function openAddContent(playlistId, playlistName) {
-        currentPlaylistId = playlistId;
-        document.getElementById('modalTitle').textContent = `Add Content to "${playlistName}"`;
-        document.getElementById('addContentModal').classList.add('active');
-    }
-
-    function closeModal() {
-        document.getElementById('addContentModal').classList.remove('active');
-        selectedContentId = null;
-        document.querySelectorAll('.content-item').forEach(el => el.classList.remove('selected'));
-    }
-
-    function selectContent(contentId) {
-        selectedContentId = contentId;
-        document.querySelectorAll('.content-item').forEach(el => {
-            if (el.dataset.id == contentId) {
-                el.classList.add('selected');
-            } else {
-                el.classList.remove('selected');
-            }
-        });
-    }
-
-    async function savePlaylistItem() {
-        if (!selectedContentId) {
-            alert('Please select content');
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/v1/playlists/${currentPlaylistId}/items`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    content_id: selectedContentId
-                })
-            });
-
-            if (response.ok) {
-                closeModal();
-                loadPlaylistItems(currentPlaylistId);
-            }
-        } catch (error) {
-            alert('❌ Error: ' + error.message);
-        }
-    }
-
-    // =====================================================
-    // Catalog Functions
-    // =====================================================
-
-    async function loadCatalogStats() {
-        // Load stats for each playlist in the catalog
-        const playlistIds = [{% for playlist in playlists %}{{ playlist.id|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}];
-
-        for (const playlistId of playlistIds) {
-            try {
-                const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const itemCount = data.item_count || 0;
-                    const totalDuration = data.total_duration || 0;
-
-                    const itemsEl = document.getElementById(`catalog-items-${playlistId}`);
-                    const durationEl = document.getElementById(`catalog-duration-${playlistId}`);
-
-                    if (itemsEl) itemsEl.textContent = itemCount;
-                    if (durationEl) durationEl.textContent = formatDuration(totalDuration);
-                }
-            } catch (error) {
-                console.error(`Failed to load stats for playlist ${playlistId}:`, error);
-            }
-        }
-    }
-
-    async function updateSinglePlaylistStats(playlistId) {
-        try {
-            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
-            if (response.ok) {
-                const data = await response.json();
-                const itemCount = data.item_count || 0;
-                const totalDuration = data.total_duration || 0;
-
-                const itemsEl = document.getElementById(`catalog-items-${playlistId}`);
-                const durationEl = document.getElementById(`catalog-duration-${playlistId}`);
-
-                if (itemsEl) itemsEl.textContent = itemCount;
-                if (durationEl) durationEl.textContent = formatDuration(totalDuration);
-            }
-        } catch (error) {
-            console.error(`Failed to update stats for playlist ${playlistId}:`, error);
-        }
-    }
-
-    function selectPlaylistFromCatalog(playlistId) {
-        // Scroll to the builder section
-        document.querySelector('.layout').scrollIntoView({ behavior: 'smooth' });
-
-        // Select the playlist in the dropdown
-        const playlistSelect = document.getElementById('playlistSelect');
-        playlistSelect.value = playlistId;
-
-        // Trigger the load
-        loadPlaylistForEdit(playlistId);
-    }
-
-    async function previewPlaylistFromCatalog(playlistId, playlistName) {
-        try {
-            const response = await fetch(`/api/v1/playlists/${playlistId}/preview`);
-            if (!response.ok) throw new Error('Failed to load playlist');
-
-            const data = await response.json();
-            const items = data.items || [];
-
-            if (items.length === 0) {
-                showNotification('This playlist is empty. Add content first.', 'warning');
-                return;
-            }
-
-            // Build the preview queue
-            playlistQueue = items.map(item => ({
-                filename: item.content ? item.content.filename : '',
-                title: item.content ? (item.content.original_name || item.content.filename) : 'Unknown',
-                duration: item.effective_duration || item.content?.duration || 10,
-                content_type: item.content ? item.content.content_type : 'video'
-            }));
-
-            currentVideoIndex = 0;
-            currentPlaylistName = playlistName;
-
-            // Open preview modal
-            openPreviewModal();
-        } catch (error) {
-            showNotification('Failed to preview playlist: ' + error.message, 'error');
-        }
-    }
-
-    async function deletePlaylistFromCatalog(playlistId, playlistName) {
-        if (!confirm(`Are you sure you want to delete "${playlistName}"? This action cannot be undone.`)) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/v1/playlists/${playlistId}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                showNotification('Playlist deleted successfully', 'success');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                const data = await response.json();
-                showNotification(data.error || 'Failed to delete playlist', 'error');
-            }
-        } catch (error) {
-            showNotification('Failed to delete playlist: ' + error.message, 'error');
-        }
-    }
-
-    // =====================================================
-    // Device Sync Functions
-    // =====================================================
-
-    async function pushPlaylistToDevices(playlistId, playlistName) {
-        const btn = event.target;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '🔄 Pushing...';
-        btn.disabled = true;
-
-        try {
-            const response = await fetch(`/api/v1/playlists/${playlistId}/push`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                showNotification(`Pushing "${playlistName}" to ${data.device_count || 0} devices...`, 'success');
-
-                // Show sync info panel
-                const syncInfoEl = document.getElementById(`sync-info-${playlistId}`);
-                if (syncInfoEl) {
-                    syncInfoEl.style.display = 'block';
-                }
-
-                // Update sync progress
-                updateSyncProgress(playlistId, data);
-
-                // Start polling for sync status
-                pollSyncStatus(playlistId);
-            } else {
-                showNotification(data.error || 'Failed to push playlist', 'error');
-            }
-        } catch (error) {
-            showNotification('Failed to push playlist: ' + error.message, 'error');
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    }
-
-    function updateSyncProgress(playlistId, data) {
-        const deviceCount = data.device_count || 0;
-        const syncedCount = data.synced_count || 0;
-        const progress = deviceCount > 0 ? (syncedCount / deviceCount) * 100 : 0;
-
-        const countEl = document.getElementById(`device-count-${playlistId}`);
-        const progressEl = document.getElementById(`sync-progress-${playlistId}`);
-        const labelEl = document.getElementById(`sync-label-${playlistId}`);
-        const lastSyncEl = document.getElementById(`last-sync-${playlistId}`);
-
-        if (countEl) countEl.textContent = deviceCount;
-        if (progressEl) progressEl.style.width = `${progress}%`;
-        if (labelEl) labelEl.textContent = `${syncedCount} of ${deviceCount} synced`;
-        if (lastSyncEl && data.last_synced_at) {
-            const date = new Date(data.last_synced_at);
-            lastSyncEl.textContent = `Last: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-        }
-
-        // Show the sync info panel
-        const syncInfoEl = document.getElementById(`sync-info-${playlistId}`);
-        if (syncInfoEl && deviceCount > 0) {
-            syncInfoEl.style.display = 'block';
-        }
-    }
-
-    async function pollSyncStatus(playlistId) {
-        // Poll sync status for this playlist
-        let attempts = 0;
-        const maxAttempts = 30; // Poll for max 30 seconds
-
-        const poll = async () => {
-            try {
-                const response = await fetch(`/api/v1/playlists/${playlistId}/sync-status`);
-                if (response.ok) {
-                    const data = await response.json();
-                    updateSyncProgress(playlistId, data);
-
-                    // Update sync badge
-                    updateSyncBadge(playlistId, data.sync_status);
-
-                    // Continue polling if still syncing
-                    if (data.sync_status === 'syncing' && attempts < maxAttempts) {
-                        attempts++;
-                        setTimeout(poll, 1000);
-                    } else if (data.sync_status === 'synced') {
-                        showNotification('All devices synced successfully!', 'success');
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to poll sync status:', error);
-            }
-        };
-
-        poll();
-    }
-
-    function updateSyncBadge(playlistId, syncStatus) {
-        // Find the sync badge for this playlist and update it
-        const card = document.querySelector(`[onclick*="selectPlaylistFromCatalog('${playlistId}')"], [onclick*='selectPlaylistFromCatalog("${playlistId}")']`);
-        if (!card) return;
-
-        const badge = card.querySelector('.sync-status-badge');
-        if (!badge) return;
-
-        // Update badge based on status
-        let badgeText = '';
-        let badgeStyle = '';
-
-        switch (syncStatus) {
-            case 'synced':
-                badgeText = '✓ Synced';
-                badgeStyle = 'background: #d1fae5; color: #065f46;';
-                break;
-            case 'pending':
-                badgeText = '⏳ Pending Sync';
-                badgeStyle = 'background: #fef3c7; color: #92400e;';
-                break;
-            case 'syncing':
-                badgeText = '🔄 Syncing...';
-                badgeStyle = 'background: #dbeafe; color: #1e40af;';
-                break;
-            case 'error':
-                badgeText = '⚠ Sync Error';
-                badgeStyle = 'background: #fee2e2; color: #991b1b;';
-                break;
-            default:
-                badgeText = '📝 Draft';
-                badgeStyle = 'background: #f1f5f9; color: #64748b;';
-        }
-
-        badge.textContent = badgeText;
-        badge.style.cssText = `padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; ${badgeStyle}`;
-    }
-
-    async function loadAllDeviceSyncInfo() {
-        // Load sync info for all playlists in the catalog
-        const playlistIds = [{% for playlist in playlists %}{{ playlist.id|tojson }}{% if not loop.last %}, {% endif %}{% endfor %}];
-
-        for (const playlistId of playlistIds) {
-            try {
-                const response = await fetch(`/api/v1/playlists/${playlistId}/sync-status`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.device_count > 0) {
-                        updateSyncProgress(playlistId, data);
-                    }
-                }
-            } catch (error) {
-                console.error(`Failed to load sync info for playlist ${playlistId}:`, error);
-            }
-        }
-    }
-
-    // =====================================================
-    // Page Initialization
-    // =====================================================
-
-    // Load approved content for the content browser on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadApprovedContent();
-        loadCatalogStats();
-        loadAllDeviceSyncInfo();
     });
+
+    breadcrumb.innerHTML = html;
+}
+
+function updateContentBackButton() {
+    const backBtn = document.getElementById('contentBackButton');
+    if (backBtn) {
+        backBtn.style.display = folderPath.length > 0 ? 'block' : 'none';
+    }
+}
+
+function filterContentAssets() {
+    const items = document.querySelectorAll('.asset-item');
+    items.forEach(item => {
+        let show = true;
+
+        // Network filter - use slug for matching (like content.html does)
+        if (currentNetworkSlug) {
+            const networks = JSON.parse(item.dataset.networks || '[]');
+            show = networks.includes(currentNetworkSlug);
+        }
+
+        // Folder filter
+        if (show) {
+            if (currentFolderId) {
+                // Inside a folder - only show content in that folder
+                show = item.dataset.folder === currentFolderId;
+            } else if (currentNetworkSlug) {
+                // At network root - only show content NOT in any folder
+                show = !item.dataset.folder || item.dataset.folder === '';
+            }
+        }
+
+        // Search filter
+        if (contentSearchQuery && show) {
+            const title = (item.dataset.title || '').toLowerCase();
+            show = title.includes(contentSearchQuery);
+        }
+
+        item.style.display = show ? 'flex' : 'none';
+    });
+}
+
+// ==========================================================================
+// Folder Creation
+// ==========================================================================
+function openCreateFolderModal() {
+    document.getElementById('newFolderName').value = '';
+    document.getElementById('newFolderIcon').value = '📁';
+    document.querySelectorAll('.icon-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.icon-btn[data-icon="📁"]').classList.add('active');
+    document.getElementById('createFolderModal').classList.add('active');
+}
+
+function closeCreateFolderModal() {
+    document.getElementById('createFolderModal').classList.remove('active');
+}
+
+function selectFolderIcon(btn) {
+    document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('newFolderIcon').value = btn.dataset.icon;
+}
+
+async function createFolder(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('newFolderName').value.trim();
+    const icon = document.getElementById('newFolderIcon').value;
+
+    if (!name) {
+        showToast(false, 'Error', 'Please enter a folder name');
+        return;
+    }
+
+    if (!currentNetworkId) {
+        showToast(false, 'Error', 'Please select a network first');
+        return;
+    }
+
+    try {
+        const response = await fetch('/folders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                icon: icon,
+                network_id: currentNetworkId,
+                parent_id: currentFolderId // Will be null for root-level folders in current network
+            })
+        });
+
+        if (response.ok) {
+            const folder = await response.json();
+            closeCreateFolderModal();
+            showToast(true, 'Created', `Folder "${name}" created`);
+
+            // Reload folders for this network
+            loadContentNetworkFolders(currentNetworkId);
+        } else {
+            const err = await response.json();
+            showToast(false, 'Error', err.error || 'Failed to create folder');
+        }
+    } catch (error) {
+        showToast(false, 'Error', error.message);
+    }
+}
+
+// ==========================================================================
+// Drag & Drop
+// ==========================================================================
+function handleAssetDragStart(event) {
+    draggedAsset = {
+        id: event.target.dataset.id,
+        title: event.target.dataset.title,
+        duration: parseFloat(event.target.dataset.duration) || 0,
+        size: parseInt(event.target.dataset.size) || 0,
+        filename: event.target.dataset.filename,
+        type: event.target.dataset.type,
+        thumbnail: event.target.querySelector('img')?.src || null
+    };
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'copy';
+}
+
+function handleAssetDragEnd(event) {
+    event.target.classList.remove('dragging');
+    draggedAsset = null;
+}
+
+function handlePlaylistDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    document.getElementById('playlistItems').classList.add('drop-zone-active');
+}
+
+function handlePlaylistDragLeave(event) {
+    document.getElementById('playlistItems').classList.remove('drop-zone-active');
+}
+
+function handlePlaylistDrop(event) {
+    event.preventDefault();
+    document.getElementById('playlistItems').classList.remove('drop-zone-active');
+
+    if (draggedAsset) {
+        // Add to playlist
+        playlistItems.push({
+            id: Date.now().toString(),
+            contentId: draggedAsset.id,
+            title: draggedAsset.title,
+            duration: draggedAsset.duration,
+            size: draggedAsset.size,
+            filename: draggedAsset.filename,
+            type: draggedAsset.type,
+            thumbnail: draggedAsset.thumbnail
+        });
+
+        renderPlaylistItems();
+        updateStats();
+        showToast(true, 'Added', `"${draggedAsset.title}" added to playlist`);
+    }
+}
+
+// ==========================================================================
+// Playlist Rendering
+// ==========================================================================
+function renderPlaylistItems() {
+    const container = document.getElementById('playlistItems');
+    const empty = document.getElementById('playlistEmpty');
+
+    if (playlistItems.length === 0) {
+        empty.style.display = 'flex';
+        return;
+    }
+
+    empty.style.display = 'none';
+
+    let html = '';
+    playlistItems.forEach((item, index) => {
+        const isSelected = selectedItems.has(item.id);
+        html += `
+            <div class="playlist-item" data-id="${item.id}" data-index="${index}"
+                 draggable="true"
+                 ondragstart="handleItemDragStart(event, ${index})"
+                 ondragover="handleItemDragOver(event, ${index})"
+                 ondrop="handleItemDrop(event, ${index})">
+                <span class="item-number">${index + 1}</span>
+                <div class="item-thumbnail">
+                    ${item.thumbnail ? `<img src="${item.thumbnail}" alt="">` : `<span class="no-thumb">${item.type === 'video' ? '🎬' : '🖼️'}</span>`}
+                </div>
+                <div class="item-info">
+                    <div class="item-name">${item.title}</div>
+                    <div class="item-type">📄</div>
+                </div>
+                <div class="item-duration">${item.duration.toFixed(2)}<span class="unit">sec</span></div>
+                <span class="item-status">✓</span>
+                <div class="item-actions">
+                    <button class="item-action-btn" onclick="openItemSettings(${index})" title="Settings">⚙️</button>
+                    <button class="item-action-btn" onclick="downloadItem('${item.contentId}')" title="Download">⬇️</button>
+                    <button class="item-action-btn delete" onclick="removeItem(${index})" title="Remove">🗑️</button>
+                </div>
+            </div>
+        `;
+    });
+
+    // Keep the empty state element but hidden
+    container.innerHTML = html + '<div class="playlist-empty" id="playlistEmpty" style="display: none;"><div class="playlist-empty-icon">📋</div><h4>No items in playlist</h4><p>Drag content from the right panel to add items</p></div>';
+}
+
+// Item reordering
+let draggedItemIndex = null;
+
+function handleItemDragStart(event, index) {
+    draggedItemIndex = index;
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+}
+
+function handleItemDragOver(event, index) {
+    event.preventDefault();
+    if (draggedItemIndex !== null && draggedItemIndex !== index) {
+        event.target.closest('.playlist-item')?.classList.add('drag-over');
+    }
+}
+
+function handleItemDrop(event, targetIndex) {
+    event.preventDefault();
+    document.querySelectorAll('.playlist-item').forEach(el => el.classList.remove('drag-over', 'dragging'));
+
+    if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
+        // Reorder
+        const item = playlistItems.splice(draggedItemIndex, 1)[0];
+        playlistItems.splice(targetIndex, 0, item);
+        renderPlaylistItems();
+        updateStats();
+    }
+    draggedItemIndex = null;
+}
+
+function removeItem(index) {
+    const item = playlistItems[index];
+    playlistItems.splice(index, 1);
+    renderPlaylistItems();
+    updateStats();
+    showToast(true, 'Removed', `"${item.title}" removed from playlist`);
+}
+
+// ==========================================================================
+// Stats
+// ==========================================================================
+function updateStats() {
+    const totalSize = playlistItems.reduce((sum, item) => sum + (item.size || 0), 0);
+    const totalTime = playlistItems.reduce((sum, item) => sum + (item.duration || 0), 0);
+
+    document.getElementById('totalSize').textContent = (totalSize / 1024 / 1024).toFixed(2) + ' MB';
+    document.getElementById('totalTime').textContent = totalTime.toFixed(1);
+    document.getElementById('itemCount').textContent = playlistItems.length;
+}
+
+// ==========================================================================
+// Selection
+// ==========================================================================
+function toggleSelectAll() {
+    const checkbox = document.getElementById('selectAll');
+    if (checkbox.checked) {
+        playlistItems.forEach(item => selectedItems.add(item.id));
+    } else {
+        selectedItems.clear();
+    }
+    document.getElementById('selectedCount').textContent = selectedItems.size;
+}
+
+// ==========================================================================
+// Playlist Management
+// ==========================================================================
+function openNewPlaylistModal() {
+    document.getElementById('newPlaylistModal').classList.add('active');
+}
+
+function closeNewPlaylistModal() {
+    document.getElementById('newPlaylistModal').classList.remove('active');
+}
+
+async function createPlaylist(event) {
+    event.preventDefault();
+    const name = document.getElementById('newPlaylistName').value;
+    const networkId = document.getElementById('newPlaylistNetwork').value || null;
+    const loopMode = document.getElementById('newPlaylistLoop').value;
+    const priority = document.getElementById('newPlaylistPriority').value;
+
+    try {
+        const response = await fetch('/api/v1/playlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                network_id: networkId,
+                loop_mode: loopMode,
+                priority: priority
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentPlaylistId = data.id;
+            document.getElementById('playlistName').value = name;
+            playlistItems = [];
+            renderPlaylistItems();
+            updateStats();
+            closeNewPlaylistModal();
+
+            // Add to sidebar
+            addPlaylistToSidebar({
+                id: data.id,
+                name: name,
+                network_id: networkId
+            });
+
+            showToast(true, 'Created', `Playlist "${name}" created`);
+        } else {
+            const err = await response.json();
+            showToast(false, 'Error', err.error || 'Failed to create playlist');
+        }
+    } catch (error) {
+        showToast(false, 'Error', error.message);
+    }
+}
+
+function updatePlaylistName() {
+    const name = document.getElementById('playlistName').value;
+    // Auto-save will update on change
+    showToast(true, 'Updated', 'Playlist name updated');
+}
+
+// ==========================================================================
+// Item Settings Modal
+// ==========================================================================
+function openItemSettings(index) {
+    const item = playlistItems[index];
+    if (!item) return;
+
+    document.getElementById('itemSettingsIndex').value = index;
+    document.getElementById('itemTitle').value = item.title || 'Untitled';
+    document.getElementById('itemDuration').value = item.durationOverride || item.duration || 10;
+
+    // Show preview
+    const previewEl = document.getElementById('itemPreview');
+    if (item.thumbnail) {
+        previewEl.innerHTML = `<img src="${item.thumbnail}" style="width: 100%; height: 100%; object-fit: contain;">`;
+    } else if (item.type === 'video') {
+        previewEl.innerHTML = '<span style="font-size: 48px; color: #4a4a6a;">🎬</span>';
+    } else if (item.type === 'image') {
+        previewEl.innerHTML = '<span style="font-size: 48px; color: #4a4a6a;">🖼️</span>';
+    } else {
+        previewEl.innerHTML = '<span style="font-size: 48px; color: #4a4a6a;">📄</span>';
+    }
+
+    document.getElementById('itemTriggerModal').classList.add('active');
+}
+
+function closeItemTriggerModal() {
+    document.getElementById('itemTriggerModal').classList.remove('active');
+}
+
+function adjustDuration(delta) {
+    const input = document.getElementById('itemDuration');
+    let value = parseInt(input.value) || 10;
+    value = Math.max(1, Math.min(300, value + delta));
+    input.value = value;
+}
+
+function saveItemSettings(event) {
+    event.preventDefault();
+    const index = parseInt(document.getElementById('itemSettingsIndex').value);
+    const item = playlistItems[index];
+    if (!item) return;
+
+    // Update duration
+    const duration = parseInt(document.getElementById('itemDuration').value) || item.duration;
+    item.durationOverride = duration;
+    item.duration = duration;
+
+    renderPlaylistItems();
+    updateStats();
+    closeItemTriggerModal();
+    showToast(true, 'Saved', 'Item duration updated');
+}
+
+// ==========================================================================
+// Toast
+// ==========================================================================
+function showToast(success, title, message) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${success ? 'success' : 'error'}`;
+    toast.innerHTML = `
+        <span style="font-size: 20px;">${success ? '✅' : '❌'}</span>
+        <div>
+            <div style="font-weight: 600; font-size: 14px;">${title}</div>
+            <div style="font-size: 13px; color: #6b7280;">${message}</div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ==========================================================================
+// Content Preview
+// ==========================================================================
+let previewedContent = null;
+let trimStartSeconds = 0;
+let trimEndSeconds = 0;
+let videoDuration = 0;
+let isDragging = null;
+let sliderWidth = 0;
+
+function previewContent(element) {
+    const id = element.dataset.id;
+    const title = element.dataset.title;
+    const duration = element.dataset.duration;
+    const size = element.dataset.size;
+    const filename = element.dataset.filename;
+    const type = element.dataset.type;
+
+    previewedContent = {
+        id: id,
+        title: title,
+        duration: parseFloat(duration) || 10,
+        size: parseInt(size) || 0,
+        filename: filename,
+        type: type
+    };
+
+    // Reset trim values
+    trimStartSeconds = 0;
+    trimEndSeconds = parseFloat(duration) || 10;
+    videoDuration = parseFloat(duration) || 10;
+
+    // Update modal info
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewDuration').textContent = duration + 's';
+    document.getElementById('previewType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    document.getElementById('previewSize').textContent = formatFileSize(size);
+
+    // Show/hide appropriate controls - video gets trim, everything else gets duration
+    const isVideo = type === 'video';
+    document.getElementById('trimControls').style.display = isVideo ? 'block' : 'none';
+    document.getElementById('durationControls').style.display = isVideo ? 'none' : 'block';
+
+    // Show preview content
+    const container = document.getElementById('previewContainer');
+    const contentUrl = `/admin/assets/${filename}`;
+
+    if (isVideo) {
+        container.innerHTML = `
+            <video id="previewVideo" controls style="width: 100%; height: 100%; object-fit: contain;">
+                <source src="${contentUrl}" type="video/mp4">
+                Your browser does not support video playback.
+            </video>
+        `;
+
+        // Setup video events
+        const video = document.getElementById('previewVideo');
+        video.addEventListener('loadedmetadata', function() {
+            videoDuration = video.duration;
+            trimEndSeconds = videoDuration;
+            previewedContent.duration = videoDuration;
+
+            // Update total time display
+            document.getElementById('trimTotalTime').textContent = formatTime(videoDuration);
+            document.getElementById('trimEndTime').value = formatTime(videoDuration);
+            document.getElementById('trimStartTime').value = '00:00';
+
+            // Initialize slider
+            setTimeout(() => {
+                initTrimSlider();
+                updateTrimHandles();
+            }, 100);
+        });
+    } else if (type === 'image') {
+        container.innerHTML = `
+            <img src="${contentUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain;">
+        `;
+        document.getElementById('contentDuration').value = previewedContent.duration || 10;
+    } else {
+        container.innerHTML = `
+            <div style="text-align: center; color: #6b7280;">
+                <span style="font-size: 64px; display: block; margin-bottom: 16px;">📄</span>
+                <p style="margin: 0;">${title}</p>
+            </div>
+        `;
+        document.getElementById('contentDuration').value = previewedContent.duration || 10;
+    }
+
+    document.getElementById('contentPreviewModal').classList.add('active');
+}
+
+function closeContentPreview() {
+    document.getElementById('contentPreviewModal').classList.remove('active');
+    // Stop any playing video
+    const video = document.querySelector('#previewContainer video');
+    if (video) {
+        video.pause();
+        video.src = '';
+    }
+    previewedContent = null;
+    isDragging = null;
+}
+
+// ==========================================================================
+// Trim Slider Controls
+// ==========================================================================
+function initTrimSlider() {
+    const container = document.getElementById('trimSliderContainer');
+    if (container) {
+        sliderWidth = container.offsetWidth - 24; // Account for handle width
+    }
+}
+
+function startDragHandle(handle, event) {
+    event.preventDefault();
+    isDragging = handle;
+
+    const moveHandler = (e) => {
+        if (!isDragging) return;
+
+        const container = document.getElementById('trimSliderContainer');
+        const rect = container.getBoundingClientRect();
+        const handleWidth = 24;
+        const trackWidth = rect.width - handleWidth;
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let x = clientX - rect.left;
+
+        // Clamp to track bounds
+        x = Math.max(0, Math.min(x, trackWidth));
+
+        // Convert to time
+        const percent = x / trackWidth;
+        const time = percent * videoDuration;
+
+        if (isDragging === 'start') {
+            trimStartSeconds = Math.min(time, trimEndSeconds - 0.5);
+            trimStartSeconds = Math.max(0, trimStartSeconds);
+        } else {
+            trimEndSeconds = Math.max(time, trimStartSeconds + 0.5);
+            trimEndSeconds = Math.min(videoDuration, trimEndSeconds);
+        }
+
+        updateTrimHandles();
+    };
+
+    const upHandler = () => {
+        isDragging = null;
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+        document.removeEventListener('touchmove', moveHandler);
+        document.removeEventListener('touchend', upHandler);
+    };
+
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+    document.addEventListener('touchmove', moveHandler);
+    document.addEventListener('touchend', upHandler);
+}
+
+function updateTrimHandles() {
+    const container = document.getElementById('trimSliderContainer');
+    if (!container) return;
+
+    const containerWidth = container.offsetWidth;
+    const handleWidth = 24;
+    const trackWidth = containerWidth - handleWidth; // Usable track width
+
+    const startPercent = trimStartSeconds / videoDuration;
+    const endPercent = trimEndSeconds / videoDuration;
+
+    const startX = startPercent * trackWidth;
+    const endX = endPercent * trackWidth;
+
+    // Position handles - start handle at left edge (0), end handle at right edge (containerWidth - handleWidth)
+    document.getElementById('trimStartHandle').style.left = startX + 'px';
+    document.getElementById('trimEndHandle').style.left = endX + 'px';
+
+    // Update highlight to fill between handles
+    const highlight = document.getElementById('trimRangeHighlight');
+    highlight.style.left = (startX + handleWidth / 2) + 'px';
+    highlight.style.width = (endX - startX) + 'px';
+
+    // Update time inputs
+    document.getElementById('trimStartTime').value = formatTime(trimStartSeconds);
+    document.getElementById('trimEndTime').value = formatTime(trimEndSeconds);
+
+    // Update duration display
+    const selectedDuration = trimEndSeconds - trimStartSeconds;
+    document.getElementById('trimDuration').textContent = selectedDuration.toFixed(1) + 's selected';
+}
+
+function updateTrimFromInput() {
+    const startTime = parseTimeInput(document.getElementById('trimStartTime').value);
+    const endTime = parseTimeInput(document.getElementById('trimEndTime').value);
+
+    if (startTime !== null && startTime >= 0 && startTime < trimEndSeconds) {
+        trimStartSeconds = Math.min(startTime, videoDuration);
+    }
+
+    if (endTime !== null && endTime > trimStartSeconds && endTime <= videoDuration) {
+        trimEndSeconds = endTime;
+    }
+
+    updateTrimHandles();
+}
+
+function setTrimStartFromVideo() {
+    const video = document.getElementById('previewVideo');
+    if (video && video.currentTime < trimEndSeconds) {
+        trimStartSeconds = video.currentTime;
+        updateTrimHandles();
+    }
+}
+
+function setTrimEndFromVideo() {
+    const video = document.getElementById('previewVideo');
+    if (video && video.currentTime > trimStartSeconds) {
+        trimEndSeconds = video.currentTime;
+        updateTrimHandles();
+    }
+}
+
+function previewTrimmedSection() {
+    const video = document.getElementById('previewVideo');
+    if (video) {
+        video.currentTime = trimStartSeconds;
+        video.play();
+
+        // Stop at end time
+        const checkEnd = setInterval(() => {
+            if (video.currentTime >= trimEndSeconds || video.paused) {
+                video.pause();
+                clearInterval(checkEnd);
+            }
+        }, 100);
+    }
+}
+
+function resetTrim() {
+    trimStartSeconds = 0;
+    trimEndSeconds = videoDuration;
+    updateTrimHandles();
+}
+
+function formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function parseTimeInput(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':');
+    if (parts.length === 2) {
+        const mins = parseInt(parts[0]) || 0;
+        const secs = parseFloat(parts[1]) || 0;
+        return mins * 60 + secs;
+    }
+    return parseFloat(timeStr) || 0;
+}
+
+// ==========================================================================
+// Duration Controls (for non-video content)
+// ==========================================================================
+function adjustContentDuration(delta) {
+    const input = document.getElementById('contentDuration');
+    let value = parseInt(input.value) || 10;
+    value = Math.max(1, Math.min(300, value + delta));
+    input.value = value;
+}
+
+function addPreviewedContentToPlaylist() {
+    if (!previewedContent) return;
+
+    let finalDuration = previewedContent.duration;
+    let trimStart = 0;
+    let trimEnd = null;
+
+    if (previewedContent.type === 'video') {
+        // Use trim values
+        finalDuration = trimEndSeconds - trimStartSeconds;
+        trimStart = trimStartSeconds;
+        trimEnd = trimEndSeconds;
+    } else {
+        // Use custom duration for images and other content
+        finalDuration = parseInt(document.getElementById('contentDuration').value) || 10;
+    }
+
+    playlistItems.push({
+        id: Date.now().toString(),
+        contentId: previewedContent.id,
+        title: previewedContent.title,
+        duration: finalDuration,
+        originalDuration: previewedContent.duration,
+        trimStart: trimStart,
+        trimEnd: trimEnd,
+        size: previewedContent.size,
+        filename: previewedContent.filename,
+        type: previewedContent.type,
+        thumbnail: null
+    });
+
+    renderPlaylistItems();
+    updateStats();
+    closeContentPreview();
+
+    const durationInfo = previewedContent.type === 'video' && (trimStart > 0 || trimEnd < videoDuration)
+        ? ` (${formatTime(trimStart)} - ${formatTime(trimEnd)})`
+        : '';
+    showToast(true, 'Added', `"${previewedContent.title}"${durationInfo} added to playlist`);
+}
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Delete playlist
+async function deletePlaylist(playlistId, playlistName) {
+    if (!confirm(`Are you sure you want to delete "${playlistName}"?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/playlists/${playlistId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+            showToast(true, 'Deleted', `"${playlistName}" has been deleted`);
+            // Remove from sidebar
+            const item = document.querySelector(`.playlist-item-link[data-id="${playlistId}"]`);
+            if (item) {
+                item.remove();
+            }
+            // If this was the current playlist, clear the editor
+            if (currentPlaylistId === playlistId) {
+                currentPlaylistId = null;
+                document.getElementById('playlistName').value = 'New Playlist';
+                document.getElementById('playlistItems').innerHTML = '';
+                updateStats();
+            }
+        } else {
+            const data = await response.json();
+            showToast(false, 'Error', data.error || 'Failed to delete playlist');
+        }
+    } catch (error) {
+        showToast(false, 'Error', 'Connection error');
+    }
+}
+
+// Archive playlist (set is_active = false)
+async function archivePlaylist(playlistId, playlistName) {
+    if (!confirm(`Archive "${playlistName}"?\n\nArchived playlists won't appear in assignment dropdowns but can be restored later.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/playlists/${playlistId}`, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: false })
+        });
+
+        if (response.ok) {
+            showToast(true, 'Archived', `"${playlistName}" has been archived`);
+            // Remove from sidebar (archived playlists are hidden)
+            const item = document.querySelector(`.playlist-item-link[data-id="${playlistId}"]`);
+            if (item) {
+                item.remove();
+            }
+            // If this was the current playlist, clear the editor
+            if (currentPlaylistId === playlistId) {
+                currentPlaylistId = null;
+                document.getElementById('playlistName').value = 'New Playlist';
+                document.getElementById('playlistItems').innerHTML = '';
+                updateStats();
+            }
+        } else {
+            const data = await response.json();
+            showToast(false, 'Error', data.error || 'Failed to archive playlist');
+        }
+    } catch (error) {
+        showToast(false, 'Error', 'Connection error');
+    }
+}
 </script>
 {% endblock %}
