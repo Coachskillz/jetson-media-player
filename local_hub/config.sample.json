@@ -1,0 +1,12 @@
+{
+  "cms_url": "http://localhost:5002",
+  "hub_code": "WM",
+  "hub_name": "West Marine - Fort Lauderdale",
+  "network_id": "YOUR_NETWORK_UUID_HERE",
+  "sync_interval_minutes": 5,
+  "heartbeat_interval_seconds": 60,
+  "alert_retry_interval_seconds": 30,
+  "storage_path": "/var/skillz-hub",
+  "log_path": "/var/log/skillz-hub",
+  "port": 5000
+}

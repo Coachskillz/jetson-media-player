@@ -125,6 +125,11 @@ def _register_blueprints(app: Flask) -> None:
     # This allows the app to run before all blueprints are created
 
     try:
+        # Dashboard route (no prefix - serves at /)
+        from routes.dashboard import dashboard_bp
+        app.register_blueprint(dashboard_bp)
+        app.logger.info("Registered dashboard blueprint")
+
         from routes import screens_bp
         app.register_blueprint(screens_bp, url_prefix='/api/v1')
         app.logger.info('Registered screens blueprint')
@@ -148,7 +153,13 @@ def _register_blueprints(app: Flask) -> None:
     try:
         from routes import alerts_bp
         app.register_blueprint(alerts_bp, url_prefix='/api/v1')
-        app.logger.info('Registered alerts blueprint')
+    except ImportError:
+        pass
+
+    try:
+        from routes import cameras_bp
+        app.register_blueprint(cameras_bp, url_prefix='/api/v1/cameras')
+        app.logger.info("Registered cameras blueprint")
     except ImportError:
         pass
 

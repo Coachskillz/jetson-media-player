@@ -21,6 +21,8 @@ Example:
         logger.error(f"HQ communication failed: {e}")
 """
 
+from typing import Dict, Optional
+
 
 class ServiceError(Exception):
     """
@@ -30,7 +32,7 @@ class ServiceError(Exception):
     to allow catching any service error with a single except clause.
     """
 
-    def __init__(self, message: str, details: dict | None = None):
+    def __init__(self, message: str, details: Optional[Dict] = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -52,9 +54,9 @@ class HQClientError(ServiceError):
     def __init__(
         self,
         message: str,
-        status_code: int | None = None,
-        response_body: str | None = None,
-        details: dict | None = None,
+        status_code: Optional[int] = None,
+        response_body: Optional[str] = None,
+        details: Optional[Dict] = None,
     ):
         super().__init__(message, details)
         self.status_code = status_code
@@ -135,12 +137,21 @@ class HeartbeatQueueError(ServiceError):
     pass
 
 
+class RegistrationError(ServiceError):
+    """
+    Exception raised when hub registration fails.
+    """
+
+    pass
+
+
 # Import services as they are created
 from services.hq_client import HQClient
 from services.sync_service import SyncService
 from services.alert_forwarder import AlertForwarder
 from services.screen_monitor import ScreenMonitor
 from services.heartbeat_queue import HeartbeatQueueService
+from services.registration_service import RegistrationService
 
 __all__ = [
     # Exception classes
@@ -153,10 +164,12 @@ __all__ = [
     'AlertForwardError',
     'ScreenMonitorError',
     'HeartbeatQueueError',
+    'RegistrationError',
     # Service classes
     'HQClient',
     'SyncService',
     'AlertForwarder',
     'ScreenMonitor',
     'HeartbeatQueueService',
+    'RegistrationService',
 ]

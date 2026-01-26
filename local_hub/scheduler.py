@@ -30,7 +30,6 @@ import logging
 from typing import Any, Callable, Dict, Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobEvent
 
@@ -53,11 +52,11 @@ def init_scheduler(
     Initialize the background job scheduler.
 
     This function creates and configures an APScheduler BackgroundScheduler
-    with SQLAlchemyJobStore for job persistence. Jobs are NOT added here -
-    they are added separately by register_jobs().
+    with in-memory job store. Jobs are NOT added here - they are added
+    separately by register_jobs().
 
     Args:
-        db_uri: SQLAlchemy database URI (e.g., 'sqlite:////var/skillz-hub/hub.db')
+        db_uri: SQLAlchemy database URI (not used, kept for compatibility)
         config: Optional HubConfig instance for configuration values
         start: Whether to start the scheduler immediately (default: False)
 
@@ -67,6 +66,7 @@ def init_scheduler(
     Note:
         Use BackgroundScheduler (NOT BlockingScheduler) with Flask.
         BlockingScheduler will block the web server.
+        We use in-memory job store since job state doesn't need persistence.
     """
     global _scheduler
 
@@ -75,12 +75,7 @@ def init_scheduler(
         logger.warning("Scheduler already initialized and running")
         return _scheduler
 
-    logger.info(f"Initializing scheduler with db_uri: {db_uri}")
-
-    # Configure job stores - use SQLAlchemy for persistence
-    jobstores = {
-        'default': SQLAlchemyJobStore(url=db_uri)
-    }
+    logger.info("Initializing scheduler with in-memory job store")
 
     # Configure executors - use thread pool for concurrent job execution
     executors = {
@@ -94,9 +89,8 @@ def init_scheduler(
         'misfire_grace_time': 60,  # Grace time for missed jobs (seconds)
     }
 
-    # Create scheduler
+    # Create scheduler with default in-memory job store
     scheduler = BackgroundScheduler(
-        jobstores=jobstores,
         executors=executors,
         job_defaults=job_defaults,
         timezone='UTC',
@@ -407,7 +401,7 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
                     logger.debug("Hub not registered, skipping content sync")
                     return
 
-                hq_client = HQClient(config.hq_url)
+                hq_client = HQClient(config.cms_url)
                 hq_client.set_token(hub_config.hub_token)
 
                 sync_service = SyncService(hq_client, config)
@@ -429,7 +423,7 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
                     logger.debug("Hub not registered, skipping playlist sync")
                     return
 
-                hq_client = HQClient(config.hq_url)
+                hq_client = HQClient(config.cms_url)
                 hq_client.set_token(hub_config.hub_token)
 
                 sync_service = SyncService(hq_client, config)
@@ -451,7 +445,7 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
                     logger.debug("Hub not registered, skipping alert forward")
                     return
 
-                hq_client = HQClient(config.hq_url)
+                hq_client = HQClient(config.cms_url)
                 hq_client.set_token(hub_config.hub_token)
 
                 forwarder = AlertForwarder(hq_client, config)
@@ -494,7 +488,7 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
                     logger.debug("Hub not registered, skipping HQ heartbeat")
                     return
 
-                hq_client = HQClient(config.hq_url)
+                hq_client = HQClient(config.cms_url)
                 hq_client.set_token(hub_config.hub_token)
 
                 # Get screen status list for heartbeat
@@ -540,7 +534,7 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
                     logger.debug("Hub not registered, skipping heartbeat batch processing")
                     return
 
-                hq_client = HQClient(config.hq_url)
+                hq_client = HQClient(config.cms_url)
                 hq_client.set_token(hub_config.hub_token)
 
                 service = HeartbeatQueueService(hq_client, config)

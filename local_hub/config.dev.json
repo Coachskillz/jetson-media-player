@@ -1,0 +1,12 @@
+{
+  "cms_url": "http://localhost:5002",
+  "hub_code": "HDEV",
+  "hub_name": "High Octane Dev Hub",
+  "network_id": "a9a61f93-1ff0-4a10-99ad-dbe07fe7b0d5",
+  "sync_interval_minutes": 5,
+  "heartbeat_interval_seconds": 60,
+  "alert_retry_interval_seconds": 30,
+  "storage_path": "/tmp/skillz-hub",
+  "log_path": "/tmp/skillz-hub/logs",
+  "port": 5000
+}

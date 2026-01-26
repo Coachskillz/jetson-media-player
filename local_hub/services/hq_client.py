@@ -395,55 +395,68 @@ class HQClient:
 
     def register_hub(
         self,
-        network_slug: str,
-        machine_id: Optional[str] = None,
+        code: str,
+        name: str,
+        network_id: str,
+        ip_address: Optional[str] = None,
+        mac_address: Optional[str] = None,
         hostname: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Register hub with HQ on first boot.
+        Register hub with CMS on first boot.
 
         This method is called when the hub starts without credentials.
-        It sends the network_slug to HQ and receives hub_id and hub_token
+        It sends hub details to CMS and receives hub_id and api_token
         for future authenticated requests.
 
         Args:
-            network_slug: Network identifier (e.g., 'high-octane')
-            machine_id: Optional unique machine identifier (e.g., MAC address)
+            code: Hub code (2-4 uppercase letters, e.g., 'WM', 'HON')
+            name: Hub display name (e.g., 'West Marine Hub')
+            network_id: Network UUID from CMS
+            ip_address: Optional IP address for identification
+            mac_address: Optional MAC address (format: XX:XX:XX:XX:XX:XX)
             hostname: Optional hostname for identification
 
         Returns:
             Registration response containing:
-            - hub_id: Unique identifier for this hub
-            - hub_token: Authentication token for HQ API
+            - hub_id: Unique identifier for this hub (mapped from 'id')
+            - hub_token: Authentication token for CMS API (mapped from 'api_token')
+            - hub_code: Hub code
+            - hub_name: Hub name
             - network_id: Network identifier
-            - store_id: Store location identifier (if assigned)
+            - status: Hub status (pending until approved)
 
         Raises:
-            HQConnectionError: When HQ is unreachable
+            HQConnectionError: When CMS is unreachable
             HQTimeoutError: When registration times out
-            HQClientError: For registration failures (invalid network_slug, etc.)
+            HQClientError: For registration failures (invalid code, etc.)
 
         Example:
-            client = HQClient('https://hub.skillzmedia.com')
-            result = client.register_hub('high-octane', machine_id='ab:cd:ef:12:34:56')
-            # result = {'hub_id': 'hub_123', 'hub_token': 'secret', ...}
+            client = HQClient('https://cms.skillzmedia.com')
+            result = client.register_hub('WM', 'West Marine Hub', 'network-uuid')
+            # result = {'hub_id': 'uuid', 'hub_token': 'hub_xxx', ...}
             # Token is automatically set for future requests
         """
         endpoint = '/api/v1/hubs/register'
         url = self._build_url(endpoint)
 
-        # Build registration payload
+        # Build registration payload matching CMS API
         payload: Dict[str, Any] = {
-            'network_slug': network_slug,
+            'code': code,
+            'name': name,
+            'network_id': network_id,
         }
 
-        if machine_id:
-            payload['machine_id'] = machine_id
+        if ip_address:
+            payload['ip_address'] = ip_address
+
+        if mac_address:
+            payload['mac_address'] = mac_address
 
         if hostname:
             payload['hostname'] = hostname
 
-        logger.info(f"Registering hub with HQ for network: {network_slug}")
+        logger.info(f"Registering hub '{code}' with CMS for network: {network_id}")
 
         try:
             # Registration does not require authentication
@@ -499,20 +512,31 @@ class HQClient:
             data = response.json()
 
             # Validate required fields in response
-            if 'hub_id' not in data or 'hub_token' not in data:
-                logger.error(f"Invalid registration response: missing hub_id or hub_token")
+            # CMS returns 'id' and 'api_token', we normalize to hub_id and hub_token
+            if 'id' not in data or 'api_token' not in data:
+                logger.error(f"Invalid registration response: missing id or api_token")
                 raise HQClientError(
-                    message="Invalid registration response from HQ",
+                    message="Invalid registration response from CMS",
                     status_code=response.status_code,
                     response_body=response.text,
                 )
 
+            # Normalize response fields for local hub use
+            normalized_response = {
+                'hub_id': data['id'],
+                'hub_token': data['api_token'],
+                'hub_code': data.get('code'),
+                'hub_name': data.get('name'),
+                'network_id': data.get('network_id'),
+                'status': data.get('status', 'pending'),
+            }
+
             # Automatically set the token for future requests
-            self.set_token(data['hub_token'])
+            self.set_token(normalized_response['hub_token'])
 
-            logger.info(f"Hub registered successfully with hub_id: {data['hub_id']}")
+            logger.info(f"Hub registered successfully with hub_id: {normalized_response['hub_id']}")
 
-            return data
+            return normalized_response
 
         except Timeout as e:
             logger.error(f"Registration timeout: {e}")

@@ -127,22 +127,25 @@ class SyncService:
     # Content Sync
     # -------------------------------------------------------------------------
 
-    def fetch_content_manifest(self) -> List[Dict[str, Any]]:
+    def fetch_content_manifest(self, hub_id: str) -> List[Dict[str, Any]]:
         """
-        Fetch content manifest from HQ.
+        Fetch content manifest from CMS for this hub.
 
         The manifest contains metadata for all content items that should
         be cached locally, including file_hash for change detection.
 
+        Args:
+            hub_id: Hub identifier from CMS registration
+
         Returns:
-            List of content item dictionaries from HQ
+            List of content item dictionaries from CMS
 
         Raises:
             SyncError: If manifest cannot be fetched
         """
         try:
-            logger.info("Fetching content manifest from HQ")
-            response = self.hq_client.get('/api/v1/content/manifest')
+            logger.info(f"Fetching content manifest from CMS for hub {hub_id}")
+            response = self.hq_client.get(f'/api/v1/hubs/{hub_id}/content-manifest')
 
             # Handle both direct list and wrapped response
             if isinstance(response, list):
@@ -156,8 +159,8 @@ class SyncService:
         except Exception as e:
             logger.error(f"Failed to fetch content manifest: {e}")
             raise SyncError(
-                message="Failed to fetch content manifest from HQ",
-                details={'error': str(e)},
+                message="Failed to fetch content manifest from CMS",
+                details={'error': str(e), 'hub_id': hub_id},
             )
 
     def compare_manifest(
@@ -337,10 +340,10 @@ class SyncService:
         app_context: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
-        Perform full content synchronization with HQ.
+        Perform full content synchronization with CMS.
 
         This method:
-        1. Fetches content manifest from HQ
+        1. Fetches content manifest from CMS
         2. Compares with local content to find changes
         3. Downloads new/updated content
         4. Deletes orphaned content
@@ -358,6 +361,7 @@ class SyncService:
         from models import db
         from models.content import Content
         from models.sync_status import SyncStatus
+        from models.hub_config import HubConfig
 
         result = {
             'downloaded': 0,
@@ -372,11 +376,21 @@ class SyncService:
         sync_status = None
 
         try:
+            # Get hub config for hub_id
+            hub_config = HubConfig.get_instance()
+            if not hub_config or not hub_config.is_registered:
+                logger.warning("Hub not registered, skipping content sync")
+                result['completed_at'] = datetime.utcnow().isoformat()
+                result['errors'].append("Hub not registered")
+                return result
+
+            hub_id = hub_config.hub_id
+
             # Get or create sync status record
             sync_status = SyncStatus.get_content_status()
 
-            # Fetch manifest from HQ
-            hq_manifest = self.fetch_content_manifest()
+            # Fetch manifest from CMS
+            hq_manifest = self.fetch_content_manifest(hub_id)
 
             # Get local content records
             local_content = Content.query.all()
