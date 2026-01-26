@@ -13,7 +13,9 @@ DEFAULT_CONFIG = {
     "cms_url": "http://localhost:5002",
     "hub_id": "",
     "hub_code": "",
-    "hub_name": "",
+    "hub_name": "Skillz Local Hub",
+    "store_name": "",
+    "store_number": "",
     "hub_ip": "10.10.10.1",
     "network_id": "",
     "sync_interval_minutes": 5,
@@ -79,7 +81,15 @@ class HubConfig:
 
     @property
     def hub_name(self) -> str:
-        return self.get("hub_name", "")
+        return self.get("hub_name", "Skillz Local Hub")
+
+    @property
+    def store_name(self) -> str:
+        return self.get("store_name", "")
+
+    @property
+    def store_number(self) -> str:
+        return self.get("store_number", "")
 
     @property
     def hub_ip(self) -> str:

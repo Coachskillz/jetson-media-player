@@ -330,8 +330,8 @@
 <body>
     <div class="header">
         <div>
-            <h1>{{ hub_name or 'Skillz Hub' }}</h1>
-            <div class="hub-info">{{ hub_id }} • {{ hub_ip }}:{{ port }}</div>
+            <h1>Skillz Local Hub{% if store_number %} - Store #{{ store_number }}{% endif %}</h1>
+            <div class="hub-info">{% if store_name %}{{ store_name }} • {% endif %}{{ hub_id }} • {{ hub_ip }}:{{ hub_port }}</div>
         </div>
         <div class="status-bar">
             <div class="status-item">
