@@ -15,11 +15,11 @@ All endpoints are prefixed with /api/v1/hubs when registered with the app.
 
 import re
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, request, jsonify
 
-from cms.models import db, Hub, Network, Content, Playlist, Device
+from cms.models import db, Hub, PendingHub, Network, Content, Playlist, Device
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 
@@ -264,6 +264,93 @@ def get_hub(hub_id):
 
     if not hub:
         return jsonify({'error': 'Hub not found'}), 404
+
+    return jsonify(hub.to_dict()), 200
+
+
+@hubs_bp.route('/<hub_id>', methods=['DELETE'])
+@login_required
+def delete_hub(hub_id):
+    """
+    Delete a hub.
+
+    Args:
+        hub_id: Hub UUID or code
+
+    Returns:
+        200: Hub deleted successfully
+        404: Hub not found
+    """
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        hub = Hub.query.filter_by(code=hub_id).first()
+
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    hub_name = hub.name
+    hub_code = hub.code
+
+    try:
+        db.session.delete(hub)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete hub: {str(e)}'}), 500
+
+    log_action(
+        action='hub.delete',
+        action_category='hubs',
+        resource_type='hub',
+        resource_id=hub_id,
+        resource_name=hub_code,
+        details={'name': hub_name}
+    )
+
+    return jsonify({'message': f'Hub {hub_name} deleted successfully'}), 200
+
+
+@hubs_bp.route('/<hub_id>', methods=['PATCH'])
+@login_required
+def update_hub(hub_id):
+    """
+    Update a hub's status or other fields.
+
+    Args:
+        hub_id: Hub UUID or code
+
+    Request Body:
+        {
+            "status": "online" | "offline" | "maintenance",
+            "name": "New Name" (optional),
+            "location": "New Address" (optional)
+        }
+
+    Returns:
+        200: Updated hub data
+        404: Hub not found
+    """
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        hub = Hub.query.filter_by(code=hub_id).first()
+
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if 'status' in data:
+        hub.status = data['status']
+    if 'name' in data:
+        hub.name = data['name']
+    if 'location' in data:
+        hub.location = data['location']
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update hub: {str(e)}'}), 500
 
     return jsonify(hub.to_dict()), 200
 
@@ -566,3 +653,435 @@ def receive_heartbeats(hub_id):
         'errors': errors,
         'hub_last_heartbeat': hub.last_heartbeat.isoformat()
     }), 200
+
+
+# ============================================================================
+# HUB PAIRING ENDPOINTS
+# ============================================================================
+
+@hubs_bp.route('/announce', methods=['POST'])
+def announce_hub():
+    """
+    Hub calls this to announce itself and register pairing code.
+
+    This is called by the hub software when it starts up and displays
+    a pairing code on its screen. The hub remains in pending state
+    until an admin enters the pairing code in the CMS UI.
+
+    Request Body:
+        {
+            "hardware_id": "HUB-5A3F2B1C",
+            "pairing_code": "A7X-9K2",
+            "wan_ip": "76.23.45.189",
+            "lan_ip": "10.10.10.1",
+            "tunnel_url": "hub-001.skillzmedia.com",
+            "version": "1.0.0"
+        }
+
+    Returns:
+        200: Status response
+            {"status": "pending", "message": "Waiting for admin to pair"}
+            or
+            {"status": "already_paired", "hub_id": "...", "store_name": "..."}
+    """
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    hardware_id = data.get('hardware_id')
+    if not hardware_id:
+        return jsonify({'error': 'hardware_id is required'}), 400
+
+    pairing_code = data.get('pairing_code')
+    if not pairing_code:
+        return jsonify({'error': 'pairing_code is required'}), 400
+
+    # Check if already paired
+    existing = Hub.query.filter_by(hardware_id=hardware_id).first()
+    if existing:
+        # Update last heartbeat
+        existing.last_heartbeat = datetime.now(timezone.utc)
+        existing.status = 'online'
+        if data.get('wan_ip'):
+            existing.wan_ip = data.get('wan_ip')
+        if data.get('tunnel_url'):
+            existing.tunnel_url = data.get('tunnel_url')
+        db.session.commit()
+
+        return jsonify({
+            'status': 'already_paired',
+            'hub_id': existing.id,
+            'hub_code': existing.code,
+            'store_name': existing.name,
+            'api_token': existing.api_token
+        })
+
+    # Create or update pending hub
+    pending = PendingHub.query.filter_by(hardware_id=hardware_id).first()
+    if pending:
+        pending.pairing_code = pairing_code.upper().strip()
+        pending.wan_ip = data.get('wan_ip')
+        pending.lan_ip = data.get('lan_ip', '10.10.10.1')
+        pending.tunnel_url = data.get('tunnel_url')
+        pending.version = data.get('version')
+        pending.expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    else:
+        pending = PendingHub(
+            hardware_id=hardware_id,
+            pairing_code=pairing_code.upper().strip(),
+            wan_ip=data.get('wan_ip'),
+            lan_ip=data.get('lan_ip', '10.10.10.1'),
+            tunnel_url=data.get('tunnel_url'),
+            version=data.get('version'),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+        db.session.add(pending)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to register hub: {str(e)}'}), 500
+
+    return jsonify({
+        'status': 'pending',
+        'message': 'Waiting for admin to pair',
+        'expires_in_minutes': 15
+    })
+
+
+@hubs_bp.route('/pairing-status', methods=['GET'])
+def pairing_status():
+    """
+    Hub polls this to check if admin completed pairing.
+
+    The hub software calls this periodically to check if an admin
+    has entered the pairing code and completed the pairing process.
+
+    Query Parameters:
+        hardware_id: The hub's hardware identifier
+
+    Returns:
+        200: Pairing status
+            If paired:
+            {
+                "status": "paired",
+                "hub_id": "uuid",
+                "hub_code": "WM",
+                "api_token": "hub_xxxxx",
+                "store_name": "West Marine Tampa",
+                "network_id": "uuid"
+            }
+            If pending:
+            {"status": "pending"}
+            If unknown:
+            {"status": "unknown"}
+    """
+    hardware_id = request.args.get('hardware_id')
+    if not hardware_id:
+        return jsonify({'error': 'hardware_id query parameter is required'}), 400
+
+    # Check if paired
+    hub = Hub.query.filter_by(hardware_id=hardware_id).first()
+    if hub:
+        hub.last_heartbeat = datetime.now(timezone.utc)
+        hub.status = 'online'
+        db.session.commit()
+
+        return jsonify({
+            'status': 'paired',
+            'hub_id': hub.id,
+            'hub_code': hub.code,
+            'api_token': hub.api_token,
+            'store_name': hub.name,
+            'network_id': hub.network_id
+        })
+
+    # Check if pending
+    pending = PendingHub.query.filter_by(hardware_id=hardware_id).first()
+    if pending:
+        # Check if expired
+        if pending.expires_at:
+            expires_at = pending.expires_at.replace(tzinfo=timezone.utc) if pending.expires_at.tzinfo is None else pending.expires_at
+            if expires_at < datetime.now(timezone.utc):
+                # Expired - generate new code
+                return jsonify({
+                    'status': 'expired',
+                    'message': 'Pairing code expired. Restart hub to get new code.'
+                })
+        return jsonify({'status': 'pending'})
+
+    return jsonify({'status': 'unknown'})
+
+
+@hubs_bp.route('/pair', methods=['POST'])
+@login_required
+def pair_hub():
+    """
+    Admin enters pairing code to complete hub pairing.
+
+    This is called from the CMS admin UI when an admin enters
+    a pairing code displayed on a hub screen.
+
+    Request Body:
+        {
+            "pairing_code": "A7X-9K2",
+            "store_name": "West Marine Tampa",
+            "network_id": "uuid-of-network",
+            "existing_hub_id": "uuid-of-existing-hub" (optional - pair with existing store),
+            "location": "123 Harbor Blvd, Tampa FL" (optional)
+        }
+
+    Returns:
+        200: Hub paired successfully
+            {
+                "status": "paired",
+                "hub_id": "uuid",
+                "hub_code": "WM-TAMPA",
+                "store_name": "West Marine Tampa",
+                "message": "Hub paired successfully as West Marine Tampa"
+            }
+        400: Invalid or expired pairing code
+            {"error": "Invalid or expired pairing code"}
+        404: Network not found
+            {"error": "Network not found"}
+    """
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    pairing_code = data.get('pairing_code', '').upper().strip()
+    if not pairing_code:
+        return jsonify({'error': 'pairing_code is required'}), 400
+
+    network_id = data.get('network_id')
+    if not network_id:
+        return jsonify({'error': 'network_id is required'}), 400
+
+    # Check for existing hub to pair with
+    existing_hub_id = data.get('existing_hub_id')
+    store_name = data.get('store_name')
+
+    if not existing_hub_id and not store_name:
+        return jsonify({'error': 'Either existing_hub_id or store_name is required'}), 400
+
+    # Verify network exists
+    network = db.session.get(Network, network_id)
+    if not network:
+        return jsonify({'error': 'Network not found'}), 404
+
+    # Find pending hub with this code (not expired)
+    pending = PendingHub.query.filter_by(pairing_code=pairing_code).first()
+
+    if not pending:
+        return jsonify({'error': 'Invalid pairing code'}), 400
+
+    # Check expiration
+    if pending.expires_at:
+        expires_at = pending.expires_at.replace(tzinfo=timezone.utc) if pending.expires_at.tzinfo is None else pending.expires_at
+        if expires_at < datetime.now(timezone.utc):
+            return jsonify({'error': 'Pairing code has expired'}), 400
+
+    # If pairing with existing hub, update it
+    if existing_hub_id:
+        hub = db.session.get(Hub, existing_hub_id)
+        if not hub:
+            return jsonify({'error': 'Existing hub not found'}), 404
+
+        if hub.hardware_id:
+            return jsonify({'error': 'This store is already paired with a device'}), 400
+
+        # Update existing hub with hardware info
+        hub.hardware_id = pending.hardware_id
+        hub.ip_address = pending.lan_ip
+        hub.wan_ip = pending.wan_ip
+        hub.tunnel_url = pending.tunnel_url
+        hub.version = pending.version
+        hub.api_token = hub.api_token or f"hub_{secrets.token_urlsafe(32)}"
+        hub.status = 'online'
+        hub.last_heartbeat = datetime.now(timezone.utc)
+        hub.paired_at = datetime.now(timezone.utc)
+    else:
+        # Create new hub
+        # Generate hub code based on network and store name
+        network_code = network.slug.upper()[:4] if network.slug else 'XX'
+        store_slug = re.sub(r'[^A-Z0-9]', '', store_name.upper())[:12]
+        hub_code = f"{network_code}-{store_slug}"
+
+        # Ensure unique code
+        existing_code = Hub.query.filter_by(code=hub_code).first()
+        if existing_code:
+            # Append hardware ID suffix
+            hub_code = f"{hub_code}-{pending.hardware_id[-4:]}"
+
+        # Generate API token
+        api_token = f"hub_{secrets.token_urlsafe(32)}"
+
+        # Create paired hub
+        hub = Hub(
+            code=hub_code,
+            name=store_name,
+            network_id=network_id,
+            hardware_id=pending.hardware_id,
+            ip_address=pending.lan_ip,
+            wan_ip=pending.wan_ip,
+            tunnel_url=pending.tunnel_url,
+            version=pending.version,
+            api_token=api_token,
+            status='online',
+            last_heartbeat=datetime.now(timezone.utc),
+            paired_at=datetime.now(timezone.utc),
+            location=data.get('location')
+        )
+        db.session.add(hub)
+
+    try:
+        # Remove from pending
+        db.session.delete(pending)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to pair hub: {str(e)}'}), 500
+
+    # Log hub pairing
+    log_action(
+        action='hub.pair',
+        action_category='hubs',
+        resource_type='hub',
+        resource_id=hub.id,
+        resource_name=hub.code,
+        details={
+            'store_name': hub.name,
+            'network_id': network_id,
+            'network_name': network.name,
+            'hardware_id': hub.hardware_id,
+            'existing_hub': existing_hub_id is not None
+        }
+    )
+
+    return jsonify({
+        'status': 'paired',
+        'hub_id': hub.id,
+        'hub_code': hub.code,
+        'store_name': hub.name,
+        'api_token': hub.api_token,
+        'message': f'Hub paired successfully as {hub.name}'
+    })
+
+
+@hubs_bp.route('/heartbeat', methods=['POST'])
+def global_heartbeat():
+    """
+    Receive heartbeat from a hub (global endpoint).
+
+    This endpoint allows hubs to send heartbeats without including hub_id in the URL.
+    The hub identifies itself via the hub_id in the request body or via Bearer token.
+
+    Request Body:
+        {
+            "hub_id": "uuid-of-hub",
+            "hub_status": "online",
+            "screens": [...],
+            "uptime_seconds": 3600,
+            "pending_alerts_count": 0
+        }
+
+    Returns:
+        200: Heartbeat received
+        400: Missing hub_id
+        404: Hub not found
+    """
+    data = request.get_json(silent=True) or {}
+
+    # Get hub_id from request body
+    hub_id = data.get('hub_id')
+
+    # If not in body, try to get from Authorization header (Bearer token lookup)
+    if not hub_id:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            hub = Hub.query.filter_by(api_token=token).first()
+            if hub:
+                hub_id = hub.id
+
+    if not hub_id:
+        return jsonify({'error': 'hub_id is required'}), 400
+
+    # Find hub
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        hub = Hub.query.filter_by(code=hub_id).first()
+
+    if not hub:
+        return jsonify({'error': 'Hub not found', 'hub_id': hub_id}), 404
+
+    # Update hub status
+    hub.last_heartbeat = datetime.now(timezone.utc)
+    hub.status = data.get('hub_status', 'online')
+
+    if data.get('screens_connected') is not None:
+        hub.screens_connected = data.get('screens_connected')
+
+    # Process device heartbeats if included
+    screens = data.get('screens', [])
+    processed = 0
+    errors = []
+
+    for screen in screens:
+        device_id = screen.get('screen_id') or screen.get('device_id')
+        if not device_id:
+            continue
+
+        device = Device.query.filter_by(device_id=str(device_id)).first()
+        if device:
+            device.last_seen = datetime.now(timezone.utc)
+            if screen.get('status'):
+                device.status = screen.get('status')
+            processed += 1
+        else:
+            errors.append(f'Device {device_id} not found')
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to process heartbeat: {str(e)}'}), 500
+
+    return jsonify({
+        'ack': True,
+        'hub_id': hub.id,
+        'hub_status': hub.status,
+        'processed_screens': processed,
+        'errors': errors if errors else None
+    }), 200
+
+
+@hubs_bp.route('/pending', methods=['GET'])
+@login_required
+def list_pending_hubs():
+    """
+    List all pending hubs awaiting pairing.
+
+    Returns all hubs that have announced themselves but have not
+    yet been paired by an admin.
+
+    Returns:
+        200: List of pending hubs
+            {
+                "pending_hubs": [...],
+                "count": 2
+            }
+    """
+    # Get non-expired pending hubs
+    now = datetime.now(timezone.utc)
+    pending_hubs = PendingHub.query.filter(
+        (PendingHub.expires_at > now) | (PendingHub.expires_at.is_(None))
+    ).order_by(PendingHub.created_at.desc()).all()
+
+    return jsonify({
+        'pending_hubs': [hub.to_dict() for hub in pending_hubs],
+        'count': len(pending_hubs)
+    })

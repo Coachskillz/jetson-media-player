@@ -253,7 +253,7 @@
             font-weight: 600;
         }
 
-        .badge-active {
+        .badge-active, .badge-online {
             background: #d1fae5;
             color: #065f46;
         }
@@ -263,7 +263,7 @@
             color: #92400e;
         }
 
-        .badge-inactive {
+        .badge-inactive, .badge-offline {
             background: #fee2e2;
             color: #991b1b;
         }
@@ -479,8 +479,12 @@
                 <div class="stat-label">Total Hubs</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{ hubs|selectattr('hub.status', 'equalto', 'active')|list|length }}</div>
-                <div class="stat-label">Active Hubs</div>
+                <div class="stat-value">{{ hubs|selectattr('hub.status', 'equalto', 'online')|list|length }}</div>
+                <div class="stat-label">Online Hubs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ pending_hubs|length if pending_hubs else 0 }}</div>
+                <div class="stat-label">Pending Pairing</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{{ hubs|sum(attribute='device_count') }}</div>
@@ -488,11 +492,84 @@
             </div>
         </div>
 
-        <!-- Create Hub Box -->
+        <!-- Pending Hubs Section (if any) -->
+        {% if pending_hubs and pending_hubs|length > 0 %}
+        <div class="create-box" style="border: 2px solid #fbbf24; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
+            <h3 style="color: #92400e;">⏳ Hubs Waiting to be Paired ({{ pending_hubs|length }})</h3>
+            <p style="color: #78350f; font-size: 13px; margin-bottom: 20px;">
+                These hubs have announced themselves and are displaying pairing codes. Click "Pair" to complete setup.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                {% for pending in pending_hubs %}
+                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-family: monospace; font-size: 24px; font-weight: bold; color: #059669; letter-spacing: 3px;">
+                                {{ pending.pairing_code }}
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                Hardware: {{ pending.hardware_id }}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            {% if pending.wan_ip %}
+                            <div style="font-size: 11px; color: #64748b;">WAN: {{ pending.wan_ip }}</div>
+                            {% endif %}
+                            {% if pending.version %}
+                            <div style="font-size: 11px; color: #64748b;">v{{ pending.version }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <button class="btn" style="width: 100%;" onclick="openPairModal('{{ pending.pairing_code }}', '{{ pending.hardware_id }}')">
+                        🔗 Pair This Hub
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Manual Pair Hub Box -->
         <div class="create-box">
-            <h3>➕ Register New Hub</h3>
+            <h3>🔗 Pair New Hub</h3>
             <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-                Create a new hub to organize devices at a physical location. Hub codes must be 2-4 uppercase letters.
+                Enter the pairing code displayed on the hub screen, then select the store to pair it with.
+            </p>
+            <form id="pairHubForm" class="create-form" style="grid-template-columns: 1fr 1fr 1fr 1fr auto;">
+                <div class="form-group">
+                    <label>Pairing Code</label>
+                    <input type="text" id="pairingCode" placeholder="ABC-123" maxlength="10" style="text-transform: uppercase; letter-spacing: 2px; font-family: monospace; font-size: 18px;" required>
+                </div>
+                <div class="form-group">
+                    <label>Network</label>
+                    <select id="networkSelect" required onchange="loadHubsForNetwork()">
+                        <option value="">Select a network...</option>
+                        {% for network in networks %}
+                        <option value="{{ network.id }}">{{ network.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Store</label>
+                    <select id="storeSelect" required>
+                        <option value="">Select network first...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Or New Store Name</label>
+                    <input type="text" id="storeName" placeholder="New store name (optional)">
+                </div>
+                <button type="submit" class="btn">✓ Pair Hub</button>
+            </form>
+            <div id="pairStatus"></div>
+        </div>
+
+
+        <!-- Legacy Create Hub Box (hidden by default) -->
+        <div class="create-box" style="display: none;">
+            <h3>➕ Register New Hub (Manual)</h3>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+                Manually create a hub without pairing. Use this only if automatic pairing is not available.
             </p>
             <form id="createHubForm" class="create-form">
                 <div class="form-group">
@@ -505,7 +582,7 @@
                 </div>
                 <div class="form-group">
                     <label>Network</label>
-                    <select id="networkSelect" required>
+                    <select id="manualNetworkSelect" required>
                         <option value="">Select a network...</option>
                         {% for network in networks %}
                         <option value="{{ network.id }}">{{ network.name }}</option>
@@ -537,9 +614,14 @@
                                 {% endif %}
                                 <div class="hub-meta-item">
                                     <span class="badge badge-{{ item.hub.status }}">
-                                        {% if item.hub.status == 'active' %}● ACTIVE{% elif item.hub.status == 'pending' %}⏳ PENDING{% else %}○ INACTIVE{% endif %}
+                                        {% if item.hub.status == 'online' %}● ONLINE{% elif item.hub.status == 'active' %}● ACTIVE{% elif item.hub.status == 'pending' %}⏳ PENDING{% else %}○ OFFLINE{% endif %}
                                     </span>
                                 </div>
+                                {% if item.hub.wan_ip %}
+                                <div class="hub-meta-item" style="font-size: 11px;">
+                                    WAN: {{ item.hub.wan_ip }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -602,42 +684,128 @@
     </div>
 
     <script>
-        // Force uppercase for hub code input
-        document.getElementById('hubCode').addEventListener('input', function(e) {
-            this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+        // Force uppercase for pairing code input
+        document.getElementById('pairingCode').addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase();
         });
 
-        // Create hub form
-        document.getElementById('createHubForm').addEventListener('submit', async (e) => {
+        // Store hubs data by network for the dropdown
+        const hubsByNetwork = {};
+        {% for item in hubs %}
+        (function() {
+            const networkId = '{{ item.hub.network_id }}';
+            if (!hubsByNetwork[networkId]) {
+                hubsByNetwork[networkId] = [];
+            }
+            hubsByNetwork[networkId].push({
+                id: '{{ item.hub.id }}',
+                code: '{{ item.hub.code }}',
+                name: '{{ item.hub.name }}',
+                hardware_id: '{{ item.hub.hardware_id if item.hub.hardware_id else "" }}'
+            });
+        })();
+        {% endfor %}
+
+        console.log('Hubs by network:', hubsByNetwork);
+
+        // Load hubs for selected network
+        function loadHubsForNetwork() {
+            const networkId = document.getElementById('networkSelect').value;
+            const storeSelect = document.getElementById('storeSelect');
+
+            console.log('Selected network ID:', networkId);
+            console.log('Available network keys:', Object.keys(hubsByNetwork));
+
+            // Clear existing options
+            storeSelect.innerHTML = '<option value="">Select a store...</option>';
+
+            if (!networkId) {
+                storeSelect.innerHTML = '<option value="">Select network first...</option>';
+                return;
+            }
+
+            // Get hubs for this network (only unpaired ones - no hardware_id)
+            const hubs = hubsByNetwork[networkId] || [];
+            console.log('Hubs for network:', hubs);
+
+            // Filter for unpaired hubs - explicitly check for empty/null/undefined hardware_id
+            const unpairedHubs = hubs.filter(h => {
+                const hwId = h.hardware_id;
+                const isUnpaired = !hwId || hwId === '' || hwId === 'None' || hwId.trim() === '';
+                console.log(`Hub ${h.name}: hardware_id='${hwId}', isUnpaired=${isUnpaired}`);
+                return isUnpaired;
+            });
+
+            console.log('Unpaired hubs:', unpairedHubs);
+
+            if (unpairedHubs.length === 0) {
+                storeSelect.innerHTML = '<option value="">No unpaired stores available</option>';
+                return;
+            }
+
+            unpairedHubs.forEach(hub => {
+                const option = document.createElement('option');
+                option.value = hub.id;
+                option.textContent = `${hub.code} - ${hub.name}`;
+                option.dataset.name = hub.name;
+                option.dataset.code = hub.code;
+                storeSelect.appendChild(option);
+            });
+        }
+
+        // Open pair modal with pre-filled code
+        function openPairModal(pairingCode, hardwareId) {
+            document.getElementById('pairingCode').value = pairingCode;
+            document.getElementById('networkSelect').focus();
+        }
+
+        // Pair hub form
+        document.getElementById('pairHubForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const code = document.getElementById('hubCode').value;
-            const name = document.getElementById('hubName').value;
+            const pairingCode = document.getElementById('pairingCode').value.trim().toUpperCase();
             const networkId = document.getElementById('networkSelect').value;
-            const statusDiv = document.getElementById('createStatus');
+            const storeSelect = document.getElementById('storeSelect');
+            const selectedHubId = storeSelect.value;
+            const newStoreName = document.getElementById('storeName').value.trim();
+            const statusDiv = document.getElementById('pairStatus');
 
-            // Validate code format
-            if (!/^[A-Z]{2,4}$/.test(code)) {
+            // Determine store name - either from selected hub or new name
+            let storeName = newStoreName;
+            if (selectedHubId && storeSelect.selectedOptions[0]) {
+                storeName = storeSelect.selectedOptions[0].dataset.name || newStoreName;
+            }
+
+            if (!pairingCode) {
                 statusDiv.style.display = 'block';
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = '❌ Hub code must be 2-4 uppercase letters';
+                statusDiv.textContent = '❌ Please enter a pairing code';
+                return;
+            }
+
+            if (!storeName && !selectedHubId) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#fee2e2';
+                statusDiv.style.color = '#991b1b';
+                statusDiv.textContent = '❌ Please select a store or enter a new store name';
                 return;
             }
 
             statusDiv.style.display = 'block';
             statusDiv.style.background = '#e0e7ff';
             statusDiv.style.color = '#3730a3';
-            statusDiv.textContent = '⏳ Creating hub...';
+            statusDiv.textContent = '⏳ Pairing hub...';
 
             try {
-                const response = await fetch('/api/v1/hubs/register', {
+                const response = await fetch('/api/v1/hubs/pair', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        code: code,
-                        name: name,
-                        network_id: networkId
+                        pairing_code: pairingCode,
+                        store_name: storeName,
+                        network_id: networkId,
+                        existing_hub_id: selectedHubId || null
                     })
                 });
 
@@ -646,12 +814,12 @@
                 if (response.ok) {
                     statusDiv.style.background = '#d1fae5';
                     statusDiv.style.color = '#065f46';
-                    statusDiv.textContent = `✅ Hub "${name}" created successfully!`;
+                    statusDiv.textContent = `✅ ${data.message}`;
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     statusDiv.style.background = '#fee2e2';
                     statusDiv.style.color = '#991b1b';
-                    statusDiv.textContent = `❌ Error: ${data.error || 'Failed to create hub'}`;
+                    statusDiv.textContent = `❌ Error: ${data.error || 'Failed to pair hub'}`;
                 }
             } catch (error) {
                 statusDiv.style.background = '#fee2e2';
@@ -716,7 +884,7 @@
 
         // Toggle hub status
         async function toggleStatus(hubId, currentStatus) {
-            const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+            const newStatus = (currentStatus === 'active' || currentStatus === 'online') ? 'offline' : 'online';
 
             try {
                 const response = await fetch(`/api/v1/hubs/${hubId}`, {

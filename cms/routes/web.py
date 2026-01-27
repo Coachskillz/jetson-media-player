@@ -12,7 +12,8 @@ Blueprint for web page rendering:
 from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify, send_from_directory, current_app
 from flask_login import login_required
 
-from cms.models import db, Device, Hub, Content, Playlist, Network, DeviceAssignment, Folder
+from datetime import datetime, timezone
+from cms.models import db, Device, Hub, PendingHub, Content, Playlist, Network, DeviceAssignment, Folder
 from cms.routes.locations import Location
 from cms.models.device_assignment import TRIGGER_TYPES
 from cms.models.synced_content import SyncedContent
@@ -291,11 +292,19 @@ def hubs_page():
     - Connected device count
     - Status
 
+    Also shows pending hubs waiting to be paired.
+
     Returns:
-        Rendered hubs.html template with hub list
+        Rendered hubs.html template with hub list and pending hubs
     """
     hubs = Hub.query.order_by(Hub.created_at.desc()).all()
     networks = Network.query.order_by(Network.name).all()
+
+    # Get pending hubs (not expired)
+    now = datetime.now(timezone.utc)
+    pending_hubs = PendingHub.query.filter(
+        (PendingHub.expires_at > now) | (PendingHub.expires_at.is_(None))
+    ).order_by(PendingHub.created_at.desc()).all()
 
     # Enrich hubs with device count
     hub_list = []
@@ -310,7 +319,8 @@ def hubs_page():
         'hubs.html',
         active_page='hubs',
         hubs=hub_list,
-        networks=networks
+        networks=networks,
+        pending_hubs=pending_hubs
     )
 
 

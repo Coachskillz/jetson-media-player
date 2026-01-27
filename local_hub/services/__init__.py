@@ -152,6 +152,7 @@ from services.alert_forwarder import AlertForwarder
 from services.screen_monitor import ScreenMonitor
 from services.heartbeat_queue import HeartbeatQueueService
 from services.registration_service import RegistrationService
+from services.hub_pairing import HubPairingService
 
 __all__ = [
     # Exception classes
@@ -172,4 +173,5 @@ __all__ = [
     'ScreenMonitor',
     'HeartbeatQueueService',
     'RegistrationService',
+    'HubPairingService',
 ]

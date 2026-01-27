@@ -8,5 +8,5 @@
   "alert_retry_interval_seconds": 30,
   "storage_path": "/tmp/skillz-hub",
   "log_path": "/tmp/skillz-hub/logs",
-  "port": 5000
+  "port": 5003
 }

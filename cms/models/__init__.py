@@ -41,7 +41,7 @@ db = SQLAlchemy(model_class=Base)
 
 # Import models after db is defined to avoid circular imports
 from cms.models.network import Network
-from cms.models.hub import Hub
+from cms.models.hub import Hub, PendingHub
 from cms.models.device import Device
 from cms.models.content import Content, ContentStatus
 from cms.models.playlist import Playlist, PlaylistItem, LoopMode, Priority, SyncStatus
@@ -60,6 +60,7 @@ __all__ = [
     'Base',
     'Network',
     'Hub',
+    'PendingHub',
     'Device',
     'Content',
     'ContentStatus',

@@ -7,6 +7,7 @@ configures the Flask application. It initializes:
 - Blueprint registration (when available)
 - Background job scheduler (APScheduler)
 - Logging configuration
+- Automatic pairing flow for unregistered hubs
 
 Usage:
     # Development
@@ -19,12 +20,23 @@ Usage:
 import atexit
 import logging
 import os
+import threading
 from typing import Optional
 
-from flask import Flask
+from flask import Flask, render_template_string
 
 from config import load_config
 from models import db
+
+
+# Global pairing state (shared across threads)
+_pairing_state = {
+    'active': False,
+    'pairing_code': None,
+    'hardware_id': None,
+    'status': 'unknown',
+    'error': None,
+}
 
 
 def create_app(config_path: Optional[str] = None) -> Flask:
@@ -83,7 +95,219 @@ def create_app(config_path: Optional[str] = None) -> Flask:
         """Basic health check endpoint."""
         return {'status': 'healthy', 'service': 'local-hub'}
 
+    # Register pairing screen endpoint
+    @app.route('/pairing')
+    def pairing_screen():
+        """Display pairing code on hub screen."""
+        return render_template_string(PAIRING_SCREEN_TEMPLATE, **_pairing_state)
+
+    # Check registration and start pairing if needed
+    _check_and_start_pairing(app)
+
     return app
+
+
+# HTML template for pairing screen display
+PAIRING_SCREEN_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hub Pairing - Skillz Media</title>
+    <meta http-equiv="refresh" content="5">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .logo { font-size: 28px; margin-bottom: 20px; opacity: 0.9; }
+        h1 { font-size: 48px; margin-bottom: 30px; }
+        .pairing-code {
+            font-size: 96px;
+            font-family: monospace;
+            font-weight: bold;
+            letter-spacing: 15px;
+            background: white;
+            color: #667eea;
+            padding: 30px 60px;
+            border-radius: 20px;
+            margin: 40px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .hardware-id {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        .instructions {
+            font-size: 24px;
+            opacity: 0.9;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+        .status {
+            margin-top: 40px;
+            font-size: 18px;
+            opacity: 0.7;
+        }
+        .status.paired {
+            color: #4ade80;
+            font-size: 36px;
+            opacity: 1;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .waiting { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">SKILLZ MEDIA</div>
+        {% if status == 'paired' %}
+            <h1>Hub Paired!</h1>
+            <div class="status paired">Connected to CMS</div>
+            <p style="margin-top: 30px; font-size: 20px;">Restarting services...</p>
+        {% elif active and pairing_code %}
+            <h1>Hub Pairing Required</h1>
+            <div class="pairing-code">{{ pairing_code }}</div>
+            <div class="hardware-id">Hardware ID: {{ hardware_id }}</div>
+            <p class="instructions">
+                Enter this code in the CMS admin panel to pair this hub with your account.
+            </p>
+            <div class="status waiting">Waiting for pairing...</div>
+        {% elif error %}
+            <h1>Pairing Error</h1>
+            <p class="instructions" style="color: #fca5a5;">{{ error }}</p>
+            <div class="status">Retrying...</div>
+        {% else %}
+            <h1>Initializing...</h1>
+            <div class="status waiting">Please wait...</div>
+        {% endif %}
+    </div>
+</body>
+</html>
+'''
+
+
+def _check_and_start_pairing(app: Flask) -> None:
+    """
+    Check if hub is registered and start pairing flow if not.
+
+    This function runs after app initialization to check registration
+    status. If the hub is not registered, it starts a background thread
+    that announces the hub to the CMS and polls for pairing completion.
+
+    Args:
+        app: Flask application instance
+    """
+    global _pairing_state
+
+    def pairing_thread():
+        """Background thread for pairing flow."""
+        global _pairing_state
+
+        with app.app_context():
+            from models.hub_config import HubConfig
+            from services.hub_pairing import HubPairingService, get_hardware_id
+
+            hub_config = HubConfig.get_instance()
+
+            if hub_config.is_registered:
+                app.logger.info(f'Hub already registered: {hub_config.hub_id}')
+                _pairing_state['status'] = 'registered'
+                _pairing_state['active'] = False
+                return
+
+            app.logger.info('Hub not registered - starting pairing flow')
+            config = app.config['HUB_CONFIG']
+
+            hardware_id = get_hardware_id()
+            service = HubPairingService(cms_url=config.cms_url, hardware_id=hardware_id)
+
+            _pairing_state['active'] = True
+            _pairing_state['hardware_id'] = hardware_id
+
+            # Announce to CMS
+            result = service.announce()
+
+            if result.get('status') == 'already_paired':
+                # Store credentials
+                HubConfig.update_registration(
+                    hub_id=result.get('hub_id'),
+                    hub_token=result.get('api_token'),
+                    hub_code=result.get('hub_code'),
+                    hub_name=result.get('store_name'),
+                    network_id=result.get('network_id'),
+                    status='active',
+                )
+                _pairing_state['status'] = 'paired'
+                _pairing_state['active'] = False
+                app.logger.info(f'Hub already paired as: {result.get("store_name")}')
+                return
+
+            if result.get('status') == 'error':
+                _pairing_state['error'] = result.get('error')
+                app.logger.error(f'Pairing announce failed: {result.get("error")}')
+                return
+
+            _pairing_state['pairing_code'] = service.pairing_code
+            _pairing_state['status'] = 'pending'
+
+            app.logger.info(f'Pairing code: {service.pairing_code}')
+            print(f'\n{"="*60}')
+            print(f'  PAIRING CODE: {service.pairing_code}')
+            print(f'  Hardware ID:  {hardware_id}')
+            print(f'  View at:      http://localhost:{config.port}/pairing')
+            print(f'{"="*60}\n')
+
+            # Poll for pairing completion
+            def on_status(status):
+                global _pairing_state
+                if status.get('status') == 'expired':
+                    _pairing_state['pairing_code'] = service.pairing_code
+                    app.logger.info(f'New pairing code: {service.pairing_code}')
+
+            result = service.wait_for_pairing(on_status=on_status)
+
+            if result.get('status') == 'paired':
+                HubConfig.update_registration(
+                    hub_id=result.get('hub_id'),
+                    hub_token=result.get('api_token'),
+                    hub_code=result.get('hub_code'),
+                    hub_name=result.get('store_name'),
+                    network_id=result.get('network_id'),
+                    status='active',
+                )
+                _pairing_state['status'] = 'paired'
+                _pairing_state['active'] = False
+                app.logger.info(f'Hub paired as: {result.get("store_name")}')
+                print(f'\n{"="*60}')
+                print(f'  HUB PAIRED SUCCESSFULLY!')
+                print(f'  Store: {result.get("store_name")}')
+                print(f'  Hub Code: {result.get("hub_code")}')
+                print(f'{"="*60}\n')
+            else:
+                _pairing_state['error'] = result.get('error', 'Pairing failed')
+                app.logger.error(f'Pairing failed: {result}')
+
+    # Start pairing check in background thread
+    thread = threading.Thread(target=pairing_thread, daemon=True)
+    thread.start()
 
 
 def _configure_logging(app: Flask, log_path: str) -> None:
