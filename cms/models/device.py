@@ -66,10 +66,12 @@ class Device(db.Model):
     hub_url = db.Column(db.String(500), nullable=True)  # e.g., http://192.168.1.100:5000
     cms_url = db.Column(db.String(500), nullable=True)  # e.g., http://cms.skillzmedia.com:5002
     ip_address = db.Column(db.String(50), nullable=True)  # Device's IP address for remote access
-    pairing_code = db.Column(db.String(6), nullable=True, index=True)
 
     # Pairing code for device registration workflow
     pairing_code = db.Column(db.String(10), nullable=True, index=True)
+
+    # Device authentication key for secure API communication
+    device_key = db.Column(db.String(64), nullable=True)
 
     # Layout assignment
     layout_id = db.Column(db.String(36), db.ForeignKey('screen_layouts.id', ondelete='SET NULL'), nullable=True, index=True)

@@ -203,8 +203,11 @@ def submit_alert():
     device = Device.query.filter_by(device_id=device_id).first()
     if not device:
         return jsonify({'error': 'Unknown device'}), 401
-    
-    # TODO: Verify device_key against stored key
+
+    # Verify device_key against stored key
+    if device.device_key and device_key != device.device_key:
+        current_app.logger.warning(f'Invalid device key for device {device_id}')
+        return jsonify({'error': 'Invalid device key'}), 401
     
     # Get alert data
     data = request.form.to_dict() if request.form else request.get_json() or {}

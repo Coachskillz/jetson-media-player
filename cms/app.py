@@ -29,6 +29,20 @@ from flask_migrate import Migrate
 from cms.config import get_config
 from cms.models import db
 
+# Optional security extensions (graceful fallback if not installed)
+try:
+    from flask_talisman import Talisman
+    TALISMAN_AVAILABLE = True
+except ImportError:
+    TALISMAN_AVAILABLE = False
+
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    LIMITER_AVAILABLE = True
+except ImportError:
+    LIMITER_AVAILABLE = False
+
 # Global migrate instance
 migrate = Migrate()
 
@@ -57,6 +71,9 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
+
+    # Initialize security extensions in production
+    _init_security(app, config_class)
 
     # Initialize Flask-Login
     from flask_login import LoginManager
@@ -102,6 +119,57 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         })
 
     return app
+
+
+def _init_security(app: Flask, config_class) -> None:
+    """
+    Initialize security extensions for the application.
+
+    In production, enables:
+    - Flask-Talisman for security headers (HSTS, CSP, X-Frame-Options, etc.)
+    - Flask-Limiter for rate limiting API endpoints
+
+    Args:
+        app: Flask application instance.
+        config_class: Configuration class being used.
+    """
+    is_production = config_class.__name__ == 'ProductionConfig'
+
+    # Initialize Talisman for security headers (production only)
+    if TALISMAN_AVAILABLE and is_production:
+        Talisman(
+            app,
+            force_https=True,
+            strict_transport_security=True,
+            strict_transport_security_max_age=31536000,  # 1 year
+            content_security_policy={
+                'default-src': "'self'",
+                'script-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                'font-src': ["'self'", "https://fonts.gstatic.com"],
+                'img-src': ["'self'", "data:", "https:"],
+            },
+            frame_options='DENY',
+            content_type_options=True,
+            xss_protection=True,
+        )
+        app.logger.info('Security headers enabled (Flask-Talisman)')
+    elif not TALISMAN_AVAILABLE:
+        app.logger.warning('Flask-Talisman not installed, security headers disabled')
+
+    # Initialize rate limiter
+    if LIMITER_AVAILABLE:
+        limiter = Limiter(
+            key_func=get_remote_address,
+            app=app,
+            default_limits=["200 per day", "50 per hour"],
+            storage_uri="memory://",
+        )
+        # Store limiter on app for route-specific limits
+        app.limiter = limiter
+        app.logger.info('Rate limiting enabled (Flask-Limiter)')
+    else:
+        app.logger.warning('Flask-Limiter not installed, rate limiting disabled')
 
 
 def _seed_default_users(app: Flask) -> None:

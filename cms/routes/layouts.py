@@ -615,11 +615,11 @@ def delete_layout(layout_id):
         db.session.delete(layout)
         db.session.commit()
 
-        print(f"Layout deleted: {layout_name} ({layout_id_response})")
+        current_app.logger.info(f"Layout deleted: {layout_name} ({layout_id_response})")
 
     except Exception as e:
         db.session.rollback()
-        print(f"Failed to delete layout {layout_id}: {str(e)}")
+        current_app.logger.error(f"Failed to delete layout {layout_id}: {str(e)}")
         return jsonify({
             'error': f'Failed to delete layout: {str(e)}'
         }), 500

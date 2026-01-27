@@ -1,12 +1,21 @@
 # Flask web framework and extensions
 flask>=3.1.0
 Flask-SQLAlchemy>=3.1.1
+Flask-Login>=0.6.0
+Flask-Migrate>=4.0.0
+
+# Security
+flask-talisman>=1.1.0
+flask-limiter>=3.5.0
 
 # Database ORM
 sqlalchemy>=2.0.0
 
 # Production server
 gunicorn>=23.0.0
+
+# HTTP requests
+requests>=2.31.0
 
 # Development and testing
 pytest>=7.4.0

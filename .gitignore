@@ -2,3 +2,40 @@ venv/
 
 # Auto Claude data directory
 .auto-claude/
+
+# Database files
+*.db
+cms/data/
+content_catalog/data/
+
+# Log files
+*.log
+cms/logs/
+content_catalog/logs/
+local_hub/logs/
+
+# Upload directories (keep structure, ignore content)
+cms/uploads/*
+!cms/uploads/.gitkeep
+content_catalog/uploads/*
+!content_catalog/uploads/.gitkeep
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

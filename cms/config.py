@@ -12,8 +12,8 @@ from pathlib import Path
 class Config:
     """Base configuration class with default settings."""
 
-    # Flask Settings
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    # Flask Settings - SECRET_KEY must be set via environment variable in production
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-only-secret-key-not-for-production')
 
     # Base Directory
     BASE_DIR = Path(__file__).parent.resolve()
@@ -76,6 +76,11 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
 
+    # Security settings for production
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
     @classmethod
     def init_app(cls, app):
         """Production-specific initialization."""
@@ -84,10 +89,15 @@ class ProductionConfig(Config):
         # Verify required environment variables are set
         required_vars = [
             'SECRET_KEY',
+            'DATABASE_URL',
         ]
         missing = [var for var in required_vars if not os.environ.get(var)]
         if missing:
             raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
+
+        # Verify SECRET_KEY is not the default dev key
+        if os.environ.get('SECRET_KEY') == 'dev-only-secret-key-not-for-production':
+            raise ValueError("SECRET_KEY must be set to a secure random value in production")
 
 
 # Configuration mapping by environment name
