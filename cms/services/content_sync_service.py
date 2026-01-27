@@ -23,6 +23,7 @@ from requests.exceptions import RequestException, Timeout, ConnectionError
 from flask import current_app
 from cms.models import db
 from cms.models.synced_content import SyncedContent
+from cms.models.network import Network
 
 
 # Configure logging
@@ -69,6 +70,175 @@ class ContentSyncService:
     REQUEST_TIMEOUT = 30
     CONNECT_TIMEOUT = 10
 
+
+    # ==========================================================================
+    # Network Sync from Content Catalog
+    # ==========================================================================
+
+    # Tenants API endpoint (tenants in Content Catalog = networks in CMS)
+    # Use /active endpoint which accepts service API key authentication
+    TENANTS_ENDPOINT = '/api/v1/tenants/active'
+
+    @classmethod
+    def fetch_tenants(cls) -> List[Dict[str, Any]]:
+        """
+        Fetch all tenants from Content Catalog.
+
+        Tenants in Content Catalog are equivalent to Networks in CMS.
+        This method fetches the tenant list to sync networks.
+
+        Returns:
+            List of tenant dictionaries with uuid, name, slug, is_active
+
+        Raises:
+            ContentCatalogUnavailableError: If Content Catalog is unreachable
+        """
+        url = f"{cls.CONTENT_CATALOG_URL}{cls.TENANTS_ENDPOINT}"
+
+        headers = cls._get_auth_headers()
+
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=(cls.CONNECT_TIMEOUT, cls.REQUEST_TIMEOUT),
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                # Handle both list response and dict with 'tenants' key
+                if isinstance(data, list):
+                    return data
+                elif isinstance(data, dict) and 'tenants' in data:
+                    return data['tenants']
+                else:
+                    return []
+
+            elif response.status_code == 401:
+                # Try without auth for public endpoint
+                response = requests.get(
+                    url,
+                    timeout=(cls.CONNECT_TIMEOUT, cls.REQUEST_TIMEOUT),
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict) and 'tenants' in data:
+                        return data['tenants']
+
+                logger.warning("Tenants endpoint requires authentication")
+                return []
+
+            else:
+                logger.error(f"Failed to fetch tenants: {response.status_code}")
+                return []
+
+        except (ConnectionError, Timeout) as e:
+            raise ContentCatalogUnavailableError(f"Content Catalog unavailable: {str(e)}")
+        except RequestException as e:
+            logger.error(f"Error fetching tenants: {str(e)}")
+            return []
+
+    @classmethod
+    def sync_networks(cls) -> Dict[str, Any]:
+        """
+        Sync networks from Content Catalog tenants.
+
+        Fetches all tenants from Content Catalog and creates/updates
+        corresponding Network records in CMS. This ensures CMS networks
+        match the Content Catalog's tenant definitions.
+
+        Returns:
+            Dictionary containing:
+                - synced_count: Number of networks synced
+                - created_count: Number of new networks created
+                - updated_count: Number of existing networks updated
+                - deleted_count: Number of orphan networks deleted
+                - networks: List of network names
+        """
+        logger.info("Starting network sync from Content Catalog tenants")
+
+        result = {
+            'synced_count': 0,
+            'created_count': 0,
+            'updated_count': 0,
+            'deleted_count': 0,
+            'networks': [],
+            'errors': [],
+        }
+
+        try:
+            tenants = cls.fetch_tenants()
+
+            if not tenants:
+                logger.warning("No tenants returned from Content Catalog")
+                result['errors'].append("No tenants returned from Content Catalog")
+                return result
+
+            tenant_slugs = set()
+
+            for tenant in tenants:
+                slug = tenant.get('slug')
+                name = tenant.get('name')
+                is_active = tenant.get('is_active', True)
+
+                if not slug or not name:
+                    continue
+
+                tenant_slugs.add(slug)
+
+                # Skip inactive tenants
+                if not is_active:
+                    continue
+
+                # Check if network exists
+                existing = Network.query.filter_by(slug=slug).first()
+
+                if existing:
+                    # Update name if changed
+                    if existing.name != name:
+                        existing.name = name
+                        result['updated_count'] += 1
+                        logger.info(f"Updated network: {name} (slug: {slug})")
+                else:
+                    # Create new network
+                    new_network = Network(name=name, slug=slug)
+                    db.session.add(new_network)
+                    result['created_count'] += 1
+                    logger.info(f"Created network: {name} (slug: {slug})")
+
+                result['synced_count'] += 1
+                result['networks'].append(name)
+
+            # Remove networks that don't exist in Content Catalog
+            for network in Network.query.all():
+                if network.slug not in tenant_slugs:
+                    logger.info(f"Removing orphan network: {network.name} (slug: {network.slug})")
+                    db.session.delete(network)
+                    result['deleted_count'] += 1
+
+            db.session.commit()
+            logger.info(f"Network sync completed: {result['synced_count']} networks")
+
+        except ContentCatalogUnavailableError as e:
+            result['errors'].append(str(e))
+            logger.error(f"Network sync failed: {e}")
+
+        except Exception as e:
+            result['errors'].append(str(e))
+            logger.error(f"Network sync error: {e}")
+
+        return result
+
+    @classmethod
+    def _get_auth_headers(cls) -> Dict[str, str]:
+        """Get authentication headers for Content Catalog API."""
+        api_key = os.environ.get('CONTENT_CATALOG_SERVICE_KEY', 'skillz-cms-service-key-2026')
+        return {
+            'X-Service-API-Key': api_key,
+            'Content-Type': 'application/json',
+        }
 
     # ==========================================================================
     # File Download Operations
@@ -208,7 +378,7 @@ class ContentSyncService:
 
             # Upsert all fetched content
             uploads_path = str(current_app.config.get('UPLOADS_PATH', './uploads'))
-            
+
             for asset_data in all_assets:
                 try:
                     existing = SyncedContent.get_by_source_uuid(asset_data.get('uuid'))

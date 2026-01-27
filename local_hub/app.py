@@ -163,6 +163,20 @@ def _register_blueprints(app: Flask) -> None:
     except ImportError:
         pass
 
+    try:
+        from routes import pairing_bp
+        app.register_blueprint(pairing_bp, url_prefix='/api/v1/pairing')
+        app.logger.info("Registered pairing blueprint")
+    except ImportError:
+        pass
+
+    try:
+        from routes import devices_bp
+        app.register_blueprint(devices_bp, url_prefix='/api/v1/devices')
+        app.logger.info("Registered devices blueprint")
+    except ImportError:
+        pass
+
 
 def _init_scheduler(app: Flask) -> None:
     """

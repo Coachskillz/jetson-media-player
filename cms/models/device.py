@@ -53,6 +53,8 @@ class Device(db.Model):
     # Camera 1 settings (demographics and loyalty recognition)
     camera1_enabled = db.Column(db.Boolean, default=False)
     camera1_demographics = db.Column(db.Boolean, default=False)
+    camera1_age = db.Column(db.Boolean, default=False)
+    camera1_gender = db.Column(db.Boolean, default=False)
     camera1_loyalty = db.Column(db.Boolean, default=False)
 
     # Camera 2 settings (NCMEC detection)
@@ -107,6 +109,8 @@ class Device(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'camera1_enabled': self.camera1_enabled,
             'camera1_demographics': self.camera1_demographics,
+            'camera1_age': self.camera1_age,
+            'camera1_gender': self.camera1_gender,
             'camera1_loyalty': self.camera1_loyalty,
             'camera2_enabled': self.camera2_enabled,
             'camera2_ncmec': self.camera2_ncmec,

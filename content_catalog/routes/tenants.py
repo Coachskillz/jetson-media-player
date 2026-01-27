@@ -18,6 +18,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from content_catalog.models import db, User
 from content_catalog.models.tenant import Tenant
+from content_catalog.utils.api_key_auth import api_key_or_jwt_required
 
 
 # Create tenants blueprint
@@ -68,6 +69,35 @@ def _validate_slug(slug):
         return False
     pattern = r'^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$'
     return bool(re.match(pattern, slug)) and 3 <= len(slug) <= 100
+
+
+@tenants_bp.route('/active', methods=['GET'])
+@api_key_or_jwt_required
+def list_active_tenants():
+    """
+    List all active tenants (service endpoint).
+
+    This endpoint is accessible via service API key for CMS integration.
+    Returns only active tenants with basic info (uuid, name, slug).
+
+    Returns:
+        200: List of active tenants
+            [
+                { "uuid": "...", "name": "...", "slug": "...", "is_active": true },
+                ...
+            ]
+    """
+    tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name.asc()).all()
+
+    return jsonify([
+        {
+            'uuid': tenant.uuid,
+            'name': tenant.name,
+            'slug': tenant.slug,
+            'is_active': tenant.is_active,
+        }
+        for tenant in tenants
+    ]), 200
 
 
 @tenants_bp.route('', methods=['GET'])

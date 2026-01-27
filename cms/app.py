@@ -62,7 +62,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     from flask_login import LoginManager
     login_manager = LoginManager()
     login_manager.init_app(app)
-    login_manager.login_view = "web.login_page"
+    login_manager.login_view = "web.login"
     
     @login_manager.user_loader
     def load_user(user_id):

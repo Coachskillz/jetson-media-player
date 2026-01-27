@@ -110,6 +110,18 @@
             // Use requestAnimationFrame to ensure DOM is fully rendered
             requestAnimationFrame(() => {
                 this._zoomFit();
+
+                // Ensure all layers are interactive after initial render
+                this._configureLayerControls(true);
+                this._enableLayerSelection(true);
+
+                // Force update coordinates for all objects
+                this.canvas.getObjects().forEach(obj => {
+                    obj.setCoords();
+                });
+                this.canvas.renderAll();
+
+                console.log('Canvas ready - layers:', this.layers.size);
             });
 
             // Re-fit when window is resized
@@ -142,7 +154,7 @@
                 throw new Error('Canvas element not found');
             }
 
-            // Create Fabric canvas
+            // Create Fabric canvas with full interactivity
             this.canvas = new fabric.Canvas('layout-canvas', {
                 width: this.layoutData.canvasWidth,
                 height: this.layoutData.canvasHeight,
@@ -150,7 +162,16 @@
                 selection: true,
                 preserveObjectStacking: true,
                 stopContextMenu: true,
-                fireRightClick: true
+                fireRightClick: true,
+                // Enable object interaction
+                interactive: true,
+                renderOnAddRemove: true,
+                skipTargetFind: false,
+                // Cursor styles
+                hoverCursor: 'move',
+                moveCursor: 'grabbing',
+                defaultCursor: 'default',
+                freeDrawingCursor: 'crosshair'
             });
 
             // Update wrapper dimensions
@@ -280,13 +301,17 @@
                 rect.set('lockScalingX', true);
                 rect.set('lockScalingY', true);
             } else {
-                // Ensure unlocked layers have full 8-point controls
+                // Ensure unlocked layers have full 8-point controls and are interactive
                 rect.set('hasControls', true);
                 rect.set('hasBorders', true);
+                rect.set('selectable', true);
+                rect.set('evented', true);
                 rect.set('lockMovementX', false);
                 rect.set('lockMovementY', false);
                 rect.set('lockScalingX', false);
                 rect.set('lockScalingY', false);
+                rect.set('lockRotation', true);
+                rect.set('hasRotatingPoint', false);
             }
 
             // Ensure coordinates are set for proper control rendering
@@ -510,6 +535,9 @@
             }
 
             this.canvas.renderAll();
+
+            // Switch back to SELECT tool after drawing so user can move/resize the layer
+            this._setTool(TOOLS.SELECT);
         }
 
         /**
@@ -682,8 +710,22 @@
 
             this.selectedLayerId = layerId;
 
+            // Ensure the object has controls enabled
+            const obj = layer.fabricObject;
+            if (!layer.data.is_locked && layer.data.is_visible !== false) {
+                obj.set({
+                    hasControls: true,
+                    hasBorders: true,
+                    selectable: true,
+                    evented: true
+                });
+            }
+
+            // Update coordinates for proper control positioning
+            obj.setCoords();
+
             // Select on canvas
-            this.canvas.setActiveObject(layer.fabricObject);
+            this.canvas.setActiveObject(obj);
             this.canvas.renderAll();
 
             // Update UI
@@ -735,6 +777,26 @@
 
             // Mouse up - finish drawing
             this.canvas.on('mouse:up', () => {
+                if (this.isDrawing) {
+                    this._finishDrawing();
+                }
+            });
+
+            // Also handle mouse:out to finish drawing if mouse leaves canvas
+            this.canvas.on('mouse:out', () => {
+                if (this.isDrawing) {
+                    this._finishDrawing();
+                }
+            });
+
+            // Handle document-level mouseup in case mouse is released outside canvas
+            document.addEventListener('mouseup', () => {
+                if (this.isDrawing) {
+                    this._finishDrawing();
+                }
+            });
+
+            document.addEventListener('pointerup', () => {
                 if (this.isDrawing) {
                     this._finishDrawing();
                 }
@@ -1169,12 +1231,48 @@
             level = Math.max(0.1, Math.min(2.0, level));
             this.currentZoom = level;
 
-            // Apply zoom via CSS transform on the canvas wrapper
+            // Calculate zoomed dimensions for display
+            const zoomedWidth = this.layoutData.canvasWidth * level;
+            const zoomedHeight = this.layoutData.canvasHeight * level;
+
+            // Set canvas dimensions to zoomed size
+            this.canvas.setDimensions({
+                width: zoomedWidth,
+                height: zoomedHeight
+            });
+
+            // Apply zoom using viewport transform
+            // This scales the content while keeping mouse coordinates working
+            this.canvas.setViewportTransform([level, 0, 0, level, 0, 0]);
+
+            // Update wrapper dimensions
             const wrapper = document.getElementById('canvas-wrapper');
             if (wrapper) {
-                wrapper.style.transform = 'scale(' + level + ')';
-                wrapper.style.transformOrigin = 'center center';
+                wrapper.style.width = zoomedWidth + 'px';
+                wrapper.style.height = zoomedHeight + 'px';
+                wrapper.style.transform = 'none';
             }
+
+            // Update checkerboard background size
+            const checkerboard = document.getElementById('canvas-checkerboard');
+            if (checkerboard) {
+                checkerboard.style.width = zoomedWidth + 'px';
+                checkerboard.style.height = zoomedHeight + 'px';
+            }
+
+            // Update dimension labels
+            const dimWidth = document.getElementById('dim-width');
+            const dimHeight = document.getElementById('dim-height');
+            if (dimWidth) dimWidth.textContent = this.layoutData.canvasWidth + 'px';
+            if (dimHeight) dimHeight.textContent = this.layoutData.canvasHeight + 'px';
+
+            // Update all object coordinates for proper control rendering
+            this.canvas.getObjects().forEach(obj => {
+                obj.setCoords();
+            });
+
+            // Re-render
+            this.canvas.renderAll();
 
             // Update info bar zoom display
             const infoZoom = document.getElementById('info-zoom');
@@ -1481,11 +1579,13 @@
          * @private
          */
         _bindPanelEvents() {
-            // Property inputs
-            this._bindPropertyInput('prop-x', 'x', parseInt);
-            this._bindPropertyInput('prop-y', 'y', parseInt);
-            this._bindPropertyInput('prop-width', 'width', parseInt);
-            this._bindPropertyInput('prop-height', 'height', parseInt);
+            // Percentage-based position/size inputs (like OptiSigns)
+            this._bindPercentageInput('prop-left-pct', 'left');
+            this._bindPercentageInput('prop-top-pct', 'top');
+            this._bindPercentageInput('prop-width-pct', 'width');
+            this._bindPercentageInput('prop-height-pct', 'height');
+
+            // Other property inputs
             this._bindPropertyInput('prop-name', 'name', String);
             this._bindPropertyInput('prop-opacity-value', 'opacity', (v) => parseInt(v) / 100);
             this._bindPropertyInput('prop-border-width', 'border_width', parseInt);
@@ -1815,6 +1915,88 @@
         }
 
         /**
+         * Bind a percentage-based input for position/size
+         * @param {string} elementId - Input element ID
+         * @param {string} dimension - 'left', 'top', 'width', or 'height'
+         * @private
+         */
+        _bindPercentageInput(elementId, dimension) {
+            const input = document.getElementById(elementId);
+            if (!input) return;
+
+            // Update on change and input (for real-time updates)
+            const updateFromInput = () => {
+                if (!this.selectedLayerId) return;
+
+                const layer = this.layers.get(this.selectedLayerId);
+                if (!layer) return;
+
+                const pct = parseFloat(input.value) || 0;
+                const canvasWidth = this.layoutData.canvasWidth;
+                const canvasHeight = this.layoutData.canvasHeight;
+
+                // Convert percentage to pixels
+                let pixelValue;
+                switch (dimension) {
+                    case 'left':
+                        pixelValue = Math.round((pct / 100) * canvasWidth);
+                        layer.data.x = pixelValue;
+                        layer.fabricObject.set('left', pixelValue);
+                        break;
+                    case 'top':
+                        pixelValue = Math.round((pct / 100) * canvasHeight);
+                        layer.data.y = pixelValue;
+                        layer.fabricObject.set('top', pixelValue);
+                        break;
+                    case 'width':
+                        pixelValue = Math.max(20, Math.round((pct / 100) * canvasWidth));
+                        layer.data.width = pixelValue;
+                        layer.fabricObject.set('width', pixelValue);
+                        layer.fabricObject.set('scaleX', 1);
+                        break;
+                    case 'height':
+                        pixelValue = Math.max(20, Math.round((pct / 100) * canvasHeight));
+                        layer.data.height = pixelValue;
+                        layer.fabricObject.set('height', pixelValue);
+                        layer.fabricObject.set('scaleY', 1);
+                        break;
+                }
+
+                layer.fabricObject.setCoords();
+                this.canvas.renderAll();
+                this._updatePixelsInfo(layer.data);
+                this._updateLayerList();
+
+                // Schedule API update
+                this._scheduleUpdate(this.selectedLayerId, {
+                    x: layer.data.x,
+                    y: layer.data.y,
+                    width: layer.data.width,
+                    height: layer.data.height
+                });
+            };
+
+            input.addEventListener('change', updateFromInput);
+            input.addEventListener('input', updateFromInput);
+        }
+
+        /**
+         * Update the pixels info display
+         * @param {Object} data - Layer data
+         * @private
+         */
+        _updatePixelsInfo(data) {
+            const info = document.getElementById('prop-pixels-info');
+            if (info) {
+                const x = data.x || 0;
+                const y = data.y || 0;
+                const w = data.width || 100;
+                const h = data.height || 100;
+                info.textContent = `${x}, ${y} - ${w} x ${h}`;
+            }
+        }
+
+        /**
          * Update a layer property
          * @param {string} propertyName - Property name
          * @param {*} value - New value
@@ -2042,11 +2224,28 @@
             if (noSelection) noSelection.style.display = 'none';
             if (layerProps) layerProps.style.display = 'block';
 
-            // Update property inputs
-            this._setPropertyValue('prop-x', data.x || 0);
-            this._setPropertyValue('prop-y', data.y || 0);
-            this._setPropertyValue('prop-width', data.width || 400);
-            this._setPropertyValue('prop-height', data.height || 300);
+            // Calculate percentage values from pixel values
+            const canvasWidth = this.layoutData.canvasWidth;
+            const canvasHeight = this.layoutData.canvasHeight;
+            const x = data.x || 0;
+            const y = data.y || 0;
+            const w = data.width || 400;
+            const h = data.height || 300;
+
+            const leftPct = ((x / canvasWidth) * 100).toFixed(1);
+            const topPct = ((y / canvasHeight) * 100).toFixed(1);
+            const widthPct = ((w / canvasWidth) * 100).toFixed(1);
+            const heightPct = ((h / canvasHeight) * 100).toFixed(1);
+
+            // Update percentage inputs
+            this._setPropertyValue('prop-left-pct', leftPct);
+            this._setPropertyValue('prop-top-pct', topPct);
+            this._setPropertyValue('prop-width-pct', widthPct);
+            this._setPropertyValue('prop-height-pct', heightPct);
+
+            // Update pixels info
+            this._updatePixelsInfo(data);
+
             this._setPropertyValue('prop-name', data.name || '');
             this._setPropertyValue('prop-opacity', Math.round((data.opacity || 1) * 100));
             this._setPropertyValue('prop-opacity-value', Math.round((data.opacity || 1) * 100));
@@ -2168,15 +2367,31 @@
         }
 
         /**
-         * Update property inputs during drag/resize
-         * @param {Object} bounds - Current bounds
+         * Update property inputs during drag/resize (percentage-based)
+         * @param {Object} bounds - Current bounds in pixels
          * @private
          */
         _updatePropertyInputs(bounds) {
-            this._setPropertyValue('prop-x', bounds.x);
-            this._setPropertyValue('prop-y', bounds.y);
-            this._setPropertyValue('prop-width', bounds.width);
-            this._setPropertyValue('prop-height', bounds.height);
+            const canvasWidth = this.layoutData.canvasWidth;
+            const canvasHeight = this.layoutData.canvasHeight;
+
+            // Calculate percentages
+            const leftPct = ((bounds.x / canvasWidth) * 100).toFixed(1);
+            const topPct = ((bounds.y / canvasHeight) * 100).toFixed(1);
+            const widthPct = ((bounds.width / canvasWidth) * 100).toFixed(1);
+            const heightPct = ((bounds.height / canvasHeight) * 100).toFixed(1);
+
+            // Update percentage inputs
+            this._setPropertyValue('prop-left-pct', leftPct);
+            this._setPropertyValue('prop-top-pct', topPct);
+            this._setPropertyValue('prop-width-pct', widthPct);
+            this._setPropertyValue('prop-height-pct', heightPct);
+
+            // Update pixels info
+            const info = document.getElementById('prop-pixels-info');
+            if (info) {
+                info.textContent = `${bounds.x}, ${bounds.y} - ${bounds.width} x ${bounds.height}`;
+            }
         }
 
         /**

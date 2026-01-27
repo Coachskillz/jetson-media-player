@@ -693,6 +693,8 @@ def update_device_settings(device_id):
             "name": "optional new name",
             "camera1_enabled": true,
             "camera1_demographics": true,
+            "camera1_age": true,
+            "camera1_gender": true,
             "camera1_loyalty": false,
             "camera2_enabled": true,
             "camera2_ncmec": true
@@ -720,6 +722,8 @@ def update_device_settings(device_id):
         'name',
         'camera1_enabled',
         'camera1_demographics',
+        'camera1_age',
+        'camera1_gender',
         'camera1_loyalty',
         'camera2_enabled',
         'camera2_ncmec',

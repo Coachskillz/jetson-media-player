@@ -638,11 +638,21 @@ def sync_content():
 
     try:
         sync_service = ContentSyncService()
+
+        # First, sync networks from Content Catalog tenants
+        # This ensures CMS networks match Content Catalog tenants
+        network_result = sync_service.sync_networks()
+
+        # Then sync content
         result = sync_service.sync_approved_content(
             network_id=network_id,
             organization_id=organization_id,
             category=category
         )
+
+        # Include network sync info in response
+        result['networks_synced'] = network_result.get('synced_count', 0)
+        result['networks_created'] = network_result.get('created_count', 0)
 
         return jsonify(result), 200
 
@@ -662,6 +672,54 @@ def sync_content():
     except Exception as e:
         return jsonify({
             'error': 'Content sync failed',
+            'message': str(e)
+        }), 500
+
+
+@content_bp.route('/sync-networks', methods=['POST'])
+@login_required
+def sync_networks():
+    """
+    Sync networks from Content Catalog tenants.
+
+    Fetches all tenants from the Content Catalog service and creates/updates
+    corresponding Network records in CMS. This ensures CMS networks match
+    the Content Catalog's tenant definitions.
+
+    Returns:
+        200: Networks synced successfully
+            {
+                "synced_count": 4,
+                "created_count": 2,
+                "updated_count": 1,
+                "deleted_count": 0,
+                "networks": ["Test", "West Marine", "The High Octane Network"]
+            }
+        503: Content Catalog service unavailable
+        500: Sync failed
+    """
+    try:
+        sync_service = ContentSyncService()
+        result = sync_service.sync_networks()
+
+        if result.get('errors'):
+            return jsonify({
+                'error': 'Network sync had errors',
+                'result': result
+            }), 500
+
+        return jsonify(result), 200
+
+    except ContentCatalogUnavailableError as e:
+        return jsonify({
+            'error': 'Content Catalog service unavailable',
+            'message': str(e),
+            'catalog_url': current_app.config.get('CONTENT_CATALOG_URL')
+        }), 503
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Network sync failed',
             'message': str(e)
         }), 500
 

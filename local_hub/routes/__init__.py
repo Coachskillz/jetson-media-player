@@ -22,6 +22,9 @@ devices_bp = Blueprint('devices', __name__, url_prefix='/devices')
 # Cameras blueprint
 from routes.cameras import cameras_bp
 
+# Pairing blueprint
+from routes.pairing import pairing_bp
+
 # Import route handlers to register them with blueprints
 from routes import screens  # noqa: F401, E402
 from routes import content  # noqa: F401, E402
@@ -30,4 +33,4 @@ from routes import alerts  # noqa: F401, E402
 from routes import devices  # noqa: F401, E402
 
 # Export all blueprints
-__all__ = ['screens_bp', 'content_bp', 'databases_bp', 'alerts_bp', 'devices_bp', 'cameras_bp']
+__all__ = ['screens_bp', 'content_bp', 'databases_bp', 'alerts_bp', 'devices_bp', 'cameras_bp', 'pairing_bp']

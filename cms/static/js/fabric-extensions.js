@@ -23,17 +23,20 @@
     /** Default grid size for snapping */
     const DEFAULT_GRID_SIZE = 10;
 
-    /** Default control appearance */
+    /** Default control appearance - large, easy-to-grab handles */
     const CONTROL_CONFIG = {
         cornerColor: '#00D4AA',
-        cornerStrokeColor: '#00D4AA',
-        cornerSize: 10,
-        cornerStyle: 'circle',
+        cornerStrokeColor: '#1a1a1f',
+        cornerSize: 14,
+        cornerStyle: 'rect',
         transparentCorners: false,
         borderColor: '#00D4AA',
-        borderScaleFactor: 2,
+        borderScaleFactor: 1.5,
         padding: 0,
-        rotatingPointOffset: 0
+        rotatingPointOffset: 0,
+        borderDashArray: null,
+        centeredScaling: false,
+        centeredRotation: false
     };
 
     /**
