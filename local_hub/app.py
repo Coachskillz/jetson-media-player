@@ -34,6 +34,7 @@ _pairing_state = {
     'active': False,
     'pairing_code': None,
     'hardware_id': None,
+    'hub_name': None,
     'status': 'unknown',
     'error': None,
 }
@@ -179,9 +180,8 @@ PAIRING_SCREEN_TEMPLATE = '''
     <div class="container">
         <div class="logo">SKILLZ MEDIA</div>
         {% if status == 'paired' %}
-            <h1>Hub Paired!</h1>
+            <h1>{{ hub_name or 'Hub Paired!' }}</h1>
             <div class="status paired">Connected to CMS</div>
-            <p style="margin-top: 30px; font-size: 20px;">Restarting services...</p>
         {% elif active and pairing_code %}
             <h1>Hub Pairing Required</h1>
             <div class="pairing-code">{{ pairing_code }}</div>
@@ -229,7 +229,8 @@ def _check_and_start_pairing(app: Flask) -> None:
 
             if hub_config.is_registered:
                 app.logger.info(f'Hub already registered: {hub_config.hub_id}')
-                _pairing_state['status'] = 'registered'
+                _pairing_state['status'] = 'paired'
+                _pairing_state['hub_name'] = hub_config.hub_name
                 _pairing_state['active'] = False
                 return
 
@@ -256,6 +257,7 @@ def _check_and_start_pairing(app: Flask) -> None:
                     status='active',
                 )
                 _pairing_state['status'] = 'paired'
+                _pairing_state['hub_name'] = result.get('store_name')
                 _pairing_state['active'] = False
                 app.logger.info(f'Hub already paired as: {result.get("store_name")}')
                 return
@@ -294,6 +296,7 @@ def _check_and_start_pairing(app: Flask) -> None:
                     status='active',
                 )
                 _pairing_state['status'] = 'paired'
+                _pairing_state['hub_name'] = result.get('store_name')
                 _pairing_state['active'] = False
                 app.logger.info(f'Hub paired as: {result.get("store_name")}')
                 print(f'\n{"="*60}')
