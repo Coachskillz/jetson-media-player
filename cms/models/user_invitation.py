@@ -41,6 +41,8 @@ class UserInvitation(db.Model):
     email = db.Column(db.String(255), nullable=False, index=True)
     role = db.Column(db.String(50), nullable=False)
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
+    # Multiple network access - comma-separated list of network IDs
+    network_ids = db.Column(db.Text, nullable=True)
     invited_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False, index=True)
     token = db.Column(db.String(100), unique=True, nullable=False, index=True, default=lambda: secrets.token_urlsafe(32))
     status = db.Column(db.String(50), nullable=False, default='pending')
@@ -64,6 +66,7 @@ class UserInvitation(db.Model):
             'email': self.email,
             'role': self.role,
             'network_id': self.network_id,
+            'network_ids': self.network_ids.split(',') if self.network_ids else [],
             'invited_by': self.invited_by,
             'token': self.token,
             'status': self.status,

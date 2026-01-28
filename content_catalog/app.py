@@ -113,7 +113,12 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         # Seed Super Admin user for initial system setup
         _seed_super_admin(app)
         # Seed test data (organizations and users) for development/testing
-        _seed_test_data(app)
+        # Skip in production unless explicitly enabled
+        seed_test_data = os.environ.get('SEED_TEST_DATA', 'true').lower() in ('true', '1', 'yes')
+        if seed_test_data:
+            _seed_test_data(app)
+        else:
+            app.logger.info('Skipping test data seeding (SEED_TEST_DATA not enabled)')
 
     # Configure logging
     _configure_logging(app)
@@ -295,32 +300,47 @@ def _configure_logging(app: Flask) -> None:
     """
     Configure application logging.
 
+    In production (Railway), logs to stdout for container logging.
+    In development, optionally logs to file.
+
     Args:
         app: Flask application instance.
     """
-    # Get log directory from config
-    log_dir = app.config.get('BASE_DIR', os.getcwd())
-    if hasattr(log_dir, '__truediv__'):  # Path object
-        log_dir = log_dir / 'logs'
-    else:
-        log_dir = os.path.join(log_dir, 'logs')
+    import sys
 
-    # Set up file handler if log path is writable
-    try:
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(str(log_dir), 'content_catalog.log')
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        ))
-        app.logger.addHandler(file_handler)
-    except (OSError, PermissionError):
-        # Log path not writable (dev environment), skip file logging
-        pass
+    # Set up log format
+    log_format = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
+    # Always log to stdout (required for Railway/container environments)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(log_format)
+    app.logger.addHandler(stream_handler)
+
+    # In development, also try to log to file
+    if app.config.get('DEBUG', False):
+        log_dir = app.config.get('BASE_DIR', os.getcwd())
+        if hasattr(log_dir, '__truediv__'):  # Path object
+            log_dir = log_dir / 'logs'
+        else:
+            log_dir = os.path.join(log_dir, 'logs')
+
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+            log_file = os.path.join(str(log_dir), 'content_catalog.log')
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(log_format)
+            app.logger.addHandler(file_handler)
+        except (OSError, PermissionError):
+            # Log path not writable, skip file logging
+            pass
 
     # Set application log level
-    app.logger.setLevel(logging.INFO)
+    log_level = logging.DEBUG if app.config.get('DEBUG', False) else logging.INFO
+    app.logger.setLevel(log_level)
 
 
 def _register_blueprints(app: Flask) -> None:

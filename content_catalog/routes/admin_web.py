@@ -1175,9 +1175,10 @@ def audit_logs():
 @login_required
 def settings():
     """System settings page."""
+    import os
     settings_config = {
-        'cms_endpoint': 'http://192.168.1.111:5002',
-        'content_catalog_port': 5003,
+        'cms_endpoint': os.environ.get('CMS_ENDPOINT', 'http://localhost:5002'),
+        'content_catalog_port': int(os.environ.get('PORT', os.environ.get('CONTENT_CATALOG_PORT', 5003))),
         'auto_approve_content': False,
         'require_admin_approval': True,
         'max_upload_size_mb': 500,

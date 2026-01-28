@@ -10,7 +10,7 @@ Blueprint for web page rendering:
 """
 
 from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify, send_from_directory, current_app
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from datetime import datetime, timezone
 from cms.models import db, Device, Hub, PendingHub, Content, Playlist, Network, DeviceAssignment, Folder
@@ -22,6 +22,46 @@ from cms.services.content_sync_service import ContentSyncService
 
 # Create web blueprint (no url_prefix since these are root-level pages)
 web_bp = Blueprint('web', __name__)
+
+
+def get_user_network_filter():
+    """
+    Get network IDs the current user has access to.
+
+    Returns:
+        tuple: (has_all_access, network_ids_list)
+        - has_all_access: True if user can see all networks
+        - network_ids_list: List of network IDs user can access (empty if all)
+    """
+    if not current_user.is_authenticated:
+        return False, []
+
+    # Super admins or users with no restrictions see everything
+    if current_user.has_all_network_access():
+        return True, []
+
+    return False, current_user.get_network_ids_list()
+
+
+def filter_networks_for_user(networks_query):
+    """
+    Filter a networks query based on current user's access.
+
+    Args:
+        networks_query: SQLAlchemy query for Network model
+
+    Returns:
+        Filtered query
+    """
+    has_all, network_ids = get_user_network_filter()
+    if has_all:
+        return networks_query
+
+    if not network_ids:
+        # User has no network access - return empty
+        return networks_query.filter(Network.id == None)
+
+    return networks_query.filter(Network.id.in_(network_ids))
 
 
 
@@ -46,8 +86,9 @@ def dashboard():
     """
     from cms.models.layout import ScreenLayout
 
-    # Get all networks with their devices
-    networks = Network.query.order_by(Network.name).all()
+    # Get networks filtered by user's access
+    networks_query = Network.query.order_by(Network.name)
+    networks = filter_networks_for_user(networks_query).all()
 
     # Build network data with screens
     network_data = []
@@ -196,7 +237,9 @@ def devices_page():
         )
 
     # Build network data with stores (grouped by store_name)
-    networks_raw = Network.query.order_by(Network.name).all()
+    # Filter networks by user's access
+    networks_query = Network.query.order_by(Network.name)
+    networks_raw = filter_networks_for_user(networks_query).all()
     network_data = []
 
     for network in networks_raw:
@@ -282,6 +325,7 @@ def devices_page():
 
 
 @web_bp.route('/hubs')
+@login_required
 def hubs_page():
     """
     Hub management page.
@@ -297,8 +341,15 @@ def hubs_page():
     Returns:
         Rendered hubs.html template with hub list and pending hubs
     """
-    hubs = Hub.query.order_by(Hub.created_at.desc()).all()
-    networks = Network.query.order_by(Network.name).all()
+    # Filter networks and hubs by user's access
+    has_all_access, user_network_ids = get_user_network_filter()
+
+    if has_all_access:
+        hubs = Hub.query.order_by(Hub.created_at.desc()).all()
+    else:
+        hubs = Hub.query.filter(Hub.network_id.in_(user_network_ids)).order_by(Hub.created_at.desc()).all()
+
+    networks = filter_networks_for_user(Network.query.order_by(Network.name)).all()
 
     # Get pending hubs (not expired)
     now = datetime.now(timezone.utc)
@@ -325,6 +376,7 @@ def hubs_page():
 
 
 @web_bp.route('/content')
+@login_required
 def content_page():
     """
     Content management page with 16:9 aspect ratio preview.
@@ -336,21 +388,38 @@ def content_page():
     Returns:
         Rendered content.html template with content list and filter options
     """
+    # Get user's network access
+    has_all_access, user_network_ids = get_user_network_filter()
+
     # Query synced content from Content Catalog
     synced_items = SyncedContent.query.order_by(SyncedContent.synced_at.desc()).all()
 
     # Query local content
     content_items = Content.query.order_by(Content.created_at.desc()).all()
 
-    networks = Network.query.order_by(Network.name).all()
+    # Filter networks by user's access
+    networks = filter_networks_for_user(Network.query.order_by(Network.name)).all()
 
     # Fetch organizations for partner filter dropdown (from synced content)
     organizations = ContentSyncService.get_organizations()
 
     content = []
 
+    # Helper to check if content is accessible to user
+    def content_accessible(content_network_ids):
+        if has_all_access:
+            return True
+        if not content_network_ids:
+            # Content with no network restriction is visible to all
+            return True
+        # Check if any of the content's networks overlap with user's networks
+        return bool(set(content_network_ids) & set(user_network_ids))
+
     # Add synced content with full metadata
     for item in synced_items:
+        item_network_ids = item.get_network_ids_list()
+        if not content_accessible(item_network_ids):
+            continue
         # Get folder info if content is in a folder
         folder = Folder.query.get(item.folder_id) if item.folder_id else None
 
@@ -378,6 +447,11 @@ def content_page():
     for item in content_items:
         # Convert single network_id to list for network filter compatibility
         network_ids = [item.network_id] if item.network_id else []
+
+        # Check if user can see this content
+        if not content_accessible(network_ids):
+            continue
+
         # Determine content type from mime_type
         content_type = 'video'
         if item.mime_type:
@@ -416,6 +490,7 @@ def content_page():
 
 
 @web_bp.route('/playlists')
+@login_required
 def playlists_page():
     """
     Playlist management page with trigger configuration.
@@ -432,17 +507,39 @@ def playlists_page():
     Returns:
         Rendered playlists.html template with playlist and content lists
     """
-    playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.created_at.desc()).all()
-    networks = Network.query.order_by(Network.name).all()
+    # Filter playlists by user's network access
+    has_all_access, user_network_ids = get_user_network_filter()
+    if has_all_access:
+        playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.created_at.desc()).all()
+    else:
+        playlists = Playlist.query.filter(
+            Playlist.is_active == True,
+            Playlist.network_id.in_(user_network_ids)
+        ).order_by(Playlist.created_at.desc()).all()
+
+    # Filter networks by user's access
+    networks = filter_networks_for_user(Network.query.order_by(Network.name)).all()
 
     # Use same content source as content_page for consistency
     synced_items = SyncedContent.query.order_by(SyncedContent.synced_at.desc()).all()
     content_items = Content.query.order_by(Content.created_at.desc()).all()
 
+    # Helper to check if content is accessible to user
+    def content_accessible(content_network_ids):
+        if has_all_access:
+            return True
+        if not content_network_ids:
+            return True
+        return bool(set(content_network_ids) & set(user_network_ids))
+
     content = []
 
     # Add synced content (same logic as content_page)
     for item in synced_items:
+        item_network_ids = item.get_network_ids_list()
+        if not content_accessible(item_network_ids):
+            continue
+
         folder = Folder.query.get(item.folder_id) if item.folder_id else None
         content.append({
             'id': item.id,
@@ -450,7 +547,7 @@ def playlists_page():
             'filename': getattr(item, 'local_filename', None) or item.filename,
             'duration': item.duration or 0,
             'file_size': item.file_size or 0,
-            'network_ids': item.get_network_ids_list(),  # List of network IDs
+            'network_ids': item_network_ids,  # List of network IDs
             'folder_id': item.folder_id,
             'folder': folder,
             'status': item.status,
@@ -463,8 +560,12 @@ def playlists_page():
     for item in content_items:
         if item.catalog_asset_uuid and item.catalog_asset_uuid in synced_uuids:
             continue  # Skip if already added from synced
-        folder = Folder.query.get(item.folder_id) if item.folder_id else None
+
         network_ids = [item.network_id] if item.network_id else []
+        if not content_accessible(network_ids):
+            continue
+
+        folder = Folder.query.get(item.folder_id) if item.folder_id else None
         content.append({
             'id': item.id,
             'original_name': item.original_name or item.filename,
@@ -571,6 +672,35 @@ def logout_page():
     from flask_login import logout_user
     logout_user()
     return redirect(url_for('web.login'))
+
+
+@web_bp.route('/settings')
+@login_required
+def settings_page():
+    """
+    User profile/account settings page.
+
+    Allows users to:
+    - View and update their profile information
+    - Change password
+    - View active sessions
+    - Manage security settings
+    """
+    from cms.models import UserSession
+
+    # Get user's active sessions
+    sessions = UserSession.query.filter_by(
+        user_id=current_user.id,
+        is_valid=True
+    ).order_by(UserSession.created_at.desc()).all()
+
+    return render_template(
+        'account/settings.html',
+        active_page='profile',
+        user=current_user,
+        sessions=sessions
+    )
+
 
 @web_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -806,3 +936,128 @@ def move_content_to_folder(content_id):
     db.session.commit()
 
     return jsonify({'message': 'Content moved successfully', 'folder_id': folder_id})
+
+
+# ============================================================================
+# Admin Routes
+# ============================================================================
+
+@web_bp.route('/admin/users')
+@login_required
+def admin_users_page():
+    """
+    User management page for admins.
+
+    Displays all users with ability to:
+    - Invite new users
+    - Edit user roles and permissions
+    - Suspend/reactivate users
+    - View user activity
+
+    Requires admin, super_admin, or project_manager role.
+    """
+    from flask_login import current_user
+    from cms.models import User, UserInvitation, Network
+
+    # Check if user has admin/management access
+    if current_user.role not in ['admin', 'super_admin', 'project_manager']:
+        abort(403)
+
+    # Get user's network access
+    has_all_access, user_network_ids = get_user_network_filter()
+
+    # For project_managers, filter users to only show those in their networks
+    if current_user.role == 'project_manager' and not has_all_access:
+        # Get users that share at least one network with the project_manager
+        all_users = User.query.order_by(User.created_at.desc()).all()
+        users = []
+        for u in all_users:
+            # Project managers can only see users with lower roles
+            if u.role in ['content_manager', 'viewer']:
+                u_networks = u.get_network_ids_list()
+                # If user has no network restriction or shares a network
+                if not u_networks or set(u_networks) & set(user_network_ids):
+                    users.append(u)
+
+        # Filter invitations to those the PM created or in their networks
+        all_invitations = UserInvitation.query.filter_by(status='pending').order_by(UserInvitation.created_at.desc()).all()
+        invitations = [inv for inv in all_invitations if inv.invited_by == current_user.id]
+
+        # Filter networks to only those the PM has access to
+        networks = filter_networks_for_user(Network.query.order_by(Network.name)).all()
+    else:
+        # Admins and super_admins see all
+        users = User.query.order_by(User.created_at.desc()).all()
+        invitations = UserInvitation.query.filter_by(status='pending').order_by(UserInvitation.created_at.desc()).all()
+        networks = Network.query.order_by(Network.name).all()
+
+    return render_template(
+        'admin/users.html',
+        active_page='users',
+        users=users,
+        invitations=invitations,
+        networks=networks
+    )
+
+
+@web_bp.route('/admin/users/<user_id>')
+@login_required
+def admin_user_detail_page(user_id):
+    """
+    User detail page showing user info and activity.
+    """
+    from flask_login import current_user
+    from cms.models import User, UserSession, Network
+    from cms.models.audit_log import AuditLog
+
+    # Check if user has admin/management access
+    if current_user.role not in ['admin', 'super_admin', 'project_manager']:
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+
+    # Project managers can only view users they can manage
+    if current_user.role == 'project_manager':
+        if user.role not in ['content_manager', 'viewer']:
+            abort(403)
+
+    # Get user's sessions
+    sessions = UserSession.query.filter_by(user_id=user_id).order_by(UserSession.created_at.desc()).limit(10).all()
+
+    # Get user's recent activity
+    activity = AuditLog.query.filter_by(user_id=user_id).order_by(AuditLog.created_at.desc()).limit(20).all()
+
+    # Get networks for assignment
+    networks = Network.query.order_by(Network.name).all()
+
+    return render_template(
+        'admin/user_detail.html',
+        active_page='users',
+        user=user,
+        sessions=sessions,
+        activity=activity,
+        networks=networks
+    )
+
+
+@web_bp.route('/admin/audit-logs')
+@login_required
+def admin_audit_logs_page():
+    """
+    Audit logs page showing system activity.
+    """
+    from flask_login import current_user
+    from cms.models.audit_log import AuditLog
+
+    # Check if user has admin access
+    if current_user.role not in ['admin', 'super_admin']:
+        abort(403)
+
+    # Get recent audit logs
+    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all()
+
+    return render_template(
+        'admin/audit_logs.html',
+        active_page='audit',
+        logs=logs
+    )

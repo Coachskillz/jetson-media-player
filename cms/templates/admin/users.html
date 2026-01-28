@@ -597,6 +597,7 @@
                 <option value="">All Roles</option>
                 <option value="super_admin">Super Admin</option>
                 <option value="admin">Admin</option>
+                <option value="project_manager">Project Manager</option>
                 <option value="content_manager">Content Manager</option>
                 <option value="viewer">Viewer</option>
             </select>
@@ -668,10 +669,35 @@
                 <label>Role *</label>
                 <select id="inviteRole" required>
                     <option value="">Select a role...</option>
+                    {% if user.role == 'super_admin' %}
+                    <option value="admin">Admin</option>
+                    {% endif %}
+                    {% if user.role in ['super_admin', 'admin'] %}
+                    <option value="project_manager">Project Manager</option>
+                    {% endif %}
                     <option value="content_manager">Content Manager</option>
                     <option value="viewer">Viewer</option>
                 </select>
-                <p class="form-hint">Higher roles can only be assigned by Super Admins</p>
+                <p class="form-hint">You can only invite users with roles below your own</p>
+            </div>
+
+            <div class="form-group">
+                <label>Network Access</label>
+                <div id="networkCheckboxes" style="max-height: 150px; overflow-y: auto; border: 1px solid #334155; border-radius: 8px; padding: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" id="allNetworksCheckbox" onchange="toggleAllNetworks()" checked>
+                        <span style="font-weight: 600;">All Networks (unrestricted)</span>
+                    </label>
+                    <div id="networkList" style="display: none; padding-left: 20px;">
+                        {% for network in networks %}
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer;">
+                            <input type="checkbox" class="network-checkbox" value="{{ network.id }}">
+                            <span>{{ network.name }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <p class="form-hint">Limit user to specific networks, or allow access to all</p>
             </div>
 
             <div class="form-group">
@@ -916,11 +942,34 @@
     // Invite User
     function openInviteModal() {
         document.getElementById('inviteForm').reset();
+        document.getElementById('allNetworksCheckbox').checked = true;
+        document.getElementById('networkList').style.display = 'none';
+        document.querySelectorAll('.network-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('inviteModal').classList.add('active');
     }
 
     function closeInviteModal() {
         document.getElementById('inviteModal').classList.remove('active');
+    }
+
+    function toggleAllNetworks() {
+        const allChecked = document.getElementById('allNetworksCheckbox').checked;
+        const networkList = document.getElementById('networkList');
+        networkList.style.display = allChecked ? 'none' : 'block';
+        if (allChecked) {
+            document.querySelectorAll('.network-checkbox').forEach(cb => cb.checked = false);
+        }
+    }
+
+    function getSelectedNetworkIds() {
+        const allChecked = document.getElementById('allNetworksCheckbox').checked;
+        if (allChecked) return [];
+
+        const selected = [];
+        document.querySelectorAll('.network-checkbox:checked').forEach(cb => {
+            selected.push(cb.value);
+        });
+        return selected;
     }
 
     async function submitInvite(event) {
@@ -930,12 +979,13 @@
         const name = document.getElementById('inviteName').value;
         const role = document.getElementById('inviteRole').value;
         const password = document.getElementById('invitePassword').value;
+        const network_ids = getSelectedNetworkIds();
 
         try {
             const response = await fetch('/api/v1/invitations', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email, name, role, password })
+                body: JSON.stringify({ email, name, role, password, network_ids })
             });
 
             const data = await response.json();

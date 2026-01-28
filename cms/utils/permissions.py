@@ -4,8 +4,9 @@ CMS Permission Utilities.
 Provides role-based access control decorators and permission checking functions.
 
 Role Hierarchy (highest to lowest):
-- super_admin (level 4): Full system access, can manage all users including admins
-- admin (level 3): Can manage content_managers and viewers within their network
+- super_admin (level 5): Full system access, can manage all users including admins
+- admin (level 4): Can manage project_managers, content_managers and viewers
+- project_manager (level 3): Can manage content_managers and viewers within assigned networks
 - content_manager (level 2): Can manage content and playlists
 - viewer (level 1): Read-only access
 
@@ -35,6 +36,7 @@ from cms.models.user import ROLE_HIERARCHY
 # Role level constants for common checks
 ROLE_SUPER_ADMIN = 'super_admin'
 ROLE_ADMIN = 'admin'
+ROLE_PROJECT_MANAGER = 'project_manager'
 ROLE_CONTENT_MANAGER = 'content_manager'
 ROLE_VIEWER = 'viewer'
 
@@ -138,7 +140,8 @@ def can_manage_users(user):
     """
     Check if a user can manage other users.
 
-    Only admins and super admins can manage users.
+    Admins, super admins, and project managers can manage users
+    (project managers can only manage content_managers and viewers).
 
     Args:
         user: User object with a 'role' attribute, or None
@@ -146,7 +149,7 @@ def can_manage_users(user):
     Returns:
         True if user can manage users, False otherwise
     """
-    return is_admin_or_higher(user)
+    return has_permission(user, ROLE_PROJECT_MANAGER)
 
 
 def can_manage_role(manager, target_role):

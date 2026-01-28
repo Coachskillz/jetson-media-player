@@ -298,6 +298,15 @@
             margin: 8px;
         }
 
+        .user-menu-section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 16px 4px;
+        }
+
         /* Role Badge */
         .role-badge {
             display: inline-flex;
@@ -861,14 +870,24 @@
                             <div class="user-menu-header-email">{{ user.email if user else '' }}</div>
                         </div>
                         <div class="user-menu-items">
-                            <a href="/profile" class="user-menu-item">
-                                <span class="user-menu-item-icon">👤</span>
-                                Profile
-                            </a>
                             <a href="/settings" class="user-menu-item">
                                 <span class="user-menu-item-icon">⚙️</span>
                                 Settings
                             </a>
+                            {% if user and user.role in ['admin', 'super_admin', 'project_manager'] %}
+                            <div class="user-menu-divider"></div>
+                            <div class="user-menu-section-label">Administration</div>
+                            <a href="/admin/users" class="user-menu-item">
+                                <span class="user-menu-item-icon">👥</span>
+                                User Management
+                            </a>
+                            {% if user.role in ['admin', 'super_admin'] %}
+                            <a href="/admin/audit-logs" class="user-menu-item">
+                                <span class="user-menu-item-icon">📋</span>
+                                Audit Logs
+                            </a>
+                            {% endif %}
+                            {% endif %}
                             <div class="user-menu-divider"></div>
                             <a href="/logout" class="user-menu-item danger">
                                 <span class="user-menu-item-icon">🚪</span>

@@ -6,7 +6,8 @@ password management, and status workflow capabilities.
 
 Roles (hierarchical):
 - super_admin: Full system access, can manage all users including admins
-- admin: Can manage content_managers and viewers within their network
+- admin: Can manage project_managers, content_managers and viewers within their network
+- project_manager: Can manage content_managers and viewers within assigned networks
 - content_manager: Can manage content and playlists
 - viewer: Read-only access
 
@@ -29,8 +30,9 @@ from cms.models import db
 
 # Role hierarchy - higher number means more privileges
 ROLE_HIERARCHY = {
-    'super_admin': 4,
-    'admin': 3,
+    'super_admin': 5,
+    'admin': 4,
+    'project_manager': 3,
     'content_manager': 2,
     'viewer': 1
 }
@@ -85,6 +87,9 @@ class User(UserMixin, db.Model):
     phone = db.Column(db.String(50), nullable=True)
     role = db.Column(db.String(20), nullable=False)
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
+    # Multiple network access - comma-separated list of network IDs
+    # NULL or empty = all networks (for super_admin), otherwise restricted to listed networks
+    network_ids = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='pending')
 
     # Invitation and approval tracking
@@ -270,6 +275,63 @@ class User(UserMixin, db.Model):
         if ip_address:
             self.last_login_ip = ip_address
 
+    def get_network_ids_list(self):
+        """
+        Get list of network IDs this user has access to.
+
+        Returns:
+            List of network ID strings, or empty list for all-access
+        """
+        if not self.network_ids:
+            return []
+        return [nid.strip() for nid in self.network_ids.split(',') if nid.strip()]
+
+    def set_network_ids_list(self, network_ids):
+        """
+        Set the list of network IDs this user has access to.
+
+        Args:
+            network_ids: List of network ID strings, or empty/None for all-access
+        """
+        if not network_ids:
+            self.network_ids = None
+        else:
+            self.network_ids = ','.join(network_ids)
+
+    def has_network_access(self, network_id):
+        """
+        Check if user has access to a specific network.
+
+        Super admins have access to all networks.
+        Users with no network_ids set have access to all networks.
+        Otherwise, user must have the network_id in their list.
+
+        Args:
+            network_id: Network ID to check access for
+
+        Returns:
+            True if user has access to the network
+        """
+        # Super admins have access to everything
+        if self.role == 'super_admin':
+            return True
+
+        # No restrictions = access to all
+        if not self.network_ids:
+            return True
+
+        # Check if network is in user's allowed list
+        return network_id in self.get_network_ids_list()
+
+    def has_all_network_access(self):
+        """
+        Check if user has unrestricted network access.
+
+        Returns:
+            True if user can access all networks
+        """
+        return self.role == 'super_admin' or not self.network_ids
+
     def to_dict(self, include_sensitive=False):
         """
         Serialize the user to a dictionary for API responses.
@@ -287,6 +349,8 @@ class User(UserMixin, db.Model):
             'phone': self.phone,
             'role': self.role,
             'network_id': self.network_id,
+            'network_ids': self.get_network_ids_list(),
+            'has_all_network_access': self.has_all_network_access(),
             'status': self.status,
             'invited_by': self.invited_by,
             'approved_by': self.approved_by,

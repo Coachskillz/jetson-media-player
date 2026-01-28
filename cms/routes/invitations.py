@@ -74,7 +74,7 @@ def _validate_password(password):
 
 @invitations_bp.route('', methods=['POST'])
 @login_required
-@require_role('admin')
+@require_role('project_manager')
 def send_invitation():
     """
     Send a new user invitation.
@@ -171,35 +171,50 @@ def send_invitation():
             'error': f'Cannot invite users with role: {role}'
         }), 403
 
-    # Validate network_id
+    # Validate network access
     network_id = data.get('network_id')
+    network_ids = data.get('network_ids', [])
+
+    # Convert network_ids to comma-separated string
+    network_ids_str = None
+    if network_ids and isinstance(network_ids, list) and len(network_ids) > 0:
+        # Verify all networks exist
+        for nid in network_ids:
+            network = db.session.get(Network, nid)
+            if not network:
+                return jsonify({
+                    'error': f'Network with id {nid} not found'
+                }), 400
+            # Project managers can only invite to networks they have access to
+            if current_user.role == 'project_manager':
+                if not current_user.has_network_access(nid):
+                    return jsonify({
+                        'error': f'You do not have access to network: {network.name}'
+                    }), 403
+        network_ids_str = ','.join(network_ids)
+        # Use first network as primary network_id for backwards compatibility
+        if not network_id:
+            network_id = network_ids[0]
+
+    # Project managers must assign users to networks they have access to
+    if current_user.role == 'project_manager':
+        if not network_ids and not network_id:
+            return jsonify({
+                'error': 'Project managers must assign users to specific networks'
+            }), 400
+        if network_id and not current_user.has_network_access(network_id):
+            return jsonify({
+                'error': 'You do not have access to this network'
+            }), 403
 
     # Super admin role doesn't require network
     if role == 'super_admin':
-        if network_id:
+        if network_id or network_ids_str:
             return jsonify({
                 'error': 'super_admin role cannot be assigned to a network'
             }), 400
         network_id = None
-    else:
-        # All other roles require a network
-        if not network_id:
-            return jsonify({
-                'error': 'network_id is required for non-super_admin roles'
-            }), 400
-
-        # Verify network exists
-        network = db.session.get(Network, network_id)
-        if not network:
-            return jsonify({
-                'error': f'Network with id {network_id} not found'
-            }), 400
-
-        # Non-super admins can only invite to their own network
-        if current_user.role != 'super_admin' and current_user.network_id != network_id:
-            return jsonify({
-                'error': 'Cannot invite users to a different network'
-            }), 403
+        network_ids_str = None
 
     # Calculate expiration
     expires_days = data.get('expires_days', INVITATION_EXPIRATION_DAYS)
@@ -215,6 +230,7 @@ def send_invitation():
         email=email,
         role=role,
         network_id=network_id,
+        network_ids=network_ids_str,
         invited_by=current_user.id,
         token=secrets.token_urlsafe(32),
         status='pending',
@@ -484,6 +500,7 @@ def accept_invitation(token):
         phone=phone,
         role=invitation.role,
         network_id=invitation.network_id,
+        network_ids=invitation.network_ids,  # Copy network access from invitation
         status='pending',  # Will be approved by admin
         invited_by=invitation.invited_by,
         must_change_password=False  # They just set their password

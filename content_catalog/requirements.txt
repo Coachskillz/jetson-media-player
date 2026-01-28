@@ -7,6 +7,12 @@ Flask-Mail>=0.10.0
 # Database ORM
 sqlalchemy>=2.0.0
 
+# PostgreSQL driver (for Railway/production)
+psycopg2-binary>=2.9.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
 # Security
 bcrypt>=4.1.0
 

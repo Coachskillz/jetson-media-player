@@ -9,6 +9,20 @@ import os
 from pathlib import Path
 
 
+def get_database_url():
+    """Get database URL, handling Railway's postgres:// to postgresql:// conversion."""
+    url = os.environ.get('DATABASE_URL')
+    if url:
+        # Railway uses postgres:// but SQLAlchemy requires postgresql://
+        if url.startswith('postgres://'):
+            url = url.replace('postgres://', 'postgresql://', 1)
+        return url
+    # Fallback to SQLite for development
+    base_dir = Path(__file__).parent.resolve()
+    db_path = Path(os.environ.get('CONTENT_CATALOG_DATABASE_PATH', base_dir / 'data' / 'content_catalog.db'))
+    return f'sqlite:///{db_path}'
+
+
 class Config:
     """Base configuration class with default settings."""
 
@@ -18,13 +32,13 @@ class Config:
     # Base Directory
     BASE_DIR = Path(__file__).parent.resolve()
 
-    # Database Settings (SQLite)
+    # Database Settings
     DATABASE_PATH = Path(os.environ.get('CONTENT_CATALOG_DATABASE_PATH', BASE_DIR / 'data' / 'content_catalog.db'))
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        'DATABASE_URL',
-        f'sqlite:///{DATABASE_PATH}'
-    )
+    SQLALCHEMY_DATABASE_URI = get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Base URL for email links and redirects
+    BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5003')
 
     # File Storage Paths
     UPLOADS_PATH = Path(os.environ.get('CONTENT_CATALOG_UPLOAD_PATH', BASE_DIR / 'uploads'))
@@ -73,10 +87,19 @@ class Config:
     @classmethod
     def init_app(cls, app):
         """Initialize application with this configuration."""
-        # Ensure storage directories exist
-        cls.DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        cls.UPLOADS_PATH.mkdir(parents=True, exist_ok=True)
-        cls.THUMBNAILS_PATH.mkdir(parents=True, exist_ok=True)
+        # Only create SQLite database directory if using SQLite
+        db_url = cls.SQLALCHEMY_DATABASE_URI
+        if db_url and db_url.startswith('sqlite'):
+            cls.DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        # Ensure upload directories exist
+        try:
+            cls.UPLOADS_PATH.mkdir(parents=True, exist_ok=True)
+            cls.THUMBNAILS_PATH.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError) as e:
+            # On Railway, we might not be able to create directories
+            # Log warning but don't fail - cloud storage should be used
+            app.logger.warning(f"Could not create upload directories: {e}")
 
 
 class DevelopmentConfig(Config):
@@ -109,6 +132,7 @@ class ProductionConfig(Config):
 
     # Secure session cookies in production
     SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
     @classmethod
     def init_app(cls, app):
@@ -119,10 +143,17 @@ class ProductionConfig(Config):
         required_vars = [
             'SECRET_KEY',
             'JWT_SECRET_KEY',
+            'DATABASE_URL',
         ]
         missing = [var for var in required_vars if not os.environ.get(var)]
         if missing:
             raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
+
+        # Warn if using default secret keys
+        if os.environ.get('SECRET_KEY') == 'dev-secret-key-change-in-production':
+            raise ValueError("SECRET_KEY must be changed from default in production")
+        if os.environ.get('JWT_SECRET_KEY') == 'dev-jwt-secret-change-in-production':
+            raise ValueError("JWT_SECRET_KEY must be changed from default in production")
 
 
 # Configuration mapping by environment name

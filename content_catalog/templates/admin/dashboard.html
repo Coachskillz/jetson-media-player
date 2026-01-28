@@ -6,6 +6,24 @@
 
 {% block extra_styles %}
 <style>
+/* Clickable Stat Cards */
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.stat-card-link .stat-card {
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.stat-card-link:hover .stat-card {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    border-color: var(--primary);
+}
+
 /* Quick Actions */
 .quick-actions {
     display: grid;
@@ -174,41 +192,49 @@
 
 <!-- Stats Grid -->
 <div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">&#9787;</div>
-        <div class="stat-value">{{ stats.total_users }}</div>
-        <div class="stat-label">Total Users</div>
-        <div class="stat-change {% if stats.active_users > 0 %}positive{% else %}neutral{% endif %}">
-            {{ stats.active_users }} active
+    <a href="{{ url_for('admin.users') }}" class="stat-card-link">
+        <div class="stat-card">
+            <div class="stat-icon">&#9787;</div>
+            <div class="stat-value">{{ stats.total_users }}</div>
+            <div class="stat-label">Total Users</div>
+            <div class="stat-change {% if stats.active_users > 0 %}positive{% else %}neutral{% endif %}">
+                {{ stats.active_users }} active
+            </div>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon">&#9874;</div>
-        <div class="stat-value">{{ stats.total_organizations }}</div>
-        <div class="stat-label">Organizations</div>
-        <div class="stat-change neutral">
-            {{ stats.active_organizations }} active
+    <a href="{{ url_for('admin.organizations') }}" class="stat-card-link">
+        <div class="stat-card">
+            <div class="stat-icon">&#9874;</div>
+            <div class="stat-value">{{ stats.total_organizations }}</div>
+            <div class="stat-label">Organizations</div>
+            <div class="stat-change neutral">
+                {{ stats.active_organizations }} active
+            </div>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon">&#9733;</div>
-        <div class="stat-value">{{ stats.total_assets }}</div>
-        <div class="stat-label">Content Assets</div>
-        <div class="stat-change {% if stats.published_assets > 0 %}positive{% else %}neutral{% endif %}">
-            {{ stats.published_assets }} published
+    <a href="{{ url_for('admin.assets') }}" class="stat-card-link">
+        <div class="stat-card">
+            <div class="stat-icon">&#9733;</div>
+            <div class="stat-value">{{ stats.total_assets }}</div>
+            <div class="stat-label">Content Assets</div>
+            <div class="stat-change {% if stats.published_assets > 0 %}positive{% else %}neutral{% endif %}">
+                {{ stats.published_assets }} published
+            </div>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon">&#10003;</div>
-        <div class="stat-value">{{ stats.pending_approvals }}</div>
-        <div class="stat-label">Pending Approvals</div>
-        <div class="stat-change {% if stats.pending_approvals > 0 %}negative{% else %}positive{% endif %}">
-            {% if stats.pending_approvals > 0 %}Needs attention{% else %}All clear{% endif %}
+    <a href="{{ url_for('admin.approvals') }}" class="stat-card-link">
+        <div class="stat-card">
+            <div class="stat-icon">&#10003;</div>
+            <div class="stat-value">{{ stats.pending_approvals }}</div>
+            <div class="stat-label">Pending Approvals</div>
+            <div class="stat-change {% if stats.pending_approvals > 0 %}negative{% else %}positive{% endif %}">
+                {% if stats.pending_approvals > 0 %}Needs attention{% else %}All clear{% endif %}
+            </div>
         </div>
-    </div>
+    </a>
 </div>
 
 <!-- Quick Actions -->
