@@ -254,14 +254,23 @@ def request_pairing_code():
         db.session.add(device)
         db.session.commit()
     else:
-        # Device is re-requesting pairing — reset to pending
-        existing_device.pairing_code = pairing_code
-        existing_device.status = 'pending'
-        existing_device.network_id = None
-        ip_address = data.get('ip_address')
-        if ip_address:
-            existing_device.ip_address = ip_address
-        db.session.commit()
+        # Device exists — if already active/paired, just update the pairing code
+        # without resetting status or network (preserves seeded devices)
+        if existing_device.status == 'active' and existing_device.network_id:
+            existing_device.pairing_code = pairing_code
+            ip_address = data.get('ip_address')
+            if ip_address:
+                existing_device.ip_address = ip_address
+            db.session.commit()
+        else:
+            # Device is pending — reset for re-pairing
+            existing_device.pairing_code = pairing_code
+            existing_device.status = 'pending'
+            existing_device.network_id = None
+            ip_address = data.get('ip_address')
+            if ip_address:
+                existing_device.ip_address = ip_address
+            db.session.commit()
 
     return jsonify({
         'pairing_code': pairing_code,
