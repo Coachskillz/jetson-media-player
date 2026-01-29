@@ -18,7 +18,8 @@ from werkzeug.utils import secure_filename
 
 from content_catalog.models import (
     db, User, Organization, ContentAsset,
-    UserApprovalRequest, ContentApprovalRequest, AuditLog, Tenant
+    UserApprovalRequest, ContentApprovalRequest, AuditLog, Tenant,
+    Catalog, Category
 )
 from content_catalog.services.auth_service import AuthService
 from content_catalog.services.audit_service import AuditService
@@ -287,12 +288,20 @@ def assets():
     search = request.args.get('search', '')
     status_filter = request.args.get('status', '')
     tenant_filter = request.args.get('tenant', '')
+    folder_filter = request.args.get('folder', '', type=str)
 
     query = ContentAsset.query
 
     # Filter by tenant
     if tenant_filter:
         query = query.filter_by(tenant_id=tenant_filter)
+
+    # Filter by folder (category_id)
+    if folder_filter:
+        if folder_filter == 'uncategorized':
+            query = query.filter(ContentAsset.category_id.is_(None))
+        else:
+            query = query.filter_by(category_id=folder_filter)
 
     if search:
         query = query.filter(
@@ -310,6 +319,32 @@ def assets():
 
     # Get all tenants for filter dropdown
     tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+
+    # Get all folders (categories) for sidebar
+    default_catalog = Catalog.query.first()
+    folders = []
+    if default_catalog:
+        folders = Category.query.filter_by(
+            catalog_id=default_catalog.id,
+            parent_id=None,
+            is_active=True
+        ).order_by(Category.sort_order.asc(), Category.name.asc()).all()
+
+    # Count assets per folder
+    from sqlalchemy import func
+    folder_counts = {}
+    if folders:
+        folder_ids = [f.id for f in folders]
+        counts = db.session.query(
+            ContentAsset.category_id, func.count(ContentAsset.id)
+        ).filter(
+            ContentAsset.category_id.in_(folder_ids)
+        ).group_by(ContentAsset.category_id).all()
+        folder_counts = {str(cid): cnt for cid, cnt in counts}
+
+    uncategorized_count = ContentAsset.query.filter(
+        ContentAsset.category_id.is_(None)
+    ).count()
 
     stats = {
         'total': ContentAsset.query.count(),
@@ -330,7 +365,11 @@ def assets():
         search=search,
         status_filter=status_filter,
         tenant_filter=tenant_filter,
-        tenants=tenants
+        folder_filter=folder_filter,
+        tenants=tenants,
+        folders=folders,
+        folder_counts=folder_counts,
+        uncategorized_count=uncategorized_count
     )
 
 
@@ -569,6 +608,7 @@ def upload_assets_multi():
 
     description = request.form.get('description', '').strip()
     category = request.form.get('category', '').strip()
+    folder_id = request.form.get('folder_id', '').strip()
 
     # Get upload path
     uploads_path = current_app.config.get('UPLOADS_PATH')
@@ -649,6 +689,7 @@ def upload_assets_multi():
                 format=file_ext,
                 content_type=content_type,
                 category=category,
+                category_id=int(folder_id) if folder_id else None,
                 uploaded_by=g.current_user.id,
                 tenant_id=tenant_id,
                 status=ContentAsset.STATUS_PENDING_REVIEW,  # Go directly to pending review
@@ -1409,6 +1450,163 @@ def remove_retail_partner_user(partner_uuid, user_id):
     db.session.commit()
     
     return jsonify({'success': True})
+
+
+# ============================================================================
+# Folder (Category) Management
+# ============================================================================
+
+@admin_web_bp.route('/api/folders', methods=['GET'])
+@login_required
+def list_folders():
+    """List all folders (categories) for the default catalog."""
+    default_catalog = Catalog.query.first()
+    if not default_catalog:
+        return jsonify({'folders': [], 'count': 0})
+
+    parent_id = request.args.get('parent_id')
+    query = Category.query.filter_by(catalog_id=default_catalog.id, is_active=True)
+
+    if parent_id:
+        if parent_id == 'root':
+            query = query.filter(Category.parent_id.is_(None))
+        else:
+            query = query.filter_by(parent_id=int(parent_id))
+    else:
+        query = query.filter(Category.parent_id.is_(None))
+
+    folders = query.order_by(Category.sort_order.asc(), Category.name.asc()).all()
+
+    return jsonify({
+        'folders': [f.to_dict(include_children=True) for f in folders],
+        'count': len(folders)
+    })
+
+
+@admin_web_bp.route('/api/folders', methods=['POST'])
+@login_required
+def create_folder():
+    """Create a new folder (category) in the default catalog."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Folder name is required'}), 400
+
+    default_catalog = Catalog.query.first()
+    if not default_catalog:
+        return jsonify({'error': 'No catalog exists. Please restart the application.'}), 500
+
+    parent_id = data.get('parent_id')
+    if parent_id:
+        parent = db.session.get(Category, int(parent_id))
+        if not parent:
+            return jsonify({'error': 'Parent folder not found'}), 404
+
+    folder = Category(
+        name=name,
+        catalog_id=default_catalog.id,
+        parent_id=int(parent_id) if parent_id else None,
+        description=data.get('description', ''),
+        sort_order=data.get('sort_order', 0)
+    )
+
+    db.session.add(folder)
+    db.session.commit()
+
+    AuditService.log_action(
+        db_session=db.session,
+        action='folder.created',
+        user_id=g.current_user.id,
+        user_email=g.current_user.email,
+        resource_type='category',
+        resource_id=folder.id,
+        details={'name': name, 'parent_id': parent_id}
+    )
+    db.session.commit()
+
+    return jsonify(folder.to_dict()), 201
+
+
+@admin_web_bp.route('/api/folders/<int:folder_id>', methods=['PUT'])
+@login_required
+def update_folder(folder_id):
+    """Rename or update a folder."""
+    folder = db.session.get(Category, folder_id)
+    if not folder:
+        return jsonify({'error': 'Folder not found'}), 404
+
+    data = request.get_json()
+    if 'name' in data:
+        folder.name = data['name'].strip()
+    if 'description' in data:
+        folder.description = data['description']
+    if 'sort_order' in data:
+        folder.sort_order = int(data['sort_order'])
+
+    db.session.commit()
+    return jsonify(folder.to_dict())
+
+
+@admin_web_bp.route('/api/folders/<int:folder_id>', methods=['DELETE'])
+@login_required
+def delete_folder(folder_id):
+    """Delete a folder. Assets in this folder become uncategorized."""
+    folder = db.session.get(Category, folder_id)
+    if not folder:
+        return jsonify({'error': 'Folder not found'}), 404
+
+    # Move assets out of this folder
+    ContentAsset.query.filter_by(category_id=folder_id).update(
+        {'category_id': None}, synchronize_session='fetch'
+    )
+
+    # Move child folders to root
+    Category.query.filter_by(parent_id=folder_id).update(
+        {'parent_id': None}, synchronize_session='fetch'
+    )
+
+    folder_name = folder.name
+    db.session.delete(folder)
+    db.session.commit()
+
+    AuditService.log_action(
+        db_session=db.session,
+        action='folder.deleted',
+        user_id=g.current_user.id,
+        user_email=g.current_user.email,
+        resource_type='category',
+        resource_id=folder_id,
+        details={'name': folder_name}
+    )
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+
+@admin_web_bp.route('/api/assets/<int:asset_id>/move', methods=['POST'])
+@login_required
+def move_asset_to_folder(asset_id):
+    """Move an asset into a folder (or to uncategorized if folder_id is null)."""
+    asset = db.session.get(ContentAsset, asset_id)
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+
+    data = request.get_json() or {}
+    folder_id = data.get('folder_id')
+
+    if folder_id:
+        folder = db.session.get(Category, int(folder_id))
+        if not folder:
+            return jsonify({'error': 'Folder not found'}), 404
+        asset.category_id = folder.id
+    else:
+        asset.category_id = None
+
+    db.session.commit()
+    return jsonify({'success': True, 'category_id': asset.category_id})
 
 
 # ============ RETAILER DASHBOARD ============

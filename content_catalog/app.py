@@ -112,6 +112,8 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         db.create_all()
         # Seed Super Admin user for initial system setup
         _seed_super_admin(app)
+        # Seed default catalog for folder/category support
+        _seed_default_catalog(app)
         # Seed test data (organizations and users) for development/testing
         # Skip in production unless explicitly enabled
         seed_test_data = os.environ.get('SEED_TEST_DATA', 'true').lower() in ('true', '1', 'yes')
@@ -215,6 +217,35 @@ def _seed_super_admin(app: Flask) -> None:
     except Exception as e:
         db.session.rollback()
         app.logger.error(f'Failed to create Super Admin user: {e}')
+
+
+def _seed_default_catalog(app: Flask) -> None:
+    """
+    Seed a default catalog so folders/categories can be created.
+
+    Categories require a parent catalog. This creates a single
+    'Content Library' catalog if none exists.
+    """
+    from content_catalog.models.catalog import Catalog
+
+    existing = Catalog.query.first()
+    if existing:
+        app.logger.debug('Default catalog already exists, skipping seed')
+        return
+
+    try:
+        catalog = Catalog(
+            name='Content Library',
+            description='Default content library for organizing assets into folders',
+            is_active=True,
+            is_internal_only=False
+        )
+        db.session.add(catalog)
+        db.session.commit()
+        app.logger.info(f'Created default catalog: Content Library (id={catalog.id})')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Failed to create default catalog: {e}')
 
 
 def _seed_test_data(app: Flask) -> None:

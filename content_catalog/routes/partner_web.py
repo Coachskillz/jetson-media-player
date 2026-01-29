@@ -25,7 +25,9 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 
-from content_catalog.models import db, UserInvitation, User, ContentAsset, AdminSession, ContentApprovalRequest
+from sqlalchemy import func
+
+from content_catalog.models import db, UserInvitation, User, ContentAsset, AdminSession, ContentApprovalRequest, Catalog, Category
 from content_catalog.services.auth_service import AuthService
 from content_catalog.services.audit_service import AuditService
 from content_catalog.services.visibility_service import VisibilityService
@@ -273,6 +275,7 @@ def assets():
 
     # Get filter parameters
     status_filter = request.args.get('status', None)
+    folder_filter = request.args.get('folder', '', type=str)
 
     # Use VisibilityService to get assets visible to this user
     # Include drafts since partners need to see their own drafts
@@ -282,6 +285,16 @@ def assets():
         include_drafts=True
     )
 
+    # Apply folder filter
+    if folder_filter == 'uncategorized':
+        visible_assets = [a for a in visible_assets if a.category_id is None]
+    elif folder_filter:
+        try:
+            fid = int(folder_filter)
+            visible_assets = [a for a in visible_assets if a.category_id == fid]
+        except (ValueError, TypeError):
+            pass
+
     # Apply status filter if provided
     if status_filter and status_filter in ContentAsset.VALID_STATUSES:
         visible_assets = [a for a in visible_assets if a.status == status_filter]
@@ -289,7 +302,7 @@ def assets():
     # Sort by creation date (newest first)
     visible_assets.sort(key=lambda a: a.created_at or datetime.min, reverse=True)
 
-    # Calculate status counts from visible assets
+    # Calculate status counts from visible assets (before folder filter)
     all_visible = VisibilityService.filter_assets_for_user(
         db_session=db.session,
         user_id=current_user.id,
@@ -303,6 +316,30 @@ def assets():
     rejected_count = len([a for a in all_visible if a.status == ContentAsset.STATUS_REJECTED])
     published_count = len([a for a in all_visible if a.status == ContentAsset.STATUS_PUBLISHED])
 
+    # Load folders for sidebar
+    default_catalog = Catalog.query.first()
+    folders = []
+    folder_counts = {}
+    uncategorized_count = 0
+    if default_catalog:
+        folders = Category.query.filter_by(
+            catalog_id=default_catalog.id,
+            is_active=True,
+            parent_id=None
+        ).order_by(Category.sort_order.asc(), Category.name.asc()).all()
+
+        # Count assets per folder (scoped to this user's visible assets)
+        visible_ids = [a.id for a in all_visible]
+        if visible_ids:
+            counts = db.session.query(
+                ContentAsset.category_id, func.count(ContentAsset.id)
+            ).filter(
+                ContentAsset.id.in_(visible_ids),
+                ContentAsset.category_id.isnot(None)
+            ).group_by(ContentAsset.category_id).all()
+            folder_counts = {str(cid): cnt for cid, cnt in counts}
+            uncategorized_count = len([a for a in all_visible if a.category_id is None])
+
     return render_template(
         'partner/assets.html',
         active_page='assets',
@@ -311,12 +348,16 @@ def assets():
         pending_submissions_count=pending_count,
         assets=visible_assets,
         status_filter=status_filter,
+        folder_filter=folder_filter,
         total_count=total_count,
         draft_count=draft_count,
         pending_count=pending_count,
         approved_count=approved_count,
         rejected_count=rejected_count,
-        published_count=published_count
+        published_count=published_count,
+        folders=folders,
+        folder_counts=folder_counts,
+        uncategorized_count=uncategorized_count
     )
 
 
@@ -369,6 +410,16 @@ def upload():
         available_networks = get_partner_tenants(current_user)
         allow_multi_network = False
 
+    # Load folders for folder picker
+    default_catalog = Catalog.query.first()
+    folders = []
+    if default_catalog:
+        folders = Category.query.filter_by(
+            catalog_id=default_catalog.id,
+            is_active=True,
+            parent_id=None
+        ).order_by(Category.sort_order.asc(), Category.name.asc()).all()
+
     return render_template(
         'partner/upload.html',
         active_page='upload',
@@ -378,7 +429,8 @@ def upload():
         allow_multi_network=allow_multi_network,
         is_skillz=is_skillz,
         is_advertiser=is_advertiser,
-        pending_submissions_count=pending_submissions_count
+        pending_submissions_count=pending_submissions_count,
+        folders=folders
     )
 
 
@@ -761,6 +813,7 @@ def api_upload():
     category = request.form.get('category', '').strip()
     tags = request.form.get('tags', '').strip()
     action = request.form.get('action', 'draft')
+    folder_id = request.form.get('folder_id', '').strip()
 
     # Get target tenant(s)/network(s)
     # Can be multiple values for advertisers/skillz, single for partners
@@ -851,6 +904,7 @@ def api_upload():
             format=file_ext,
             duration=duration,
             category=category if category else None,
+            category_id=int(folder_id) if folder_id else None,
             tags=tags if tags else None,
             uploaded_by=current_user.id,
             organization_id=current_user.organization_id,
@@ -1350,3 +1404,158 @@ def api_submit_asset(asset_uuid):
         'message': 'Asset submitted for review',
         'asset': asset.to_dict()
     }), 200
+
+
+# =============================================================================
+# Partner Folder Management API Routes
+# =============================================================================
+
+
+@partner_web_bp.route('/api/folders', methods=['GET'])
+def api_list_folders():
+    """List all folders for the partner."""
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    default_catalog = Catalog.query.first()
+    if not default_catalog:
+        return jsonify({'folders': [], 'count': 0})
+
+    folders = Category.query.filter_by(
+        catalog_id=default_catalog.id,
+        is_active=True,
+        parent_id=None
+    ).order_by(Category.sort_order.asc(), Category.name.asc()).all()
+
+    return jsonify({
+        'folders': [f.to_dict(include_children=True) for f in folders],
+        'count': len(folders)
+    })
+
+
+@partner_web_bp.route('/api/folders', methods=['POST'])
+def api_create_folder():
+    """Create a new folder."""
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Folder name is required'}), 400
+
+    default_catalog = Catalog.query.first()
+    if not default_catalog:
+        return jsonify({'error': 'No catalog exists'}), 500
+
+    folder = Category(
+        name=name,
+        catalog_id=default_catalog.id,
+        parent_id=None,
+        description=data.get('description', ''),
+        sort_order=data.get('sort_order', 0)
+    )
+
+    db.session.add(folder)
+    db.session.commit()
+
+    AuditService.log_action(
+        db_session=db.session,
+        action='folder.created',
+        user_id=current_user.id,
+        user_email=current_user.email,
+        resource_type='category',
+        resource_id=folder.id,
+        details={'name': name}
+    )
+    db.session.commit()
+
+    return jsonify(folder.to_dict()), 201
+
+
+@partner_web_bp.route('/api/folders/<int:folder_id>', methods=['PUT'])
+def api_update_folder(folder_id):
+    """Rename a folder."""
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    folder = db.session.get(Category, folder_id)
+    if not folder:
+        return jsonify({'error': 'Folder not found'}), 404
+
+    data = request.get_json()
+    if 'name' in data:
+        folder.name = data['name'].strip()
+    if 'description' in data:
+        folder.description = data['description']
+
+    db.session.commit()
+    return jsonify(folder.to_dict())
+
+
+@partner_web_bp.route('/api/folders/<int:folder_id>', methods=['DELETE'])
+def api_delete_folder(folder_id):
+    """Delete a folder. Assets become uncategorized."""
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    folder = db.session.get(Category, folder_id)
+    if not folder:
+        return jsonify({'error': 'Folder not found'}), 404
+
+    ContentAsset.query.filter_by(category_id=folder_id).update(
+        {'category_id': None}, synchronize_session='fetch'
+    )
+    Category.query.filter_by(parent_id=folder_id).update(
+        {'parent_id': None}, synchronize_session='fetch'
+    )
+
+    folder_name = folder.name
+    db.session.delete(folder)
+    db.session.commit()
+
+    AuditService.log_action(
+        db_session=db.session,
+        action='folder.deleted',
+        user_id=current_user.id,
+        user_email=current_user.email,
+        resource_type='category',
+        resource_id=folder_id,
+        details={'name': folder_name}
+    )
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'Folder "{folder_name}" deleted'})
+
+
+@partner_web_bp.route('/api/assets/<int:asset_id>/move', methods=['POST'])
+def api_move_asset(asset_id):
+    """Move an asset into a folder."""
+    current_user = get_current_partner()
+    if not current_user:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    asset = db.session.get(ContentAsset, asset_id)
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+
+    data = request.get_json() or {}
+    folder_id = data.get('folder_id')
+
+    if folder_id:
+        folder = db.session.get(Category, int(folder_id))
+        if not folder:
+            return jsonify({'error': 'Folder not found'}), 404
+        asset.category_id = folder.id
+    else:
+        asset.category_id = None
+
+    db.session.commit()
+    return jsonify({'success': True, 'category_id': asset.category_id})

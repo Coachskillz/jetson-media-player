@@ -625,6 +625,18 @@
                 </div>
 
                 <!-- Metadata Fields -->
+                <!-- Folder Selection -->
+                <div class="form-group">
+                    <label>Folder</label>
+                    <select name="folder_id" id="folderId" style="width:100%; padding:12px 16px; border:1px solid var(--border-light); border-radius:var(--border-radius-sm); font-size:14px; background:rgba(255,255,255,0.05); color:var(--text-primary);">
+                        <option value="">-- No Folder --</option>
+                        {% for folder in folders %}
+                        <option value="{{ folder.id }}">{{ folder.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="hint">Organize your content into folders for easy management.</p>
+                </div>
+
                 <div class="form-group">
                     <label for="title" class="required">Title</label>
                     <input type="text" id="title" name="title" placeholder="Enter a descriptive title for your content" required>

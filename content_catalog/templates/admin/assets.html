@@ -39,98 +39,147 @@
     </a>
 </div>
 
-<!-- Filters -->
-<div class="filters-bar">
-    <form method="GET" class="filters-form">
-        <select name="tenant" class="filter-select" onchange="this.form.submit()">
-            <option value="">All Retail Partners</option>
-            {% for tenant in tenants %}
-            <option value="{{ tenant.id }}" {% if tenant_filter == tenant.id|string %}selected{% endif %}>{{ tenant.name }}</option>
+<!-- Main Layout: Folder Sidebar + Assets -->
+<div class="assets-layout">
+    <!-- Folder Sidebar -->
+    <div class="folder-sidebar">
+        <div class="folder-sidebar-header">
+            <h3>Folders</h3>
+            <button class="btn-icon-sm" title="New Folder" onclick="openNewFolderModal()">+</button>
+        </div>
+        <div class="folder-list">
+            <a href="{{ url_for('admin.assets', status=status_filter, tenant=tenant_filter) }}"
+               class="folder-item {% if not folder_filter %}active{% endif %}">
+                <span class="folder-icon">&#128193;</span>
+                <span class="folder-name">All Assets</span>
+                <span class="folder-count">{{ stats.total }}</span>
+            </a>
+            {% for folder in folders %}
+            <a href="{{ url_for('admin.assets', folder=folder.id, status=status_filter, tenant=tenant_filter) }}"
+               class="folder-item {% if folder_filter == folder.id|string %}active{% endif %}">
+                <span class="folder-icon">&#128194;</span>
+                <span class="folder-name">{{ folder.name }}</span>
+                <span class="folder-count">{{ folder_counts.get(folder.id|string, 0) }}</span>
+                <button class="folder-menu-btn" onclick="event.preventDefault(); event.stopPropagation(); toggleFolderMenu({{ folder.id }}, '{{ folder.name|e }}')" title="Options">&#8942;</button>
+            </a>
             {% endfor %}
-        </select>
-        <input type="text" name="search" value="{{ search }}" placeholder="Search assets..." class="filter-input">
-        <select name="status" class="filter-select">
-            <option value="">All Statuses</option>
-            <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
-            <option value="pending_review" {% if status_filter == 'pending_review' %}selected{% endif %}>Pending Review</option>
-            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-            <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
-        </select>
-        <button type="submit" class="btn btn-secondary">Filter</button>
-    </form>
-</div>
+            <a href="{{ url_for('admin.assets', folder='uncategorized', status=status_filter, tenant=tenant_filter) }}"
+               class="folder-item {% if folder_filter == 'uncategorized' %}active{% endif %}">
+                <span class="folder-icon">&#128196;</span>
+                <span class="folder-name">Uncategorized</span>
+                <span class="folder-count">{{ uncategorized_count }}</span>
+            </a>
+        </div>
+    </div>
 
-<!-- Assets Table -->
-<div class="table-container">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Retail Partner</th>
-                <th>Format</th>
-                <th>Size</th>
-                <th>Status</th>
-                <th>Uploaded</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if assets %}
-                {% for asset in assets %}
-                <tr class="asset-row {% if asset.status in ['approved', 'published'] %}draggable-asset{% endif %} {% if asset.status == 'pending_review' %}clickable-row{% endif %}"
-                    {% if asset.status in ['approved', 'published'] %}draggable="true" data-asset-uuid="{{ asset.uuid }}" data-asset-title="{{ asset.title }}" data-asset-filename="{{ asset.filename or asset.file_path }}" data-asset-format="{{ asset.format or 'video' }}" data-asset-size="{{ asset.file_size or 0 }}" data-asset-duration="{{ asset.duration or 0 }}" data-asset-status="{{ asset.status }}" data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}" data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}"{% endif %}
-                    {% if asset.status == 'pending_review' %}onclick="window.location='{{ url_for('admin.approvals', tab='content') }}'" style="cursor: pointer;"{% endif %}>
-                    <td>
-                        <div class="asset-title">{{ asset.title }}</div>
-                        {% if asset.description %}
-                        <div class="asset-desc">{{ asset.description[:50] }}{% if asset.description|length > 50 %}...{% endif %}</div>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if asset.tenant %}
-                        <span class="tenant-badge">{{ asset.tenant.name }}</span>
-                        {% else %}
-                        <span class="tenant-badge unassigned">Unassigned</span>
-                        {% endif %}
-                    </td>
-                    <td><span class="format-badge">{{ asset.format or 'N/A' }}</span></td>
-                    <td>{{ (asset.file_size / 1024 / 1024)|round(2) if asset.file_size else 0 }} MB</td>
-                    <td><span class="status-badge status-{{ asset.status|lower|replace('_', '-') }}">{{ asset.status }}</span></td>
-                    <td>{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'N/A' }}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon" title="Preview" onclick="openPreviewModal({{ asset.id }}, '{{ asset.title|e }}', '{{ asset.format or 'video' }}')">&#9658;</button>
-                            <button class="btn-icon" title="Download" onclick="window.location='/api/v1/assets/{{ asset.id }}/download'">&#8595;</button>
-                            <button class="btn-icon" title="Edit">&#9998;</button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        <div class="empty-icon">&#128193;</div>
-                        <div class="empty-text">No assets found</div>
-                        <button class="btn btn-primary" onclick="openUploadModal()">Upload Asset</button>
-                    </td>
-                </tr>
+    <!-- Assets Content -->
+    <div class="assets-content">
+        <!-- Filters -->
+        <div class="filters-bar">
+            <form method="GET" class="filters-form">
+                {% if folder_filter %}
+                <input type="hidden" name="folder" value="{{ folder_filter }}">
+                {% endif %}
+                <select name="tenant" class="filter-select" onchange="this.form.submit()">
+                    <option value="">All Retail Partners</option>
+                    {% for tenant in tenants %}
+                    <option value="{{ tenant.id }}" {% if tenant_filter == tenant.id|string %}selected{% endif %}>{{ tenant.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="search" value="{{ search }}" placeholder="Search assets..." class="filter-input">
+                <select name="status" class="filter-select">
+                    <option value="">All Statuses</option>
+                    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="pending_review" {% if status_filter == 'pending_review' %}selected{% endif %}>Pending Review</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
+                </select>
+                <button type="submit" class="btn btn-secondary">Filter</button>
+            </form>
+        </div>
+
+        <!-- Assets Table -->
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Folder</th>
+                        <th>Retail Partner</th>
+                        <th>Format</th>
+                        <th>Size</th>
+                        <th>Status</th>
+                        <th>Uploaded</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if assets %}
+                        {% for asset in assets %}
+                        <tr class="asset-row {% if asset.status in ['approved', 'published'] %}draggable-asset{% endif %} {% if asset.status == 'pending_review' %}clickable-row{% endif %}"
+                            data-asset-id="{{ asset.id }}"
+                            {% if asset.status in ['approved', 'published'] %}draggable="true" data-asset-uuid="{{ asset.uuid }}" data-asset-title="{{ asset.title }}" data-asset-filename="{{ asset.filename or asset.file_path }}" data-asset-format="{{ asset.format or 'video' }}" data-asset-size="{{ asset.file_size or 0 }}" data-asset-duration="{{ asset.duration or 0 }}" data-asset-status="{{ asset.status }}" data-asset-tenant="{{ asset.tenant.name if asset.tenant else '' }}" data-asset-tenant-id="{{ asset.tenant.id if asset.tenant else '' }}"{% endif %}
+                            {% if asset.status == 'pending_review' %}onclick="window.location='{{ url_for('admin.approvals', tab='content') }}'" style="cursor: pointer;"{% endif %}>
+                            <td>
+                                <div class="asset-title">{{ asset.title }}</div>
+                                {% if asset.description %}
+                                <div class="asset-desc">{{ asset.description[:50] }}{% if asset.description|length > 50 %}...{% endif %}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asset.asset_category %}
+                                <span class="folder-badge">{{ asset.asset_category.name }}</span>
+                                {% else %}
+                                <span class="folder-badge uncategorized">--</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asset.tenant %}
+                                <span class="tenant-badge">{{ asset.tenant.name }}</span>
+                                {% else %}
+                                <span class="tenant-badge unassigned">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="format-badge">{{ asset.format or 'N/A' }}</span></td>
+                            <td>{{ (asset.file_size / 1024 / 1024)|round(2) if asset.file_size else 0 }} MB</td>
+                            <td><span class="status-badge status-{{ asset.status|lower|replace('_', '-') }}">{{ asset.status }}</span></td>
+                            <td>{{ asset.created_at.strftime('%b %d, %Y') if asset.created_at else 'N/A' }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon" title="Preview" onclick="event.stopPropagation(); openPreviewModal({{ asset.id }}, '{{ asset.title|e }}', '{{ asset.format or 'video' }}')">&#9658;</button>
+                                    <button class="btn-icon" title="Move to Folder" onclick="event.stopPropagation(); openMoveModal({{ asset.id }}, '{{ asset.title|e }}')">&#128194;</button>
+                                    <button class="btn-icon" title="Download" onclick="event.stopPropagation(); window.location='/api/v1/assets/{{ asset.id }}/download'">&#8595;</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <div class="empty-icon">&#128193;</div>
+                                <div class="empty-text">No assets found</div>
+                                <button class="btn btn-primary" onclick="openUploadModal()">Upload Asset</button>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+            <a href="?page={{ pagination.prev_num }}&search={{ search }}&status={{ status_filter }}&tenant={{ tenant_filter }}&folder={{ folder_filter }}" class="page-link">&laquo; Prev</a>
             {% endif %}
-        </tbody>
-    </table>
+            <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+            <a href="?page={{ pagination.next_num }}&search={{ search }}&status={{ status_filter }}&tenant={{ tenant_filter }}&folder={{ folder_filter }}" class="page-link">Next &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
 </div>
-
-<!-- Pagination -->
-{% if pagination and pagination.pages > 1 %}
-<div class="pagination">
-    {% if pagination.has_prev %}
-    <a href="?page={{ pagination.prev_num }}&search={{ search }}&status={{ status_filter }}&tenant={{ tenant_filter }}" class="page-link">&laquo; Prev</a>
-    {% endif %}
-    <span class="page-info">Page {{ pagination.page }} of {{ pagination.pages }}</span>
-    {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_num }}&search={{ search }}&status={{ status_filter }}&tenant={{ tenant_filter }}" class="page-link">Next &raquo;</a>
-    {% endif %}
-</div>
-{% endif %}
 
 <!-- Upload Modal -->
 <div id="uploadModal" class="modal">
@@ -154,6 +203,15 @@
                 <div id="newTenantFields" style="display:none; margin-top:12px;">
                     <input type="text" name="new_tenant_name" id="newTenantName" placeholder="New Retail Partner Name" class="form-input">
                 </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Folder</label>
+                <select name="folder_id" id="uploadFolderSelect" class="form-input">
+                    <option value="">No folder (Uncategorized)</option>
+                    {% for folder in folders %}
+                    <option value="{{ folder.id }}">{{ folder.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label class="form-label">Files *</label>
@@ -212,6 +270,58 @@
     </div>
 </div>
 
+<!-- New Folder Modal -->
+<div id="newFolderModal" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-header">
+            <h2 id="folderModalTitle">Create New Folder</h2>
+            <button class="modal-close" onclick="closeNewFolderModal()">&times;</button>
+        </div>
+        <div style="padding: 24px;">
+            <div class="form-group">
+                <label class="form-label">Folder Name *</label>
+                <input type="text" id="folderNameInput" class="form-input" placeholder="e.g. Q1 Campaign Assets" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeNewFolderModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveFolderBtn" onclick="saveFolder()">Create Folder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Move to Folder Modal -->
+<div id="moveModal" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-header">
+            <h2>Move Asset to Folder</h2>
+            <button class="modal-close" onclick="closeMoveModal()">&times;</button>
+        </div>
+        <div style="padding: 24px;">
+            <p id="moveAssetTitle" style="color: rgba(255,255,255,0.7); margin-bottom: 16px;"></p>
+            <div class="form-group">
+                <label class="form-label">Select Folder</label>
+                <select id="moveFolderSelect" class="form-input">
+                    <option value="">Uncategorized</option>
+                    {% for folder in folders %}
+                    <option value="{{ folder.id }}">{{ folder.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeMoveModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="moveAsset()">Move</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Folder Context Menu -->
+<div id="folderContextMenu" class="context-menu" style="display:none;">
+    <button onclick="renameFolderFromMenu()">Rename</button>
+    <button onclick="deleteFolderFromMenu()" style="color:#ef4444;">Delete</button>
+</div>
+
 <!-- Preview Modal -->
 <div id="previewModal" class="modal">
     <div class="modal-content" style="max-width: 800px;">
@@ -220,7 +330,6 @@
             <button class="modal-close" onclick="closePreviewModal()">&times;</button>
         </div>
         <div id="previewContent" class="preview-modal-content">
-            <!-- Video/Image will be inserted here -->
         </div>
     </div>
 </div>
@@ -236,6 +345,39 @@
 .stat-value { font-size: 32px; font-weight: 700; color: #fff; }
 .stat-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
 
+/* Assets Layout with Folder Sidebar */
+.assets-layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+@media (max-width: 900px) { .assets-layout { grid-template-columns: 1fr; } }
+
+/* Folder Sidebar */
+.folder-sidebar { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; height: fit-content; position: sticky; top: 80px; }
+.folder-sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.folder-sidebar-header h3 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; }
+.btn-icon-sm { background: rgba(0,212,170,0.2); border: none; color: #00D4AA; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: 700; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+.btn-icon-sm:hover { background: rgba(0,212,170,0.4); }
+
+.folder-list { display: flex; flex-direction: column; gap: 2px; }
+.folder-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: rgba(255,255,255,0.7); font-size: 13px; transition: all 0.15s; position: relative; }
+.folder-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.folder-item.active { background: rgba(0,212,170,0.15); color: #00D4AA; font-weight: 600; }
+.folder-icon { font-size: 16px; flex-shrink: 0; }
+.folder-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-count { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.folder-item.active .folder-count { background: rgba(0,212,170,0.3); }
+.folder-menu-btn { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 16px; padding: 2px 4px; border-radius: 4px; display: none; flex-shrink: 0; }
+.folder-item:hover .folder-menu-btn { display: block; }
+.folder-menu-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.folder-badge { background: rgba(139, 92, 246, 0.2); color: #a78bfa; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+.folder-badge.uncategorized { background: transparent; color: rgba(255,255,255,0.3); }
+
+/* Context Menu */
+.context-menu { position: fixed; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 4px; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 140px; }
+.context-menu button { display: block; width: 100%; text-align: left; background: none; border: none; color: rgba(255,255,255,0.8); padding: 10px 16px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+.context-menu button:hover { background: rgba(255,255,255,0.08); }
+
+.assets-content { min-width: 0; }
+
 .filters-bar { margin-bottom: 24px; }
 .filters-form { display: flex; gap: 12px; flex-wrap: wrap; }
 .filter-input, .filter-select { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 16px; color: #fff; font-size: 14px; }
@@ -244,7 +386,7 @@
 
 .table-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
 .data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { padding: 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.data-table th, .data-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .data-table th { background: rgba(0,0,0,0.2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.5); }
 .data-table tr:hover { background: rgba(255,255,255,0.02); }
 
@@ -262,7 +404,7 @@
 .status-approved { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
 .status-published { background: rgba(16, 185, 129, 0.2); color: #10b981; }
 
-.action-buttons { display: flex; gap: 8px; }
+.action-buttons { display: flex; gap: 6px; }
 .btn-icon { background: rgba(255,255,255,0.1); border: none; border-radius: 6px; width: 32px; height: 32px; cursor: pointer; color: #fff; font-size: 14px; transition: all 0.2s; }
 .btn-icon:hover { background: rgba(255,255,255,0.2); }
 
@@ -286,10 +428,9 @@
 .modal-content form { padding: 24px; }
 .form-group { margin-bottom: 20px; }
 .form-label { display: block; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
-.form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: #fff; font-size: 14px; }
+.form-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: #fff; font-size: 14px; box-sizing: border-box; }
 .form-input:focus { outline: none; border-color: #00D4AA; }
 textarea.form-input { resize: vertical; }
-.form-help { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 6px; display: block; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); }
 
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
@@ -302,147 +443,150 @@ textarea.form-input { resize: vertical; }
 .btn-link:hover { text-decoration: underline; }
 
 /* File Drop Zone */
-.file-drop-zone {
-    border: 2px dashed rgba(255,255,255,0.2);
-    border-radius: 12px;
-    padding: 40px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-}
-.file-drop-zone:hover, .file-drop-zone.dragover {
-    border-color: #00D4AA;
-    background: rgba(0, 212, 170, 0.05);
-}
-.file-input-hidden {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 1;
-}
+.file-drop-zone { border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+.file-drop-zone:hover, .file-drop-zone.dragover { border-color: #00D4AA; background: rgba(0, 212, 170, 0.05); }
+.file-input-hidden { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1; }
 .drop-zone-content { pointer-events: none; z-index: 0; }
 .drop-icon { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.5; }
 .drop-text { display: block; font-size: 15px; color: rgba(255,255,255,0.8); margin-bottom: 8px; }
 .drop-hint { display: block; font-size: 12px; color: rgba(255,255,255,0.4); }
 
-/* Selected Files List */
-.selected-files-list {
-    margin-top: 16px;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-.files-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    background: rgba(0,0,0,0.2);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
-}
-.file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
+.selected-files-list { margin-top: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; max-height: 200px; overflow-y: auto; }
+.files-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 13px; color: rgba(255,255,255,0.7); }
+.file-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .file-item:last-child { border-bottom: none; }
-.file-item-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    min-width: 0;
-}
+.file-item-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .file-item-icon { font-size: 20px; }
-.file-item-name {
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.file-item-size {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-    margin-left: 8px;
-}
-.file-item-remove {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.4);
-    cursor: pointer;
-    font-size: 18px;
-    padding: 4px;
-}
+.file-item-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-item-size { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: 8px; }
+.file-item-remove { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 18px; padding: 4px; }
 .file-item-remove:hover { color: #ef4444; }
 
-/* Progress Bar */
-.progress-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
-}
-.progress-bar-container {
-    height: 8px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 4px;
-    overflow: hidden;
-}
-.progress-bar {
-    height: 100%;
-    background: linear-gradient(135deg, #00D4AA, #00B894);
-    width: 0%;
-    transition: width 0.3s ease;
-}
-.upload-results {
-    margin-top: 16px;
-    padding: 12px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 8px;
-    font-size: 13px;
-}
+.progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: rgba(255,255,255,0.7); }
+.progress-bar-container { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(135deg, #00D4AA, #00B894); width: 0%; transition: width 0.3s ease; }
+.upload-results { margin-top: 16px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 13px; }
 .upload-result-success { color: #10b981; }
 .upload-result-error { color: #ef4444; }
 
-/* Drag and Drop Styles */
-.draggable-asset {
-    cursor: grab;
-    transition: all 0.2s;
-}
-
-.draggable-asset:hover {
-    background: rgba(0, 212, 170, 0.05) !important;
-}
-
-.draggable-asset.dragging {
-    opacity: 0.5;
-    background: rgba(0, 212, 170, 0.1) !important;
-    cursor: grabbing;
-}
-
-.asset-row:not(.draggable-asset):not(.clickable-row) {
-    opacity: 0.6;
-}
-
-.asset-row.clickable-row {
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.asset-row.clickable-row:hover {
-    background: rgba(245, 158, 11, 0.1);
-}
+.draggable-asset { cursor: grab; transition: all 0.2s; }
+.draggable-asset:hover { background: rgba(0, 212, 170, 0.05) !important; }
+.draggable-asset.dragging { opacity: 0.5; background: rgba(0, 212, 170, 0.1) !important; cursor: grabbing; }
+.asset-row.clickable-row { cursor: pointer; transition: background 0.2s; }
+.asset-row.clickable-row:hover { background: rgba(245, 158, 11, 0.1); }
 </style>
 
 <script>
+// ========== Folder Management ==========
+let currentFolderId = null;
+let currentFolderName = '';
+let moveAssetId = null;
+
+function openNewFolderModal() {
+    document.getElementById('folderModalTitle').textContent = 'Create New Folder';
+    document.getElementById('folderNameInput').value = '';
+    document.getElementById('saveFolderBtn').onclick = saveFolder;
+    document.getElementById('newFolderModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('folderNameInput').focus(), 100);
+}
+
+function closeNewFolderModal() {
+    document.getElementById('newFolderModal').style.display = 'none';
+}
+
+function saveFolder() {
+    const name = document.getElementById('folderNameInput').value.trim();
+    if (!name) { alert('Please enter a folder name'); return; }
+
+    document.getElementById('saveFolderBtn').disabled = true;
+
+    fetch('/admin/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); document.getElementById('saveFolderBtn').disabled = false; return; }
+        location.reload();
+    })
+    .catch(err => { alert('Error creating folder: ' + err); document.getElementById('saveFolderBtn').disabled = false; });
+}
+
+function toggleFolderMenu(folderId, folderName) {
+    currentFolderId = folderId;
+    currentFolderName = folderName;
+    const menu = document.getElementById('folderContextMenu');
+    const btn = event.target;
+    const rect = btn.getBoundingClientRect();
+    menu.style.top = rect.bottom + 4 + 'px';
+    menu.style.left = rect.left + 'px';
+    menu.style.display = 'block';
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu() {
+            menu.style.display = 'none';
+            document.removeEventListener('click', closeMenu);
+        });
+    }, 10);
+}
+
+function renameFolderFromMenu() {
+    document.getElementById('folderContextMenu').style.display = 'none';
+    document.getElementById('folderModalTitle').textContent = 'Rename Folder';
+    document.getElementById('folderNameInput').value = currentFolderName;
+    document.getElementById('saveFolderBtn').onclick = function() {
+        const name = document.getElementById('folderNameInput').value.trim();
+        if (!name) { alert('Please enter a folder name'); return; }
+        fetch('/admin/api/folders/' + currentFolderId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        })
+        .then(r => r.json())
+        .then(data => { if (data.error) alert(data.error); else location.reload(); })
+        .catch(err => alert('Error: ' + err));
+    };
+    document.getElementById('newFolderModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('folderNameInput').focus(), 100);
+}
+
+function deleteFolderFromMenu() {
+    document.getElementById('folderContextMenu').style.display = 'none';
+    if (!confirm('Delete folder "' + currentFolderName + '"? Assets will become uncategorized.')) return;
+    fetch('/admin/api/folders/' + currentFolderId, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => { if (data.error) alert(data.error); else location.reload(); })
+    .catch(err => alert('Error: ' + err));
+}
+
+// ========== Move Asset to Folder ==========
+function openMoveModal(assetId, assetTitle) {
+    moveAssetId = assetId;
+    document.getElementById('moveAssetTitle').textContent = 'Moving: ' + assetTitle;
+    document.getElementById('moveFolderSelect').value = '';
+    document.getElementById('moveModal').style.display = 'flex';
+}
+
+function closeMoveModal() {
+    document.getElementById('moveModal').style.display = 'none';
+    moveAssetId = null;
+}
+
+function moveAsset() {
+    if (!moveAssetId) return;
+    const folderId = document.getElementById('moveFolderSelect').value;
+    fetch('/admin/api/assets/' + moveAssetId + '/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id: folderId || null })
+    })
+    .then(r => r.json())
+    .then(data => { if (data.error) alert(data.error); else location.reload(); })
+    .catch(err => alert('Error: ' + err));
+}
+
 // ========== Multi-File Upload Logic ==========
 let selectedFiles = [];
 
@@ -486,15 +630,9 @@ function updateFilesList() {
     const container = document.getElementById('filesContainer');
     const listDiv = document.getElementById('selectedFilesList');
     const countSpan = document.getElementById('filesCount');
-
-    if (selectedFiles.length === 0) {
-        listDiv.style.display = 'none';
-        return;
-    }
-
+    if (selectedFiles.length === 0) { listDiv.style.display = 'none'; return; }
     listDiv.style.display = 'block';
     countSpan.textContent = selectedFiles.length + ' file' + (selectedFiles.length > 1 ? 's' : '') + ' selected';
-
     container.innerHTML = selectedFiles.map((file, idx) => `
         <div class="file-item" data-index="${idx}">
             <div class="file-item-info">
@@ -507,131 +645,62 @@ function updateFilesList() {
     `).join('');
 }
 
-function removeFile(index) {
-    selectedFiles.splice(index, 1);
-    updateFilesList();
-    // Update the actual file input (can't modify directly, so we track in selectedFiles)
-}
+function removeFile(index) { selectedFiles.splice(index, 1); updateFilesList(); }
+function clearAllFiles() { selectedFiles = []; document.getElementById('fileInput').value = ''; updateFilesList(); }
 
-function clearAllFiles() {
-    selectedFiles = [];
-    document.getElementById('fileInput').value = '';
-    updateFilesList();
-}
-
-// File input change
 document.getElementById('fileInput').addEventListener('change', function(e) {
-    const files = Array.from(e.target.files);
-    selectedFiles = selectedFiles.concat(files);
+    selectedFiles = selectedFiles.concat(Array.from(e.target.files));
     updateFilesList();
 });
 
-// Drag and drop on drop zone
 const dropZone = document.getElementById('fileDropZone');
 const fileInput = document.getElementById('fileInput');
 
-// Prevent default drag behaviors on whole document
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    document.body.addEventListener(eventName, function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }, false);
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
+    document.body.addEventListener(ev, function(e) { e.preventDefault(); e.stopPropagation(); }, false);
 });
-
-// Highlight drop zone when dragging over it
-['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.classList.add('dragover');
-    }, false);
+['dragenter', 'dragover'].forEach(ev => {
+    dropZone.addEventListener(ev, function(e) { e.preventDefault(); e.stopPropagation(); this.classList.add('dragover'); }, false);
 });
-
-['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.classList.remove('dragover');
-    }, false);
+['dragleave', 'drop'].forEach(ev => {
+    dropZone.addEventListener(ev, function(e) { e.preventDefault(); e.stopPropagation(); this.classList.remove('dragover'); }, false);
 });
-
-// Handle dropped files
 dropZone.addEventListener('drop', function(e) {
-    const dt = e.dataTransfer;
-    const files = Array.from(dt.files);
-
-    if (files.length > 0) {
-        // Filter for allowed file types
-        const allowedExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
-        const validFiles = files.filter(f => {
-            const ext = f.name.split('.').pop().toLowerCase();
-            return allowedExts.includes(ext);
-        });
-
-        if (validFiles.length > 0) {
-            selectedFiles = selectedFiles.concat(validFiles);
-            updateFilesList();
-        }
-
-        if (validFiles.length < files.length) {
-            alert('Some files were skipped (unsupported format)');
-        }
-    }
+    const files = Array.from(e.dataTransfer.files);
+    const allowedExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const valid = files.filter(f => allowedExts.includes(f.name.split('.').pop().toLowerCase()));
+    if (valid.length > 0) { selectedFiles = selectedFiles.concat(valid); updateFilesList(); }
+    if (valid.length < files.length) alert('Some files were skipped (unsupported format)');
 }, false);
+dropZone.addEventListener('click', function(e) { if (e.target === fileInput) return; fileInput.click(); });
 
-// Click on drop zone triggers file input
-dropZone.addEventListener('click', function(e) {
-    if (e.target === fileInput) return; // Don't double-trigger
-    fileInput.click();
-});
-
-// Handle "Create New Retail Partner" option
 document.getElementById('tenantSelect').addEventListener('change', function() {
     const newFields = document.getElementById('newTenantFields');
     const newNameInput = document.getElementById('newTenantName');
-
-    if (this.value === '__new__') {
-        newFields.style.display = 'block';
-        newNameInput.required = true;
-    } else {
-        newFields.style.display = 'none';
-        newNameInput.required = false;
-        newNameInput.value = '';
-    }
+    if (this.value === '__new__') { newFields.style.display = 'block'; newNameInput.required = true; }
+    else { newFields.style.display = 'none'; newNameInput.required = false; newNameInput.value = ''; }
 });
 
 // Form submission with XHR for progress
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
     e.preventDefault();
-
-    if (selectedFiles.length === 0) {
-        alert('Please select at least one file');
-        return;
-    }
-
+    if (selectedFiles.length === 0) { alert('Please select at least one file'); return; }
     const tenantId = document.getElementById('tenantSelect').value;
-    if (!tenantId) {
-        alert('Please select a Retail Partner');
-        return;
-    }
+    if (!tenantId) { alert('Please select a Retail Partner'); return; }
 
     const formData = new FormData();
     formData.append('tenant_id', tenantId);
     formData.append('new_tenant_name', document.getElementById('newTenantName').value);
     formData.append('category', document.querySelector('select[name="category"]').value);
+    formData.append('folder_id', document.getElementById('uploadFolderSelect').value);
     formData.append('description', document.querySelector('textarea[name="description"]').value);
+    selectedFiles.forEach(file => formData.append('files', file));
 
-    selectedFiles.forEach((file, idx) => {
-        formData.append('files', file);
-    });
-
-    // Show progress
     document.getElementById('uploadProgress').style.display = 'block';
     document.getElementById('uploadBtn').disabled = true;
     document.getElementById('uploadBtnText').textContent = 'Uploading...';
 
     const xhr = new XMLHttpRequest();
-
     xhr.upload.addEventListener('progress', function(e) {
         if (e.lengthComputable) {
             const percent = Math.round((e.loaded / e.total) * 100);
@@ -640,52 +709,30 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
             document.getElementById('progressText').textContent = 'Uploading ' + selectedFiles.length + ' files...';
         }
     });
-
     xhr.addEventListener('load', function() {
-        console.log('Upload response:', xhr.status, xhr.responseText);
         if (xhr.status === 200) {
-            try {
-                const result = JSON.parse(xhr.responseText);
-                showUploadResults(result);
-            } catch (err) {
-                // Redirect on success if not JSON
-                window.location.href = '{{ url_for("admin.assets") }}';
-            }
+            try { showUploadResults(JSON.parse(xhr.responseText)); }
+            catch (err) { window.location.href = '{{ url_for("admin.assets") }}'; }
         } else if (xhr.status === 302 || xhr.status === 0 || xhr.responseURL.includes('/login')) {
-            // Session expired - redirect to login
             document.getElementById('uploadResults').style.display = 'block';
             document.getElementById('uploadResults').innerHTML = '<span class="upload-result-error">Session expired. Please <a href="{{ url_for("admin.login") }}" style="color:#60a5fa;">log in again</a>.</span>';
             document.getElementById('uploadBtn').disabled = false;
             document.getElementById('uploadBtnText').textContent = 'Retry Upload';
         } else {
-            // Show actual error details
             let errorMsg = 'Upload failed (HTTP ' + xhr.status + ')';
-            try {
-                const errResult = JSON.parse(xhr.responseText);
-                if (errResult.error) {
-                    errorMsg = errResult.error;
-                }
-            } catch (e) {
-                // Not JSON, use status text
-                if (xhr.statusText) {
-                    errorMsg += ': ' + xhr.statusText;
-                }
-            }
+            try { const r = JSON.parse(xhr.responseText); if (r.error) errorMsg = r.error; } catch(e) {}
             document.getElementById('uploadResults').style.display = 'block';
             document.getElementById('uploadResults').innerHTML = '<span class="upload-result-error">' + errorMsg + '</span>';
             document.getElementById('uploadBtn').disabled = false;
             document.getElementById('uploadBtnText').textContent = 'Retry Upload';
         }
     });
-
     xhr.addEventListener('error', function() {
-        console.error('Upload XHR error:', xhr.status, xhr.statusText);
         document.getElementById('uploadResults').style.display = 'block';
         document.getElementById('uploadResults').innerHTML = '<span class="upload-result-error">Network error. Check your connection and try again.</span>';
         document.getElementById('uploadBtn').disabled = false;
         document.getElementById('uploadBtnText').textContent = 'Retry Upload';
     });
-
     xhr.open('POST', '{{ url_for("admin.upload_assets_multi") }}');
     xhr.send(formData);
 });
@@ -693,62 +740,42 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
 function showUploadResults(result) {
     const resultsDiv = document.getElementById('uploadResults');
     resultsDiv.style.display = 'block';
-
-    let html = '';
     if (result.success) {
-        html = `<div class="upload-result-success">
-            <strong>&#10003; ${result.uploaded_count} file${result.uploaded_count > 1 ? 's' : ''} uploaded successfully!</strong>
-            <p style="margin: 8px 0 0; opacity: 0.8;">Files are now pending review.</p>
-        </div>`;
-
-        // Refresh page after delay
-        setTimeout(() => {
-            window.location.href = '{{ url_for("admin.assets") }}?status=PENDING_REVIEW';
-        }, 1500);
+        resultsDiv.innerHTML = `<div class="upload-result-success"><strong>&#10003; ${result.uploaded_count} file${result.uploaded_count > 1 ? 's' : ''} uploaded successfully!</strong><p style="margin:8px 0 0;opacity:0.8;">Files are now pending review.</p></div>`;
+        setTimeout(() => { window.location.href = '{{ url_for("admin.assets") }}'; }, 1500);
     } else {
-        html = `<div class="upload-result-error">
-            <strong>Upload failed</strong>
-            <p style="margin: 8px 0 0;">${result.error || 'Unknown error'}</p>
-        </div>`;
+        resultsDiv.innerHTML = `<div class="upload-result-error"><strong>Upload failed</strong><p style="margin:8px 0 0;">${result.error || 'Unknown error'}</p></div>`;
         document.getElementById('uploadBtn').disabled = false;
         document.getElementById('uploadBtnText').textContent = 'Retry Upload';
     }
-
-    resultsDiv.innerHTML = html;
 }
 
-// Close modal on outside click
-document.getElementById('uploadModal').addEventListener('click', function(e) {
-    if (e.target === this) closeUploadModal();
+// Close modals on outside click
+['uploadModal', 'newFolderModal', 'moveModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
 });
 
 // Preview Modal Functions
 function openPreviewModal(assetId, title, format) {
     document.getElementById('previewTitle').textContent = title || 'Preview';
-
     const content = document.getElementById('previewContent');
     const videoFormats = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'video'];
     const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'image'];
     const formatLower = (format || '').toLowerCase();
-
     if (videoFormats.includes(formatLower)) {
-        content.innerHTML = `
-            <video controls autoplay style="width:100%; max-height:70vh;">
-                <source src="/api/v1/assets/${assetId}/preview" type="video/${formatLower === 'video' ? 'mp4' : formatLower}">
-                Your browser does not support video playback.
-            </video>`;
+        content.innerHTML = `<video controls autoplay style="width:100%;max-height:70vh;"><source src="/api/v1/assets/${assetId}/preview" type="video/${formatLower === 'video' ? 'mp4' : formatLower}">Your browser does not support video playback.</video>`;
     } else if (imageFormats.includes(formatLower)) {
-        content.innerHTML = `<img src="/api/v1/assets/${assetId}/preview" alt="${title}" style="width:100%; max-height:70vh; object-fit:contain;">`;
+        content.innerHTML = `<img src="/api/v1/assets/${assetId}/preview" alt="${title}" style="width:100%;max-height:70vh;object-fit:contain;">`;
     } else {
-        content.innerHTML = `<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.5);">Preview not available for this file type</div>`;
+        content.innerHTML = `<div style="padding:40px;text-align:center;color:rgba(255,255,255,0.5);">Preview not available</div>`;
     }
-
     document.getElementById('previewModal').style.display = 'flex';
 }
 
 function closePreviewModal() {
     const content = document.getElementById('previewContent');
-    // Stop video playback when closing
     const video = content.querySelector('video');
     if (video) video.pause();
     content.innerHTML = '';
@@ -759,37 +786,22 @@ document.getElementById('previewModal').addEventListener('click', function(e) {
     if (e.target === this) closePreviewModal();
 });
 
-// ==========================================================================
-// DRAG AND DROP - Send asset data to CMS
-// ==========================================================================
-
+// Drag and drop to CMS
 document.querySelectorAll(".draggable-asset").forEach(row => {
     row.addEventListener("dragstart", function(e) {
         this.classList.add("dragging");
-
         const assetData = {
-            uuid: this.dataset.assetUuid,
-            title: this.dataset.assetTitle,
-            filename: this.dataset.assetFilename,
-            format: this.dataset.assetFormat,
-            file_size: parseInt(this.dataset.assetSize) || 0,
-            duration: parseInt(this.dataset.assetDuration) || 0,
-            status: this.dataset.assetStatus,
-            tenant_name: this.dataset.assetTenant,
-            tenant_id: this.dataset.assetTenantId,
-            source: "content_catalog"
+            uuid: this.dataset.assetUuid, title: this.dataset.assetTitle,
+            filename: this.dataset.assetFilename, format: this.dataset.assetFormat,
+            file_size: parseInt(this.dataset.assetSize) || 0, duration: parseInt(this.dataset.assetDuration) || 0,
+            status: this.dataset.assetStatus, tenant_name: this.dataset.assetTenant,
+            tenant_id: this.dataset.assetTenantId, source: "content_catalog"
         };
-
         e.dataTransfer.setData("application/json", JSON.stringify(assetData));
         e.dataTransfer.setData("text/plain", JSON.stringify(assetData));
         e.dataTransfer.effectAllowed = "copy";
-
-        console.log("Dragging asset:", assetData.title);
     });
-
-    row.addEventListener("dragend", function(e) {
-        this.classList.remove("dragging");
-    });
+    row.addEventListener("dragend", function() { this.classList.remove("dragging"); });
 });
 </script>
 {% endblock %}
