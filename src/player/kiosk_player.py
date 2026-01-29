@@ -7,11 +7,14 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, Pango
+import json
 import signal
 import sys
 import threading
+import time
 import os
+from pathlib import Path
 from typing import Optional
 
 from .config import PlayerConfig, get_player_config
@@ -26,12 +29,20 @@ from .heartbeat import HeartbeatReporter
 from .health_server import HealthServer
 from .database_sync import DatabaseSyncService
 from .analytics_store import AnalyticsStore
+from .network_monitor import NetworkMonitor
 
 from src.common.cms_client import CMSClient
 from src.common.device_id import get_device_info
 from src.common.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+# Error recovery limits
+MAX_CONSECUTIVE_PLAYBACK_ERRORS = 10
+PLAYBACK_ERROR_RESET_SECONDS = 60
+
+# Pairing timeout (seconds) — give up and show error after this long
+PAIRING_TIMEOUT_SECONDS = 600  # 10 minutes
 
 
 class KioskPlayer:
@@ -101,11 +112,20 @@ class KioskPlayer:
         self._health_server: Optional[HealthServer] = None
         self._database_sync: Optional[DatabaseSyncService] = None
         self._analytics_store: Optional[AnalyticsStore] = None
+        self._network_monitor: Optional[NetworkMonitor] = None
+
+        # Error recovery tracking
+        self._consecutive_playback_errors = 0
+        self._last_playback_error_time: Optional[float] = None
+
+        # Pairing timeout tracking
+        self._pairing_started_at: Optional[float] = None
+        self._pairing_timeout_id: Optional[int] = None
 
         logger.info("KioskPlayer initialized")
 
     def _load_config(self) -> bool:
-        """Load configuration from disk."""
+        """Load configuration from disk with validation and safe defaults."""
         try:
             self._config = get_player_config(self._config_dir)
             self._device_info = get_device_info()
@@ -119,6 +139,17 @@ class KioskPlayer:
                 self._config.paired,
                 self._config.cms_url
             )
+            return True
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            logger.error("Corrupt config file detected: %s — resetting to defaults", e)
+            self._config = PlayerConfig.__new__(PlayerConfig)
+            self._config.config_dir = Path(self._config_dir or PlayerConfig.DEFAULT_CONFIG_DIR)
+            self._config._device = {}
+            self._config._playlist = {}
+            self._config._settings = {}
+            self._device_info = get_device_info()
+            if self._cms_url_override:
+                self._config.cms_url = self._cms_url_override
             return True
         except Exception as e:
             logger.error("Failed to load config: %s", e)
@@ -157,7 +188,11 @@ class KioskPlayer:
         self._pairing_screen = PairingScreen(
             pairing_code="------",
             cms_url=self._config.cms_url,
-            device_id=self._device_info.get('device_id', '')
+            device_id=self._device_info.get('device_id', ''),
+            connection_mode=getattr(self._config, 'connection_mode', 'direct'),
+            hub_url=getattr(self._config, 'hub_url', ''),
+            on_mode_selected=self._on_mode_selected,
+            on_back=self._on_pairing_back
         )
         self._stack.add_named(self._pairing_screen, "pairing")
 
@@ -171,6 +206,23 @@ class KioskPlayer:
             Gdk.RGBA(0, 0, 0, 1)
         )
         self._overlay.add(self._video_area)
+
+        # Idle label shown when no content is available
+        self._idle_label = Gtk.Label(label="SKILLZ MEDIA")
+        self._idle_label.override_color(
+            Gtk.StateFlags.NORMAL,
+            Gdk.RGBA(1, 1, 1, 1)
+        )
+        self._idle_label.override_background_color(
+            Gtk.StateFlags.NORMAL,
+            Gdk.RGBA(0, 0, 0, 0)
+        )
+        self._idle_label.modify_font(
+            Pango.FontDescription("Sans Bold 48")
+        )
+        self._idle_label.set_halign(Gtk.Align.CENTER)
+        self._idle_label.set_valign(Gtk.Align.CENTER)
+        self._overlay.add_overlay(self._idle_label)
 
         # Menu overlay (initially hidden)
         self._menu_overlay = MenuOverlay(
@@ -193,7 +245,7 @@ class KioskPlayer:
         self._window.connect('destroy', self._on_window_destroy)
 
     def _initialize_playback_components(self) -> bool:
-        """Initialize GStreamer and playback components."""
+        """Initialize playlist manager, sync service, and heartbeat."""
         try:
             # Initialize playlist manager
             self._playlist_manager = get_playlist_manager(
@@ -202,27 +254,6 @@ class KioskPlayer:
                 on_playlist_changed=self._on_playlist_changed
             )
             self._playlist_manager.load_from_config()
-
-            # Initialize GStreamer player
-            self._gst_player = GStreamerPlayer(
-                media_dir=self._media_dir,
-                on_about_to_finish=self._get_next_uri,
-                on_error=self._on_playback_error,
-                on_eos=self._on_end_of_stream
-            )
-
-            if not self._gst_player.initialize():
-                logger.error("Failed to initialize GStreamer")
-                return False
-
-            # Set video output window ID
-            if self._video_area:
-                self._video_area.realize()
-                window = self._video_area.get_window()
-                if window:
-                    xid = window.get_xid()
-                    self._gst_player.set_window_handle(xid)
-                    logger.info("Set video window XID: %s", xid)
 
             # Initialize sync service
             self._sync_service = get_sync_service(
@@ -248,33 +279,122 @@ class KioskPlayer:
             logger.error("Failed to initialize playback: %s", e)
             return False
 
+    def _initialize_gstreamer(self) -> bool:
+        """Initialize GStreamer player and set video output window."""
+        try:
+            self._gst_player = GStreamerPlayer(
+                media_dir=self._media_dir,
+                on_about_to_finish=self._get_next_uri,
+                on_error=self._on_playback_error,
+                on_eos=self._on_end_of_stream
+            )
+
+            if not self._gst_player.initialize():
+                logger.error("Failed to initialize GStreamer")
+                return False
+
+            # Set video output window ID
+            if self._video_area:
+                self._video_area.realize()
+                window = self._video_area.get_window()
+                if window:
+                    xid = window.get_xid()
+                    self._gst_player.set_window_handle(xid)
+                    logger.info("Set video window XID: %s", xid)
+
+            logger.info("GStreamer initialized")
+            return True
+
+        except Exception as e:
+            logger.error("Failed to initialize GStreamer: %s", e)
+            return False
+
     def _start_pairing_flow(self) -> None:
-        """Start the device pairing flow."""
-        logger.info("Starting pairing flow")
+        """Start the device pairing flow — shows mode selection first."""
+        logger.info("Starting pairing flow — showing mode selection")
 
-        # Show pairing screen
+        # Show pairing screen on the mode select page
         self._stack.set_visible_child_name("pairing")
+        self._pairing_screen.show_mode_select()
 
-        # Register device first
-        device_data = self._cms_client.register_device(mode='direct')
+        # The actual registration + code request happens in _on_mode_selected
+        # once the user picks "Direct to CMS" or "Via Local Hub".
 
-        if device_data:
-            logger.info("Device registered: %s", device_data.get('device_id'))
+    def _on_pairing_back(self) -> None:
+        """Handle back button from code page — stop polling and return to mode select."""
+        logger.info("User went back to mode selection — stopping pairing poll")
+        self._stop_pairing_check()
 
-        # Request pairing code
-        code = self._cms_client.request_pairing()
+    def _on_mode_selected(self, mode: str) -> None:
+        """Handle connection mode selection from the pairing screen.
 
-        if code:
-            self._config.pairing_code = code
-            self._config.save_device()
-            self._pairing_screen.set_pairing_code(code)
-            self._pairing_screen.set_status("Waiting for approval...")
+        Called when the user taps 'Direct to CMS' or 'Via Local Hub'.
+        Registers the device with the chosen mode and requests a pairing code.
+        Runs the HTTP calls in a background thread to avoid blocking GTK.
+        """
+        logger.info("Connection mode selected: %s", mode)
 
-            # Start polling for approval
-            self._start_pairing_check()
-        else:
-            logger.error("Failed to get pairing code")
-            self._pairing_screen.show_error("Could not connect to CMS")
+        # Persist the chosen mode
+        self._config.connection_mode = mode
+        self._config.save_device()
+
+        self._pairing_started_at = time.time()
+        self._pairing_screen.set_status("Connecting to CMS...")
+
+        # Run registration + code request off the main thread
+        threading.Thread(
+            target=self._register_and_request_code,
+            args=(mode,),
+            name="pairing-register",
+            daemon=True,
+        ).start()
+
+    def _register_and_request_code(self, mode: str) -> None:
+        """Register device and request pairing code (runs in background thread)."""
+        try:
+            # Register device with selected mode
+            device_data = self._cms_client.register_device(mode=mode)
+            if device_data:
+                logger.info("Device registered: %s", device_data.get('device_id'))
+
+            # Request pairing code
+            code = self._cms_client.request_pairing()
+
+            # Update UI on the main thread
+            if code:
+                GLib.idle_add(self._on_pairing_code_received, code)
+            else:
+                GLib.idle_add(self._on_pairing_code_failed)
+
+        except Exception as e:
+            logger.error("Registration/pairing failed: %s", e)
+            GLib.idle_add(self._on_pairing_code_failed)
+
+    def _on_pairing_code_received(self, code: str) -> bool:
+        """Handle successful pairing code receipt (called on main thread)."""
+        self._config.pairing_code = code
+        self._config.save_device()
+        self._pairing_screen.set_pairing_code(code)
+        self._pairing_screen.set_status("Waiting for approval...")
+
+        # Start polling for approval
+        self._start_pairing_check()
+
+        # Start pairing timeout watchdog
+        self._pairing_timeout_id = GLib.timeout_add_seconds(
+            PAIRING_TIMEOUT_SECONDS,
+            self._on_pairing_timeout,
+        )
+        return False  # Don't repeat
+
+    def _on_pairing_code_failed(self) -> bool:
+        """Handle failed pairing code request (called on main thread)."""
+        logger.error("Failed to get pairing code")
+        self._pairing_screen.show_error("Could not connect to CMS")
+
+        # Retry pairing after 30 seconds
+        GLib.timeout_add_seconds(30, self._retry_pairing)
+        return False  # Don't repeat
 
     def _start_pairing_check(self) -> None:
         """Start periodic pairing status checks."""
@@ -291,6 +411,36 @@ class KioskPlayer:
         if self._pairing_check_id:
             GLib.source_remove(self._pairing_check_id)
             self._pairing_check_id = None
+        if self._pairing_timeout_id:
+            GLib.source_remove(self._pairing_timeout_id)
+            self._pairing_timeout_id = None
+
+    def _on_pairing_timeout(self) -> bool:
+        """Handle pairing timeout — CMS unreachable or admin never approved."""
+        self._pairing_timeout_id = None
+        elapsed = time.time() - (self._pairing_started_at or 0)
+        logger.warning("Pairing timed out after %.0f seconds", elapsed)
+
+        self._stop_pairing_check()
+        self._pairing_screen.show_error(
+            "Pairing timed out. Retrying in 30 seconds..."
+        )
+
+        # Auto-retry after 30 seconds
+        GLib.timeout_add_seconds(30, self._retry_pairing)
+        return False  # Don't repeat
+
+    def _retry_pairing(self) -> bool:
+        """Retry the entire pairing flow."""
+        if not self._running:
+            return False
+        if self._config.paired:
+            return False  # Already paired somehow
+
+        logger.info("Retrying pairing flow")
+        self._pairing_screen.reset()
+        self._start_pairing_flow()
+        return False  # Don't repeat
 
     def _check_pairing_status(self) -> bool:
         """
@@ -324,36 +474,80 @@ class KioskPlayer:
 
         self._state_machine.to_playback()
 
-        # Initialize playback if not done
-        if not self._gst_player:
-            self._initialize_playback_components()
-
-        # Start playback
-        self._start_playback()
-
-        # Show playback view
+        # Always switch UI to playback view first
         self._stack.set_visible_child_name("playback")
 
-        # Start background services
-        self._start_background_services()
+        # Initialize playback components (may fail if no content yet)
+        try:
+            if not self._gst_player:
+                self._initialize_playback_components()
+            self._start_playback()
+        except Exception as e:
+            logger.error("Failed to initialize playback: %s", e)
 
+        # Start background services (sync will download content)
+        try:
+            self._start_background_services()
+        except Exception as e:
+            logger.error("Failed to start background services: %s", e)
+
+        return False  # Don't repeat
+
+    def _deferred_playback_start(self) -> bool:
+        """Initialize and start playback after GTK window is realized."""
+        try:
+            self._initialize_playback_components()
+        except Exception as e:
+            logger.error("Failed to initialize playback components: %s", e)
+
+        # Only init GStreamer if there's content to play
+        if self._playlist_manager and self._playlist_manager.default_playlist_length > 0:
+            try:
+                self._initialize_gstreamer()
+                self._start_playback()
+            except Exception as e:
+                logger.error("Failed to start playback: %s", e)
+        else:
+            logger.info("No content available - waiting for sync to deliver content")
+
+        try:
+            self._start_background_services()
+        except Exception as e:
+            logger.error("Failed to start background services: %s", e)
         return False  # Don't repeat
 
     def _start_playback(self) -> bool:
         """Start video playback."""
         if self._playlist_manager.default_playlist_length == 0:
             logger.warning("No content available")
+            self._idle_label.show()
             return False
 
         first_uri = self._playlist_manager.get_first_uri()
         if first_uri:
             logger.info("Starting playback: %s", first_uri)
+            self._idle_label.hide()
             return self._gst_player.play(first_uri)
 
         return False
 
     def _start_background_services(self) -> None:
-        """Start sync, heartbeat, health server, database sync, and analytics."""
+        """Start sync, heartbeat, health server, database sync, network monitor, and analytics."""
+        # Start network monitor first — other services can check connectivity
+        try:
+            hub_url = getattr(self._config, 'hub_url', '') or ''
+            cms_url = getattr(self._config, 'cms_url', '') or ''
+            connection_mode = getattr(self._config, 'connection_mode', 'hub')
+            self._network_monitor = NetworkMonitor(
+                hub_url=hub_url,
+                cms_url=cms_url,
+                connection_mode=connection_mode,
+                on_state_changed=self._on_network_state_changed,
+            )
+            self._network_monitor.start()
+        except Exception as e:
+            logger.error("Failed to start network monitor: %s", e)
+
         if self._sync_service:
             self._sync_service.start()
 
@@ -369,9 +563,6 @@ class KioskPlayer:
 
         # Start database sync (NCMEC every 6h, Loyalty every 4h)
         try:
-            hub_url = getattr(self._config, 'hub_url', '') or ''
-            cms_url = getattr(self._config, 'cms_url', '') or ''
-            connection_mode = getattr(self._config, 'connection_mode', 'hub')
             self._database_sync = DatabaseSyncService(
                 hub_url=hub_url,
                 cms_url=cms_url,
@@ -389,8 +580,25 @@ class KioskPlayer:
 
         logger.info("Background services started")
 
+    def _on_network_state_changed(self, is_online: bool) -> None:
+        """Handle network online/offline transitions."""
+        if is_online:
+            logger.info("Network restored — triggering immediate sync")
+            if self._sync_service:
+                # Trigger an immediate sync when we come back online
+                threading.Thread(
+                    target=self._sync_service.sync_now,
+                    name="network-recovery-sync",
+                    daemon=True,
+                ).start()
+        else:
+            logger.warning("Network lost — operating in offline mode")
+
     def _stop_background_services(self) -> None:
         """Stop background services."""
+        if self._network_monitor:
+            self._network_monitor.stop()
+
         if self._heartbeat:
             self._heartbeat.stop()
 
@@ -519,13 +727,46 @@ class KioskPlayer:
         return None
 
     def _on_playback_error(self, error_msg: str) -> None:
-        """Handle playback errors."""
+        """Handle playback errors with max retry protection."""
         logger.error("Playback error: %s", error_msg)
+
+        now = time.time()
+
+        # Reset error counter if enough time has passed since last error
+        if (self._last_playback_error_time
+                and now - self._last_playback_error_time > PLAYBACK_ERROR_RESET_SECONDS):
+            self._consecutive_playback_errors = 0
+
+        self._consecutive_playback_errors += 1
+        self._last_playback_error_time = now
+
+        if self._consecutive_playback_errors >= MAX_CONSECUTIVE_PLAYBACK_ERRORS:
+            logger.error(
+                "Hit %d consecutive playback errors — pausing for %ds before retry",
+                self._consecutive_playback_errors, PLAYBACK_ERROR_RESET_SECONDS,
+            )
+            self._consecutive_playback_errors = 0
+            # Wait and then try reloading the playlist from scratch
+            GLib.timeout_add_seconds(
+                PLAYBACK_ERROR_RESET_SECONDS,
+                self._recover_playback,
+            )
+            return
+
         # Try next item
         if self._playlist_manager and self._gst_player:
             next_uri = self._playlist_manager.get_next_uri()
             if next_uri:
                 self._gst_player.play(next_uri)
+
+    def _recover_playback(self) -> bool:
+        """Attempt to recover playback after too many errors."""
+        logger.info("Attempting playback recovery")
+        if self._playlist_manager:
+            self._playlist_manager.reload()
+        if not self._start_playback():
+            logger.warning("Recovery failed — will retry on next sync")
+        return False  # Don't repeat
 
     def _on_end_of_stream(self) -> None:
         """Handle end of stream."""
@@ -602,13 +843,9 @@ class KioskPlayer:
         # Build UI
         self._build_ui()
 
-        # Initialize playback components (but don't start yet)
-        if self._config.paired:
-            self._initialize_playback_components()
-
         self._running = True
 
-        # Show window
+        # Show window first (must be realized before GStreamer touches X11)
         self._window.show_all()
         self._menu_overlay.hide()  # Ensure menu starts hidden
 
@@ -616,8 +853,8 @@ class KioskPlayer:
         if self._config.paired:
             logger.info("Device is paired - starting playback")
             self._stack.set_visible_child_name("playback")
-            self._start_playback()
-            self._start_background_services()
+            # Defer playback init to after GTK main loop starts
+            GLib.idle_add(self._deferred_playback_start)
         else:
             logger.info("Device not paired - starting pairing flow")
             self._start_pairing_flow()
@@ -695,10 +932,13 @@ class KioskPlayer:
             else:
                 status = "pairing"
 
+        network_online = self._network_monitor.is_online if self._network_monitor else None
+
         return {
             "status": status,
             "device_id": self._device_info.get("hardware_id", ""),
             "pairing_code": getattr(self._config, 'pairing_code', None),
+            "network_online": network_online,
         }
 
     def _signal_handler(self, signum: int, frame) -> None:

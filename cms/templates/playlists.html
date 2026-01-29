@@ -379,6 +379,26 @@
     color: #374151;
 }
 
+.save-playlist-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.save-playlist-btn:hover {
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.5);
+    transform: translateY(-1px);
+}
+
+.save-playlist-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Stats Bar */
 .playlist-stats {
     display: flex;
@@ -926,12 +946,11 @@
                 <button class="edit-title-btn">✏️</button>
             </div>
             <div class="playlist-actions">
-                <button class="playlist-action-btn" title="Undo">↩️</button>
-                <button class="playlist-action-btn" title="Refresh">🔄</button>
-                <button class="playlist-action-btn" title="Preview">👁️</button>
-                <button class="playlist-action-btn" title="Download">⬇️</button>
-                <button class="playlist-action-btn" title="Settings">⚙️</button>
-                <button class="playlist-action-btn" title="More">⋯</button>
+                <button class="btn btn-primary save-playlist-btn" id="savePlaylistBtn" onclick="savePlaylist()" title="Save playlist to server" style="padding: 8px 20px; font-size: 14px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 6px;">
+                    <span id="savePlaylistIcon">💾</span> Save Playlist
+                </button>
+                <button class="playlist-action-btn" title="Refresh" onclick="if(currentPlaylistId) loadPlaylist(currentPlaylistId)">🔄</button>
+                <button class="playlist-action-btn" title="Delete" onclick="if(currentPlaylistId) deletePlaylist(currentPlaylistId, document.getElementById('playlistName').value)">🗑️</button>
             </div>
         </div>
 
@@ -1968,9 +1987,96 @@ async function createPlaylist(event) {
 }
 
 function updatePlaylistName() {
+    if (!currentPlaylistId) return;
     const name = document.getElementById('playlistName').value;
-    // Auto-save will update on change
-    showToast(true, 'Updated', 'Playlist name updated');
+    fetch(`/api/v1/playlists/${currentPlaylistId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    }).then(r => {
+        if (r.ok) {
+            // Update sidebar name
+            const sidebarItem = document.querySelector(`.playlist-item-link[data-id="${currentPlaylistId}"] .playlist-name`);
+            if (sidebarItem) sidebarItem.textContent = name;
+            showToast(true, 'Updated', 'Playlist name updated');
+        } else {
+            showToast(false, 'Error', 'Failed to update name');
+        }
+    }).catch(() => showToast(false, 'Error', 'Connection error'));
+}
+
+async function savePlaylist() {
+    if (!currentPlaylistId) {
+        showToast(false, 'Error', 'No playlist selected. Create a playlist first.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('savePlaylistBtn');
+    const saveIcon = document.getElementById('savePlaylistIcon');
+    saveBtn.disabled = true;
+    saveIcon.textContent = '⏳';
+
+    try {
+        // 1. Update playlist name
+        const name = document.getElementById('playlistName').value;
+        await fetch(`/api/v1/playlists/${currentPlaylistId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+
+        // 2. Get existing items from server
+        const existingRes = await fetch(`/api/v1/playlists/${currentPlaylistId}`);
+        const existingPlaylist = await existingRes.json();
+        const existingItems = existingPlaylist.items || [];
+
+        // 3. Delete all existing items (clean slate)
+        for (const item of existingItems) {
+            await fetch(`/api/v1/playlists/${currentPlaylistId}/items/${item.id}`, {
+                method: 'DELETE'
+            });
+        }
+
+        // 4. Add all current items in order
+        for (let i = 0; i < playlistItems.length; i++) {
+            const item = playlistItems[i];
+            const res = await fetch(`/api/v1/playlists/${currentPlaylistId}/items`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content_id: item.contentId,
+                    position: i,
+                    duration_override: item.durationOverride || null
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || `Failed to add item "${item.title}"`);
+            }
+
+            // Update local item with server-assigned ID
+            const saved = await res.json();
+            playlistItems[i].id = saved.id;
+        }
+
+        // 5. Update sidebar item count
+        const sidebarItem = document.querySelector(`.playlist-item-link[data-id="${currentPlaylistId}"] .playlist-items-count`);
+        if (sidebarItem) sidebarItem.textContent = playlistItems.length;
+
+        saveIcon.textContent = '✅';
+        showToast(true, 'Saved', `Playlist saved with ${playlistItems.length} items`);
+
+        // Reset icon after 2 seconds
+        setTimeout(() => { saveIcon.textContent = '💾'; }, 2000);
+
+    } catch (error) {
+        saveIcon.textContent = '❌';
+        showToast(false, 'Save Failed', error.message);
+        setTimeout(() => { saveIcon.textContent = '💾'; }, 2000);
+    } finally {
+        saveBtn.disabled = false;
+    }
 }
 
 // ==========================================================================

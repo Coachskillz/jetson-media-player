@@ -3,6 +3,9 @@ KioskWindow - Base GTK3 fullscreen window for Jetson Media Player.
 Provides kiosk mode with hidden cursor, fullscreen, and keyboard handling.
 """
 
+import os
+import subprocess
+
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -61,8 +64,24 @@ class KioskWindow(Gtk.Window):
 
         logger.info("KioskWindow initialized")
 
+    def _disable_screen_blanking(self) -> None:
+        """Disable screen blanking, screensaver, and DPMS to prevent sleep."""
+        try:
+            subprocess.run(['xset', 's', 'off'], env={**os.environ}, check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(['xset', 's', 'noblank'], env={**os.environ}, check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(['xset', '-dpms'], env={**os.environ}, check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            logger.info("Screen blanking and DPMS disabled")
+        except Exception as e:
+            logger.warning("Could not disable screen blanking: %s", e)
+
     def _setup_window(self) -> None:
         """Configure window for kiosk mode."""
+        # Disable screen sleep/blanking
+        self._disable_screen_blanking()
+
         # Remove window decorations
         self.set_decorated(False)
 

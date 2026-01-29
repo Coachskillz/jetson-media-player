@@ -26,7 +26,7 @@ from src.common.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-DEFAULT_DB_PATH = "/opt/skillz/detection/analytics"
+DEFAULT_DB_PATH = "/home/skillz/databases/analytics"
 DEFAULT_DB_FILE = "analytics.db"
 RETENTION_DAYS = 90
 BUCKET_DURATION_MINUTES = 15

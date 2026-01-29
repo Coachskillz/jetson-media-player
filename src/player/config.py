@@ -38,7 +38,10 @@ class PlayerConfig:
 
     def _load_json(self, filename: str) -> Dict[str, Any]:
         """
-        Load a JSON config file.
+        Load a JSON config file with corruption protection.
+
+        If the file is corrupt or unreadable, returns empty dict and
+        renames the bad file to .corrupt for debugging.
 
         Args:
             filename: Name of the JSON file to load
@@ -50,12 +53,32 @@ class PlayerConfig:
         if not file_path.exists():
             return {}
 
-        with open(file_path, 'r') as f:
-            return json.load(f)
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError(f"Expected dict, got {type(data).__name__}")
+            return data
+        except (json.JSONDecodeError, ValueError, UnicodeDecodeError) as e:
+            # Rename corrupt file for debugging
+            corrupt_path = file_path.with_suffix('.json.corrupt')
+            try:
+                file_path.rename(corrupt_path)
+            except OSError:
+                pass
+            import logging
+            logging.getLogger(__name__).error(
+                "Corrupt config %s: %s — reset to defaults (backup: %s)",
+                filename, e, corrupt_path,
+            )
+            return {}
 
     def _save_json(self, filename: str, data: Dict[str, Any]) -> None:
         """
-        Save data to a JSON config file.
+        Save data to a JSON config file atomically.
+
+        Writes to a temp file first, then renames to prevent corruption
+        if power is lost mid-write.
 
         Args:
             filename: Name of the JSON file to save
@@ -65,8 +88,14 @@ class PlayerConfig:
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = self.config_dir / filename
-        with open(file_path, 'w') as f:
+        tmp_path = file_path.with_suffix('.json.tmp')
+
+        with open(tmp_path, 'w') as f:
             json.dump(data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+
+        tmp_path.replace(file_path)
 
     def load_all(self) -> None:
         """Load all configuration files."""

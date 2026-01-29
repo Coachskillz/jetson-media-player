@@ -237,6 +237,28 @@ class GStreamerPlayer:
             pending_state.value_nick
         )
 
+    def set_window_handle(self, xid: int) -> None:
+        """
+        Set the X11 window handle for video output.
+
+        For sinks that support it (e.g. autovideosink with ximagesink),
+        this embeds the video in the given window. nv3dsink renders
+        directly and ignores this.
+
+        Args:
+            xid: X11 window ID
+        """
+        if self._player is None:
+            logger.warning("Cannot set window handle: player not initialized")
+            return
+
+        video_sink = self._player.get_property('video-sink')
+        if video_sink and hasattr(video_sink, 'set_window_handle'):
+            video_sink.set_window_handle(xid)
+            logger.info("Set video sink window handle: %s", xid)
+        else:
+            logger.debug("Video sink does not support set_window_handle (nv3dsink renders directly)")
+
     def initialize(self) -> bool:
         """
         Initialize the GStreamer player components.
@@ -252,7 +274,9 @@ class GStreamerPlayer:
 
                 self._player = self._create_player()
                 self._setup_bus()
-                self._start_main_loop()
+                # Note: Do NOT start a separate GLib.MainLoop here.
+                # GTK's main loop already handles GStreamer bus messages
+                # via add_signal_watch(). A second loop causes X11 threading crashes.
 
             logger.info("GStreamer player initialized successfully")
             return True

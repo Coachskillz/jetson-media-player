@@ -28,8 +28,8 @@ from src.common.logger import setup_logger
 logger = setup_logger(__name__)
 
 # Default paths
-DEFAULT_DB_PATH = "/opt/skillz/detection/databases"
-DEFAULT_METADATA_PATH = "/opt/skillz/detection/databases"
+DEFAULT_DB_PATH = "/home/skillz/databases"
+DEFAULT_METADATA_PATH = "/home/skillz/databases"
 
 # Database filenames (must match what the FAISS loaders expect)
 NCMEC_INDEX_FILE = "ncmec.faiss"
