@@ -12,8 +12,9 @@ from typing import Callable, Optional
 # IMPORTANT: gi.require_version() MUST be called BEFORE importing from gi.repository
 import gi
 gi.require_version('Gst', '1.0')
+gi.require_version('GstVideo', '1.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gst, GLib
+from gi.repository import Gst, GstVideo, GLib
 
 
 # Initialize GStreamer - REQUIRED before using any GStreamer elements
@@ -255,13 +256,13 @@ class GStreamerPlayer:
         if message.get_structure().get_name() == 'prepare-window-handle':
             if self._window_xid:
                 logger.info("Pipeline requested window — setting XID: %s", self._window_xid)
-                message.src.set_window_handle(self._window_xid)
+                GstVideo.VideoOverlay.set_window_handle(message.src, self._window_xid)
 
     def set_window_handle(self, xid: int) -> None:
         """
         Set the X11 window handle for video output.
 
-        Uses GstVideoOverlay interface to embed video in a GTK DrawingArea.
+        Uses GstVideo.VideoOverlay interface to embed video in a GTK DrawingArea.
 
         Args:
             xid: X11 window ID
@@ -272,8 +273,8 @@ class GStreamerPlayer:
         # If player is already initialized, set it on the sink now
         if self._player is not None:
             video_sink = self._player.get_property('video-sink')
-            if video_sink and hasattr(video_sink, 'set_window_handle'):
-                video_sink.set_window_handle(xid)
+            if video_sink:
+                GstVideo.VideoOverlay.set_window_handle(video_sink, xid)
                 logger.info("Set video overlay window handle: %s", xid)
 
     def initialize(self) -> bool:
