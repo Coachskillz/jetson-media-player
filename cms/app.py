@@ -319,6 +319,7 @@ def _seed_demo_content(app: Flask) -> None:
         from cms.models import Content, Network
         from cms.models.playlist import Playlist, PlaylistItem
         from cms.models.folder import Folder
+        from cms.models.device import Device
     except ImportError:
         app.logger.debug('Models not available yet, skipping demo content seeding')
         return
@@ -423,6 +424,29 @@ def _seed_demo_content(app: Flask) -> None:
             db.session.add(pi)
 
         app.logger.info(f"Seeded playlist: Demo Playlist ({len(content_ids)} items)")
+
+    # --- Device (skillz-desktop) ---
+    if not Device.query.filter_by(device_id='SKZ-D-0001').first():
+        device = Device(
+            id=str(_uuid.uuid4()),
+            device_id='SKZ-D-0001',
+            hardware_id='jetson-ad71ccc73a85',
+            mode='direct',
+            connection_mode='direct',
+            network_id=ho_id,
+            name='skillz-desktop',
+            status='active',
+            store_name='test',
+            screen_location='test',
+            store_address='1234',
+            store_city='minneapolis',
+            store_state='MN',
+            store_zipcode='55426',
+            manager_name='john doe',
+            store_phone='3145551212',
+        )
+        db.session.add(device)
+        app.logger.info("Seeded device: skillz-desktop (SKZ-D-0001)")
 
     try:
         db.session.commit()
