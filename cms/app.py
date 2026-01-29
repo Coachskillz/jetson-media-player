@@ -324,6 +324,7 @@ def _seed_demo_content(app: Flask) -> None:
         from cms.models.folder import Folder
         from cms.models.device import Device
         from cms.models.device_assignment import DeviceAssignment
+        from cms.models.layout import ScreenLayout, ScreenLayer
     except ImportError:
         app.logger.debug('Models not available yet, skipping demo content seeding')
         return
@@ -472,6 +473,50 @@ def _seed_demo_content(app: Flask) -> None:
             )
             db.session.add(assignment)
             app.logger.info("Seeded device assignment: Demo Playlist -> skillz-desktop")
+
+    # --- Screen Layout (full-screen video layout for device push) ---
+    if not ScreenLayout.query.filter_by(name='Full Screen Video').first():
+        layout = ScreenLayout(
+            id=str(_uuid.uuid4()),
+            name='Full Screen Video',
+            description='Single full-screen video zone playing the Demo Playlist',
+            canvas_width=1920,
+            canvas_height=1080,
+            orientation='landscape',
+            background_type='solid',
+            background_color='#000000',
+            background_opacity=1.0,
+            is_template=False,
+        )
+        db.session.add(layout)
+        db.session.flush()
+
+        # Create a single layer covering the full screen, linked to Demo Playlist
+        playlist = Playlist.query.filter_by(name='Demo Playlist').first()
+        layer = ScreenLayer(
+            id=str(_uuid.uuid4()),
+            layout_id=layout.id,
+            name='Video Zone',
+            layer_type='content',
+            x=0, y=0,
+            width=1920, height=1080,
+            z_index=0,
+            opacity=1.0,
+            is_visible=True,
+            background_type='transparent',
+            content_source='playlist',
+            playlist_id=playlist.id if playlist else None,
+            is_primary=True,
+        )
+        db.session.add(layer)
+        db.session.flush()
+
+        # Assign this layout to the seeded device
+        device = Device.query.filter_by(device_id='SKZ-D-0001').first()
+        if device:
+            device.layout_id = layout.id
+
+        app.logger.info("Seeded layout: Full Screen Video with Video Zone layer")
 
     try:
         db.session.commit()

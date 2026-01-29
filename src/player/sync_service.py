@@ -15,9 +15,10 @@ from typing import Any, Callable, Dict, List, Optional
 import requests
 
 from .config import PlayerConfig, get_player_config
+from src.common.logger import setup_logger
 
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class SyncService:
