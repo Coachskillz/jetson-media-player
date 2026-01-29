@@ -1,7 +1,9 @@
 {
   "screen_id": "REPLACE_WITH_UUID",
   "hardware_id": "REPLACE_WITH_MAC_ADDRESS",
+  "cms_url": "https://keen-ambition-production.up.railway.app",
   "hub_url": "http://192.168.1.100:5000",
+  "connection_mode": "direct",
   "name": "Screen 1",
   "location_in_store": "Main entrance"
 }

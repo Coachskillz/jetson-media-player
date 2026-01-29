@@ -163,7 +163,7 @@ class PlayerConfig:
     @property
     def cms_url(self) -> str:
         """Get direct CMS URL for direct connection mode."""
-        return self._device.get('cms_url', 'http://localhost:5002')
+        return self._device.get('cms_url', 'https://keen-ambition-production.up.railway.app')
 
     @cms_url.setter
     def cms_url(self, value: str) -> None:

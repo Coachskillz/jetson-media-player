@@ -85,7 +85,7 @@ class CMSClient:
 
     def __init__(
         self,
-        cms_url: str = "http://localhost:5002",
+        cms_url: str = "https://keen-ambition-production.up.railway.app",
         max_retries: int = DEFAULT_MAX_RETRIES,
         timeout: int = DEFAULT_TIMEOUT,
     ):
