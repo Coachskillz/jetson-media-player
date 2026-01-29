@@ -786,8 +786,9 @@ def approve_pairing():
             'missing_fields': missing_fields
         }), 400
 
-    # Activate device and set all fields
+    # Activate device and clear pairing code
     device.status = 'active'
+    device.pairing_code = None
     device.network_id = data.get('network_id')
     device.store_name = data.get('store_name')
     device.store_address = data.get('store_address')

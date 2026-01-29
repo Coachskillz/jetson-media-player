@@ -248,16 +248,18 @@ def request_pairing_code():
             device_id=device_id,
             mode='direct',
             status='pending',
-            ip_address=ip_address
+            ip_address=ip_address,
+            pairing_code=pairing_code
         )
         db.session.add(device)
         db.session.commit()
     else:
-        # Update IP address if provided
+        # Update pairing code and IP address
+        existing_device.pairing_code = pairing_code
         ip_address = data.get('ip_address')
         if ip_address:
             existing_device.ip_address = ip_address
-            db.session.commit()
+        db.session.commit()
 
     return jsonify({
         'pairing_code': pairing_code,
@@ -365,6 +367,7 @@ def verify_pairing_code():
     # Pair the device
     device.network_id = network_id
     device.status = 'active'
+    device.pairing_code = None
 
     try:
         db.session.commit()
