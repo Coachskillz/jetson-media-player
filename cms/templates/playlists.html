@@ -1034,6 +1034,7 @@
                      data-type="{% if item.is_video %}video{% elif item.is_image %}image{% else %}other{% endif %}"
                      data-networks='{{ item.network_ids|tojson|safe }}'
                      data-folder="{{ item.folder_id or '' }}"
+                     data-source="{{ item.source or 'local' }}"
                      draggable="true"
                      onclick="previewContent(this)"
                      ondragstart="handleAssetDragStart(event)"
@@ -1423,6 +1424,7 @@ async function loadPlaylist(playlistId) {
             playlistItems = (playlist.items || []).map(item => ({
                 id: item.id || Date.now().toString(),
                 contentId: item.content_id,
+                syncedContentId: item.synced_content_id || null,
                 title: item.content?.title || item.title || 'Unknown',
                 duration: item.duration || item.content?.duration || 0,
                 size: item.content?.file_size || 0,
@@ -1776,6 +1778,7 @@ function handleAssetDragStart(event) {
         duration: parseFloat(event.target.dataset.duration) || 0,
         size: parseInt(event.target.dataset.size) || 0,
         filename: event.target.dataset.filename,
+        source: event.target.dataset.source || 'local',
         type: event.target.dataset.type,
         thumbnail: event.target.querySelector('img')?.src || null
     };
@@ -1807,6 +1810,8 @@ function handlePlaylistDrop(event) {
         playlistItems.push({
             id: Date.now().toString(),
             contentId: draggedAsset.id,
+            syncedContentId: draggedAsset.source === 'synced' ? draggedAsset.id : null,
+            source: draggedAsset.source,
             title: draggedAsset.title,
             duration: draggedAsset.duration,
             size: draggedAsset.size,
@@ -2046,7 +2051,8 @@ async function savePlaylist() {
                 body: JSON.stringify({
                     content_id: item.contentId,
                     position: i,
-                    duration_override: item.durationOverride || null
+                    duration_override: item.durationOverride || null,
+                    source: item.source || (item.syncedContentId ? 'synced' : 'local')
                 })
             });
 
@@ -2175,6 +2181,7 @@ function previewContent(element) {
     const size = element.dataset.size;
     const filename = element.dataset.filename;
     const type = element.dataset.type;
+    const source = element.dataset.source || 'local';
 
     previewedContent = {
         id: id,
@@ -2182,7 +2189,8 @@ function previewContent(element) {
         duration: parseFloat(duration) || 10,
         size: parseInt(size) || 0,
         filename: filename,
-        type: type
+        type: type,
+        source: source
     };
 
     // Reset trim values
@@ -2451,6 +2459,8 @@ function addPreviewedContentToPlaylist() {
     playlistItems.push({
         id: Date.now().toString(),
         contentId: previewedContent.id,
+        syncedContentId: previewedContent.source === 'synced' ? previewedContent.id : null,
+        source: previewedContent.source || 'local',
         title: previewedContent.title,
         duration: finalDuration,
         originalDuration: previewedContent.duration,

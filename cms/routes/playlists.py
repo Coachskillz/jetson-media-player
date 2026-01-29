@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 
 from cms.models import db, Playlist, PlaylistItem, Content, Device, DeviceAssignment, Network, ContentStatus, DevicePlaylistSync, DeviceSyncStatus
+from cms.models.synced_content import SyncedContent
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 from cms.models.playlist import TriggerType, LoopMode, Priority, SyncStatus
@@ -652,13 +653,14 @@ def add_playlist_item(playlist_id):
     if not data:
         return jsonify({'error': 'Request body is required'}), 400
 
-    # Validate content_id
+    # Validate content_id - check both Content and SyncedContent tables
     content_id = data.get('content_id')
     if not content_id:
         return jsonify({'error': 'content_id is required'}), 400
 
     content = db.session.get(Content, content_id)
-    if not content:
+    synced = db.session.get(SyncedContent, content_id) if not content else None
+    if not content and not synced:
         return jsonify({
             'error': f'Content with id {content_id} not found'
         }), 404
@@ -698,10 +700,11 @@ def add_playlist_item(playlist_id):
                 'error': 'duration_override must be an integer'
             }), 400
 
-    # Create playlist item
+    # Create playlist item - store in correct FK column
     playlist_item = PlaylistItem(
         playlist_id=playlist_id,
-        content_id=content_id,
+        content_id=content_id if content else None,
+        synced_content_id=content_id if synced else None,
         position=position,
         duration_override=duration_override
     )
@@ -727,7 +730,7 @@ def add_playlist_item(playlist_id):
         details={
             'item_id': playlist_item.id,
             'content_id': content_id,
-            'content_name': content.original_name,
+            'content_name': content.original_name if content else (synced.title if synced else 'Unknown'),
             'position': position,
         }
     )
@@ -789,8 +792,9 @@ def remove_playlist_item(playlist_id, item_id):
     # Store info for audit log and response before deleting
     item_id_response = playlist_item.id
     removed_position = playlist_item.position
-    content_id = playlist_item.content_id
-    content_name = playlist_item.content.original_name if playlist_item.content else None
+    content_id = playlist_item.content_id or playlist_item.synced_content_id
+    content_name = (playlist_item.content.original_name if playlist_item.content
+                    else (playlist_item.synced_content.title if playlist_item.synced_content else None))
 
     try:
         db.session.delete(playlist_item)
@@ -1229,12 +1233,14 @@ def preview_playlist(playlist_id):
     for item in playlist.items.order_by(PlaylistItem.position).all():
         # Calculate effective duration for this item
         effective_duration = None
+        resolved = item.content or item.synced_content
         if item.duration_override:
             effective_duration = item.duration_override
-        elif item.content and item.content.duration:
-            effective_duration = item.content.duration
-        elif item.content and item.content.is_image:
-            # Default 10 seconds for images without duration override
+        elif resolved and getattr(resolved, 'duration', None):
+            effective_duration = resolved.duration
+        elif resolved and getattr(resolved, 'is_image', False):
+            effective_duration = default_image_duration
+        elif resolved and getattr(resolved, 'content_type', None) == 'image':
             effective_duration = default_image_duration
 
         # Add to total duration
@@ -1245,18 +1251,17 @@ def preview_playlist(playlist_id):
         item_data = {
             'id': item.id,
             'playlist_id': item.playlist_id,
-            'content_id': item.content_id,
+            'content_id': item.content_id or item.synced_content_id,
             'position': item.position,
             'duration_override': item.duration_override,
             'effective_duration': effective_duration,
             'created_at': item.created_at.isoformat() if item.created_at else None,
         }
 
-        # Add content details if content exists
+        # Add content details if content exists (check both tables)
         if item.content:
             content = item.content
             content_data = content.to_dict()
-            # Add content type for easier frontend handling
             if content.is_video:
                 content_data['content_type'] = 'video'
             elif content.is_image:
@@ -1265,6 +1270,10 @@ def preview_playlist(playlist_id):
                 content_data['content_type'] = 'audio'
             else:
                 content_data['content_type'] = 'unknown'
+            item_data['content'] = content_data
+        elif item.synced_content:
+            content_data = item.synced_content.to_dict()
+            content_data['content_type'] = item.synced_content.content_type or 'unknown'
             item_data['content'] = content_data
         else:
             # Content was deleted - mark as missing

@@ -264,7 +264,13 @@ class PlaylistItem(db.Model):
     content_id = db.Column(
         db.String(36),
         db.ForeignKey('content.id', ondelete='CASCADE'),
-        nullable=False,
+        nullable=True,
+        index=True
+    )
+    synced_content_id = db.Column(
+        db.String(36),
+        db.ForeignKey('synced_content.id', ondelete='CASCADE'),
+        nullable=True,
         index=True
     )
     position = db.Column(db.Integer, nullable=False, default=0)
@@ -273,6 +279,7 @@ class PlaylistItem(db.Model):
 
     # Relationships
     content = db.relationship('Content', backref=db.backref('playlist_items', lazy='dynamic'))
+    synced_content = db.relationship('SyncedContent', backref=db.backref('playlist_items', lazy='dynamic'))
 
     def to_dict(self):
         """
@@ -281,14 +288,23 @@ class PlaylistItem(db.Model):
         Returns:
             Dictionary containing all playlist item fields
         """
+        # Resolve content from either table
+        resolved_content = None
+        resolved_content_id = self.content_id or self.synced_content_id
+        if self.content:
+            resolved_content = self.content.to_dict()
+        elif self.synced_content:
+            resolved_content = self.synced_content.to_dict()
+
         return {
             'id': self.id,
             'playlist_id': self.playlist_id,
-            'content_id': self.content_id,
+            'content_id': resolved_content_id,
+            'synced_content_id': self.synced_content_id,
             'position': self.position,
             'duration_override': self.duration_override,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'content': self.content.to_dict() if self.content else None
+            'content': resolved_content
         }
 
     def __repr__(self):

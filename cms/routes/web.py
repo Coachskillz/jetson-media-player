@@ -553,6 +553,7 @@ def playlists_page():
             'status': item.status,
             'is_video': item.content_type == 'video',
             'is_image': item.content_type == 'image',
+            'source': 'synced',
         })
 
     # Add local content (not synced)
@@ -578,6 +579,7 @@ def playlists_page():
             'status': item.status,
             'is_video': item.is_video,
             'is_image': item.is_image,
+            'source': 'local',
         })
 
     return render_template(

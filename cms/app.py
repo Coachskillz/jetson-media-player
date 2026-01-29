@@ -89,6 +89,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Create database tables and seed default users
     with app.app_context():
         db.create_all()
+        _run_migrations(app)
         _seed_default_users(app)
 
     # Configure logging
@@ -170,6 +171,40 @@ def _init_security(app: Flask, config_class) -> None:
         app.logger.info('Rate limiting enabled (Flask-Limiter)')
     else:
         app.logger.warning('Flask-Limiter not installed, rate limiting disabled')
+
+
+def _run_migrations(app: Flask) -> None:
+    """Run lightweight schema migrations to add missing columns."""
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+
+    # Add synced_content_id column to playlist_items if missing
+    if 'playlist_items' in inspector.get_table_names():
+        columns = [c['name'] for c in inspector.get_columns('playlist_items')]
+        if 'synced_content_id' not in columns:
+            app.logger.info('Migration: Adding synced_content_id to playlist_items')
+            try:
+                db.session.execute(text(
+                    'ALTER TABLE playlist_items ADD COLUMN synced_content_id VARCHAR(36)'
+                ))
+                db.session.commit()
+                app.logger.info('Migration: synced_content_id column added')
+            except Exception as e:
+                db.session.rollback()
+                app.logger.warning(f'Migration: synced_content_id add failed: {e}')
+
+            # Make content_id nullable (PostgreSQL only — SQLite columns are nullable by default)
+            db_url = str(db.engine.url)
+            if 'postgresql' in db_url or 'postgres' in db_url:
+                try:
+                    db.session.execute(text(
+                        'ALTER TABLE playlist_items ALTER COLUMN content_id DROP NOT NULL'
+                    ))
+                    db.session.commit()
+                    app.logger.info('Migration: content_id made nullable')
+                except Exception as e:
+                    db.session.rollback()
+                    app.logger.warning(f'Migration: content_id nullable failed: {e}')
 
 
 def _seed_default_users(app: Flask) -> None:
