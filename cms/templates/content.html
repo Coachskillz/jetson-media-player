@@ -1445,6 +1445,32 @@ function renderSelectedFiles() {
     container.innerHTML = html;
 }
 
+function getVideoDuration(file) {
+    return new Promise((resolve, reject) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        const url = URL.createObjectURL(file);
+        video.onloadedmetadata = () => {
+            URL.revokeObjectURL(url);
+            if (video.duration && isFinite(video.duration)) {
+                resolve(video.duration);
+            } else {
+                reject(new Error('Could not read duration'));
+            }
+        };
+        video.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Video load error'));
+        };
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Timeout'));
+        }, 5000);
+        video.src = url;
+    });
+}
+
 async function handleUpload(event) {
     event.preventDefault();
     if (uploadFiles.length === 0) return;
@@ -1468,9 +1494,20 @@ async function handleUpload(event) {
         progressPercent.textContent = `${Math.round((i / uploadFiles.length) * 100)}%`;
         progressBar.style.width = `${(i / uploadFiles.length) * 100}%`;
 
+        // Extract video duration client-side before upload
+        let fileDuration = null;
+        if (file.type && file.type.startsWith('video/')) {
+            try {
+                fileDuration = await getVideoDuration(file);
+            } catch (e) {
+                // Ignore - server will try ffprobe
+            }
+        }
+
         const formData = new FormData();
         formData.append('file', file);
         if (networkId) formData.append('network_id', networkId);
+        if (fileDuration) formData.append('duration', Math.round(fileDuration).toString());
 
         try {
             const response = await fetch('/api/v1/content/upload', {

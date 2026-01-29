@@ -22,7 +22,9 @@ The thea_bp is registered at /api/v1/thea for CMS integration with Thea Content 
 """
 
 import hashlib
+import json
 import os
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -103,6 +105,23 @@ def get_mime_type(filename):
         return image_types[ext]
 
     return 'application/octet-stream'
+
+
+def _extract_video_duration(file_path):
+    """Try to extract video duration using ffprobe. Returns seconds or None."""
+    try:
+        result = subprocess.run(
+            ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', str(file_path)],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode == 0:
+            info = json.loads(result.stdout)
+            dur = info.get('format', {}).get('duration')
+            if dur:
+                return int(float(dur))
+    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError, ValueError):
+        pass
+    return None
 
 
 @content_bp.route('/upload', methods=['POST'])
@@ -197,6 +216,10 @@ def upload_content():
         duration = int(duration) if duration else None
     except ValueError:
         duration = None
+
+    # If no duration provided and it's a video, try ffprobe extraction
+    if duration is None and mime_type.startswith('video/'):
+        duration = _extract_video_duration(file_path)
 
     # Create content record
     content = Content(

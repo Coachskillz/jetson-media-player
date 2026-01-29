@@ -315,9 +315,10 @@
 .playlist-title-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
+    gap: 8px;
+    padding: 12px 16px;
     border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
 }
 
 .playlist-title {
@@ -359,8 +360,10 @@
 
 .playlist-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     margin-left: auto;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .playlist-action-btn {
@@ -946,11 +949,11 @@
                 <button class="edit-title-btn">✏️</button>
             </div>
             <div class="playlist-actions">
-                <button class="btn btn-primary save-playlist-btn" id="savePlaylistBtn" onclick="savePlaylist()" title="Save playlist to server" style="padding: 8px 20px; font-size: 14px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 6px;">
-                    <span id="savePlaylistIcon">💾</span> Save Playlist
+                <button class="btn btn-primary save-playlist-btn" id="savePlaylistBtn" onclick="savePlaylist()" title="Save playlist to server" style="padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+                    <span id="savePlaylistIcon">💾</span> Save
                 </button>
-                <button class="btn" id="previewPlaylistBtn" onclick="previewPlaylist()" title="Preview playlist" style="padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 6px; background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
-                    <span>▶️</span> Preview
+                <button class="btn" id="previewPlaylistBtn" onclick="previewPlaylist()" title="Preview playlist" style="padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 4px; background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; white-space: nowrap;">
+                    <span>▶</span> Preview
                 </button>
                 <button class="playlist-action-btn" title="Refresh" onclick="if(currentPlaylistId) loadPlaylist(currentPlaylistId)">🔄</button>
                 <button class="playlist-action-btn" title="Delete" onclick="if(currentPlaylistId) deletePlaylist(currentPlaylistId, document.getElementById('playlistName').value)">🗑️</button>
@@ -1027,7 +1030,7 @@
 
             <!-- Approved Assets -->
             <div class="asset-list" id="assetList" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
-                {% for item in content if item.status in ['approved', 'published'] or item.status is none %}
+                {% for item in content if item.status in ['approved', 'published', 'pending'] or item.status is none %}
                 <div class="asset-item"
                      data-id="{{ item.id }}"
                      data-title="{{ item.original_name }}"
