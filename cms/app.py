@@ -178,33 +178,54 @@ def _run_migrations(app: Flask) -> None:
     from sqlalchemy import text, inspect
     inspector = inspect(db.engine)
 
-    # Add synced_content_id column to playlist_items if missing
-    if 'playlist_items' in inspector.get_table_names():
-        columns = [c['name'] for c in inspector.get_columns('playlist_items')]
-        if 'synced_content_id' not in columns:
-            app.logger.info('Migration: Adding synced_content_id to playlist_items')
-            try:
-                db.session.execute(text(
-                    'ALTER TABLE playlist_items ADD COLUMN synced_content_id VARCHAR(36)'
-                ))
-                db.session.commit()
-                app.logger.info('Migration: synced_content_id column added')
-            except Exception as e:
-                db.session.rollback()
-                app.logger.warning(f'Migration: synced_content_id add failed: {e}')
+    if 'playlist_items' not in inspector.get_table_names():
+        return
 
-            # Make content_id nullable (PostgreSQL only — SQLite columns are nullable by default)
-            db_url = str(db.engine.url)
-            if 'postgresql' in db_url or 'postgres' in db_url:
-                try:
-                    db.session.execute(text(
-                        'ALTER TABLE playlist_items ALTER COLUMN content_id DROP NOT NULL'
-                    ))
-                    db.session.commit()
-                    app.logger.info('Migration: content_id made nullable')
-                except Exception as e:
-                    db.session.rollback()
-                    app.logger.warning(f'Migration: content_id nullable failed: {e}')
+    columns = [c['name'] for c in inspector.get_columns('playlist_items')]
+    if 'synced_content_id' in columns:
+        return  # Already migrated
+
+    app.logger.info('Migration: Rebuilding playlist_items table for synced content support')
+    db_url = str(db.engine.url)
+    is_postgres = 'postgresql' in db_url or 'postgres' in db_url
+
+    try:
+        if is_postgres:
+            db.session.execute(text(
+                'ALTER TABLE playlist_items ADD COLUMN synced_content_id VARCHAR(36)'
+            ))
+            db.session.execute(text(
+                'ALTER TABLE playlist_items ALTER COLUMN content_id DROP NOT NULL'
+            ))
+            db.session.commit()
+        else:
+            # SQLite: must recreate table to change NOT NULL constraint
+            db.session.execute(text(
+                'CREATE TABLE playlist_items_new ('
+                '  id VARCHAR(36) PRIMARY KEY,'
+                '  playlist_id VARCHAR(36) NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,'
+                '  content_id VARCHAR(36) REFERENCES content(id) ON DELETE CASCADE,'
+                '  synced_content_id VARCHAR(36) REFERENCES synced_content(id) ON DELETE CASCADE,'
+                '  position INTEGER NOT NULL DEFAULT 0,'
+                '  duration_override INTEGER,'
+                '  created_at DATETIME'
+                ')'
+            ))
+            db.session.execute(text(
+                'INSERT INTO playlist_items_new (id, playlist_id, content_id, position, duration_override, created_at) '
+                'SELECT id, playlist_id, content_id, position, duration_override, created_at FROM playlist_items'
+            ))
+            db.session.execute(text('DROP TABLE playlist_items'))
+            db.session.execute(text('ALTER TABLE playlist_items_new RENAME TO playlist_items'))
+            db.session.execute(text('CREATE INDEX ix_playlist_items_playlist_id ON playlist_items(playlist_id)'))
+            db.session.execute(text('CREATE INDEX ix_playlist_items_content_id ON playlist_items(content_id)'))
+            db.session.execute(text('CREATE INDEX ix_playlist_items_synced_content_id ON playlist_items(synced_content_id)'))
+            db.session.commit()
+
+        app.logger.info('Migration: playlist_items table updated successfully')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Migration: playlist_items rebuild failed: {e}')
 
 
 def _seed_default_users(app: Flask) -> None:
