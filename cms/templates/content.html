@@ -513,6 +513,9 @@
 <div class="content-library-layout">
     <!-- Left Sidebar -->
     <div class="left-sidebar">
+        <div class="sidebar-item" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;" onclick="openUploadModal()">
+            <span>📤</span> Upload
+        </div>
         <div class="sidebar-item" id="syncBtn" onclick="syncContent()">
             <span id="syncIcon">🔄</span> <span id="syncText">Sync</span>
         </div>
@@ -686,6 +689,63 @@
                 <div id="previewSize" style="font-size: 16px; font-weight: 600; color: #1e293b;">-</div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Upload Content Modal -->
+<div class="modal" id="uploadModal">
+    <div class="modal-content" style="max-width: 560px;">
+        <div class="modal-header">
+            <h3>Upload Content</h3>
+            <button class="close-btn" onclick="closeUploadModal()">&times;</button>
+        </div>
+
+        <form id="uploadForm" onsubmit="handleUpload(event)">
+            <!-- Drop Zone -->
+            <div id="dropZone" style="border: 2px dashed #d1d5db; border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; background: #f9fafb;"
+                 onclick="document.getElementById('fileInput').click()"
+                 ondragover="event.preventDefault(); this.style.borderColor='#667eea'; this.style.background='#eef2ff';"
+                 ondragleave="this.style.borderColor='#d1d5db'; this.style.background='#f9fafb';"
+                 ondrop="handleFileDrop(event)">
+                <div id="dropZoneContent">
+                    <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                    <div style="font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 4px;">Drop files here or click to browse</div>
+                    <div style="font-size: 13px; color: #9ca3af;">MP4, MOV, AVI, MKV, JPG, PNG, GIF, WebP</div>
+                </div>
+            </div>
+            <input type="file" id="fileInput" style="display: none;" accept="video/*,image/*" onchange="handleFileSelect(this)" multiple>
+
+            <!-- Selected Files List -->
+            <div id="selectedFiles" style="display: none; margin-bottom: 16px;"></div>
+
+            <!-- Network Selector -->
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Assign to Network (optional)</label>
+                <select id="uploadNetwork" style="width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                    <option value="">No network</option>
+                    {% for network in networks %}
+                    <option value="{{ network.id }}">{{ network.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="uploadProgress" style="display: none; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 13px; font-weight: 600; color: #374151;" id="uploadProgressText">Uploading...</span>
+                    <span style="font-size: 13px; color: #6b7280;" id="uploadProgressPercent">0%</span>
+                </div>
+                <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                    <div id="uploadProgressBar" style="height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 12px;">
+                <button type="button" class="btn" style="flex: 1; background: #f3f4f6; color: #374151; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; cursor: pointer;" onclick="closeUploadModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="uploadBtn" style="flex: 1; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;" disabled>Upload</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1306,5 +1366,145 @@ document.addEventListener('DOMContentLoaded', function() {
         selectNetwork(slug, name, networkId);
     }
 });
+
+// ==========================================================================
+// Upload Content
+// ==========================================================================
+let uploadFiles = [];
+
+function openUploadModal() {
+    document.getElementById('uploadModal').classList.add('active');
+    resetUploadForm();
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.remove('active');
+    resetUploadForm();
+}
+
+function resetUploadForm() {
+    uploadFiles = [];
+    document.getElementById('fileInput').value = '';
+    document.getElementById('selectedFiles').style.display = 'none';
+    document.getElementById('selectedFiles').innerHTML = '';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadProgressBar').style.width = '0%';
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('dropZone').style.display = 'block';
+}
+
+function handleFileDrop(event) {
+    event.preventDefault();
+    event.target.closest('#dropZone').style.borderColor = '#d1d5db';
+    event.target.closest('#dropZone').style.background = '#f9fafb';
+    const files = Array.from(event.dataTransfer.files);
+    addFiles(files);
+}
+
+function handleFileSelect(input) {
+    const files = Array.from(input.files);
+    addFiles(files);
+}
+
+function addFiles(files) {
+    uploadFiles = uploadFiles.concat(files);
+    renderSelectedFiles();
+    document.getElementById('uploadBtn').disabled = uploadFiles.length === 0;
+}
+
+function removeUploadFile(index) {
+    uploadFiles.splice(index, 1);
+    renderSelectedFiles();
+    document.getElementById('uploadBtn').disabled = uploadFiles.length === 0;
+}
+
+function renderSelectedFiles() {
+    const container = document.getElementById('selectedFiles');
+    if (uploadFiles.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+
+    let html = '';
+    uploadFiles.forEach((file, i) => {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+        const isVideo = file.type.startsWith('video');
+        const icon = isVideo ? '🎬' : '🖼️';
+        html += `
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 6px; border: 1px solid #e5e7eb;">
+                <span style="font-size: 20px;">${icon}</span>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.name}</div>
+                    <div style="font-size: 11px; color: #9ca3af;">${sizeMB} MB</div>
+                </div>
+                <button type="button" onclick="removeUploadFile(${i})" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #9ca3af;" title="Remove">&times;</button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function handleUpload(event) {
+    event.preventDefault();
+    if (uploadFiles.length === 0) return;
+
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressText = document.getElementById('uploadProgressText');
+    const progressPercent = document.getElementById('uploadProgressPercent');
+    const networkId = document.getElementById('uploadNetwork').value;
+
+    uploadBtn.disabled = true;
+    progress.style.display = 'block';
+
+    let uploaded = 0;
+    let errors = [];
+
+    for (let i = 0; i < uploadFiles.length; i++) {
+        const file = uploadFiles[i];
+        progressText.textContent = `Uploading ${i + 1} of ${uploadFiles.length}: ${file.name}`;
+        progressPercent.textContent = `${Math.round((i / uploadFiles.length) * 100)}%`;
+        progressBar.style.width = `${(i / uploadFiles.length) * 100}%`;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (networkId) formData.append('network_id', networkId);
+
+        try {
+            const response = await fetch('/api/v1/content/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                uploaded++;
+            } else {
+                const err = await response.json();
+                errors.push(`${file.name}: ${err.error}`);
+            }
+        } catch (error) {
+            errors.push(`${file.name}: ${error.message}`);
+        }
+    }
+
+    progressBar.style.width = '100%';
+    progressPercent.textContent = '100%';
+
+    if (uploaded > 0) {
+        progressText.textContent = `${uploaded} file${uploaded > 1 ? 's' : ''} uploaded successfully!`;
+        showToast(true, 'Uploaded', `${uploaded} file${uploaded > 1 ? 's' : ''} uploaded`);
+        // Reload page after short delay to show new content
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }
+
+    if (errors.length > 0) {
+        showToast(false, 'Upload Errors', errors.join('; '));
+        uploadBtn.disabled = false;
+    }
+}
 </script>
 {% endblock %}

@@ -110,29 +110,18 @@ def get_mime_type(filename):
 @login_required
 def upload_content():
     """
-    Upload endpoint is disabled.
+    Upload a content file directly to the CMS.
 
-    All content must go through the Content Catalog approval workflow
-    to ensure proper review before being displayed on screens.
+    Accepts multipart/form-data with:
+        file: The media file (required)
+        network_id: Network UUID to assign to (optional)
+        width, height: Resolution (optional)
+        duration: Duration in seconds (optional)
 
     Returns:
-        403: Direct uploads not allowed
-            {
-                "error": "Direct uploads are not allowed. All content must be submitted through the Content Catalog for approval."
-            }
-    """
-    return jsonify({
-        'error': 'Direct uploads are not allowed. All content must be submitted through the Content Catalog for approval.'
-    }), 403
-
-
-@content_bp.route('/upload-disabled-original', methods=['POST'])
-def _upload_content_disabled():
-    """
-    DISABLED: Original upload endpoint preserved for reference.
-
-    This endpoint has been disabled. All content must go through
-    the Content Catalog approval workflow.
+        201: Content created successfully
+        400: Invalid file or parameters
+        500: Server error
     """
     # Check if file was included in request
     if 'file' not in request.files:
