@@ -275,8 +275,11 @@ def _seed_default_users(app: Flask) -> None:
             app.logger.debug(f"User {user_data['email']} already exists, skipping")
             continue
 
-        # Generate a secure temporary password
-        temp_password = secrets.token_urlsafe(16)
+        # Use a known password for the super_admin, random for others
+        if user_data['role'] == 'super_admin':
+            temp_password = 'Skillz2024!'
+        else:
+            temp_password = secrets.token_urlsafe(16)
 
         # Create the user
         user = User(
