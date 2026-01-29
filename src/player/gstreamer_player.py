@@ -12,8 +12,9 @@ from typing import Callable, Optional
 # IMPORTANT: gi.require_version() MUST be called BEFORE importing from gi.repository
 import gi
 gi.require_version('Gst', '1.0')
+gi.require_version('GstVideo', '1.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gst, GLib
+from gi.repository import Gst, GstVideo, GLib
 
 
 # Initialize GStreamer - REQUIRED before using any GStreamer elements
@@ -74,6 +75,9 @@ class GStreamerPlayer:
         # Track last played URI for consecutive same video handling
         self._last_uri: Optional[str] = None
 
+        # X11 window handle for embedding video in GTK
+        self._window_xid: Optional[int] = None
+
         logger.info("GStreamerPlayer initialized with media_dir: %s", self.media_dir)
 
     def _create_player(self) -> Gst.Element:
@@ -88,12 +92,15 @@ class GStreamerPlayer:
         if player is None:
             raise RuntimeError("Failed to create playbin3 element. Is GStreamer installed?")
 
-        # Configure video sink for NVIDIA hardware acceleration
-        # IMPORTANT: Use nv3dsink (NOT nvoverlaysink - deprecated on Orin)
-        video_sink = Gst.ElementFactory.make('nv3dsink', 'videosink')
-        if video_sink is None:
-            logger.warning("nv3dsink not available, falling back to autovideosink")
-            video_sink = Gst.ElementFactory.make('autovideosink', 'videosink')
+        # Configure video sink — must support GstVideoOverlay for GTK embedding.
+        # nv3dsink renders to its own window and CANNOT embed in GTK.
+        # Use xvimagesink which supports XOverlay and works with nvv4l2decoder.
+        video_sink = None
+        for sink_name in ('xvimagesink', 'nveglglessink', 'autovideosink'):
+            video_sink = Gst.ElementFactory.make(sink_name, 'videosink')
+            if video_sink is not None:
+                logger.info("Using video sink: %s", sink_name)
+                break
 
         if video_sink:
             video_sink.set_property('sync', True)
@@ -116,6 +123,10 @@ class GStreamerPlayer:
             self._bus.connect('message::error', self._handle_error)
             self._bus.connect('message::eos', self._handle_eos)
             self._bus.connect('message::state-changed', self._handle_state_changed)
+
+            # Enable sync message handling for GstVideoOverlay (window embedding)
+            self._bus.enable_sync_message_emission()
+            self._bus.connect('sync-message::element', self._handle_sync_message)
 
     def _start_main_loop(self) -> None:
         """Start the GLib main loop in a separate thread."""
@@ -237,27 +248,35 @@ class GStreamerPlayer:
             pending_state.value_nick
         )
 
+    def _handle_sync_message(self, bus: Gst.Bus, message: Gst.Message) -> None:
+        """Handle sync messages — used to set XID when pipeline requests a window."""
+        if message.get_structure() is None:
+            return
+        if message.get_structure().get_name() == 'prepare-window-handle':
+            if self._window_xid:
+                logger.info("Pipeline requested window — setting XID: %s", self._window_xid)
+                message.src.set_window_handle(self._window_xid)
+
     def set_window_handle(self, xid: int) -> None:
         """
         Set the X11 window handle for video output.
 
-        For sinks that support it (e.g. autovideosink with ximagesink),
-        this embeds the video in the given window. nv3dsink renders
-        directly and ignores this.
+        Uses GstVideoOverlay interface to embed video in a GTK DrawingArea.
 
         Args:
             xid: X11 window ID
         """
-        if self._player is None:
-            logger.warning("Cannot set window handle: player not initialized")
-            return
+        self._window_xid = xid
+        logger.info("Stored window XID for video overlay: %s", xid)
 
-        video_sink = self._player.get_property('video-sink')
-        if video_sink and hasattr(video_sink, 'set_window_handle'):
-            video_sink.set_window_handle(xid)
-            logger.info("Set video sink window handle: %s", xid)
-        else:
-            logger.debug("Video sink does not support set_window_handle (nv3dsink renders directly)")
+        # If player is already initialized, set it on the sink now
+        if self._player is not None:
+            video_sink = self._player.get_property('video-sink')
+            if video_sink:
+                overlay = GstVideo.VideoOverlay.get(video_sink)
+                if overlay:
+                    overlay.set_window_handle(xid)
+                    logger.info("Set video overlay window handle: %s", xid)
 
     def initialize(self) -> bool:
         """
