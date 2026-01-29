@@ -20,7 +20,8 @@ from gi.repository import Gst, GLib
 Gst.init(None)
 
 
-logger = logging.getLogger(__name__)
+from src.common.logger import setup_logger
+logger = setup_logger(__name__)
 
 
 class PlayerState(Enum):
