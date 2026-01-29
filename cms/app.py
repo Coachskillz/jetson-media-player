@@ -320,6 +320,7 @@ def _seed_demo_content(app: Flask) -> None:
         from cms.models.playlist import Playlist, PlaylistItem
         from cms.models.folder import Folder
         from cms.models.device import Device
+        from cms.models.device_assignment import DeviceAssignment
     except ImportError:
         app.logger.debug('Models not available yet, skipping demo content seeding')
         return
@@ -446,7 +447,27 @@ def _seed_demo_content(app: Flask) -> None:
             store_phone='3145551212',
         )
         db.session.add(device)
+        db.session.flush()
         app.logger.info("Seeded device: skillz-desktop (SKZ-D-0001)")
+
+    # --- Device Assignment (link Demo Playlist to device) ---
+    device = Device.query.filter_by(device_id='SKZ-D-0001').first()
+    playlist = Playlist.query.filter_by(name='Demo Playlist').first()
+    if device and playlist:
+        existing_assignment = DeviceAssignment.query.filter_by(
+            device_id=device.id, playlist_id=playlist.id
+        ).first()
+        if not existing_assignment:
+            assignment = DeviceAssignment(
+                id=str(_uuid.uuid4()),
+                device_id=device.id,
+                playlist_id=playlist.id,
+                trigger_type='default',
+                priority=0,
+                is_enabled=True,
+            )
+            db.session.add(assignment)
+            app.logger.info("Seeded device assignment: Demo Playlist -> skillz-desktop")
 
     try:
         db.session.commit()
