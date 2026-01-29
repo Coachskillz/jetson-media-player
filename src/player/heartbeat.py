@@ -24,19 +24,25 @@ class HeartbeatReporter:
         self,
         hub_url: str = "http://192.168.1.100:5000",
         screen_id: str = "",
-        interval: int = DEFAULT_INTERVAL
+        interval: int = DEFAULT_INTERVAL,
+        connection_mode: str = "hub",
+        hardware_id: str = ""
     ):
         """
         Initialize heartbeat reporter.
 
         Args:
-            hub_url: URL of the local hub
-            screen_id: Unique screen identifier
+            hub_url: URL of the local hub or CMS (in direct mode)
+            screen_id: Unique screen identifier (used in hub mode)
             interval: Seconds between heartbeats (default: 60)
+            connection_mode: 'hub' or 'direct' - determines URL format
+            hardware_id: Device hardware ID (used in direct mode)
         """
         self.hub_url = hub_url
         self.screen_id = screen_id
         self.interval = interval
+        self.connection_mode = connection_mode
+        self.hardware_id = hardware_id
 
         self._running = False
         self._thread: Optional[threading.Thread] = None
@@ -172,20 +178,30 @@ class HeartbeatReporter:
 
     def send_heartbeat(self) -> bool:
         """
-        Send heartbeat to hub.
+        Send heartbeat to hub or CMS.
+
+        In hub mode: POST {hub_url}/api/v1/screens/{screen_id}/heartbeat
+        In direct mode: POST {cms_url}/api/v1/devices/{hardware_id}/heartbeat
 
         Returns:
             True if heartbeat was sent successfully, False otherwise
         """
-        if not self.screen_id:
-            logger.warning("Cannot send heartbeat: no screen_id configured")
-            return False
+        if self.connection_mode == 'direct':
+            if not self.hardware_id:
+                logger.warning("Cannot send heartbeat: no hardware_id configured")
+                return False
+            url = f"{self.hub_url}/api/v1/devices/{self.hardware_id}/heartbeat"
+        else:
+            if not self.screen_id:
+                logger.warning("Cannot send heartbeat: no screen_id configured")
+                return False
+            url = f"{self.hub_url}/api/v1/screens/{self.screen_id}/heartbeat"
 
         metrics = self.collect_metrics()
 
         try:
             response = requests.post(
-                f"{self.hub_url}/api/v1/screens/{self.screen_id}/heartbeat",
+                url,
                 json=metrics,
                 timeout=10
             )

@@ -270,7 +270,9 @@ class KioskPlayer:
             self._heartbeat = HeartbeatReporter(
                 hub_url=heartbeat_url,
                 screen_id=self._config.screen_id,
-                interval=self._heartbeat_interval
+                interval=self._heartbeat_interval,
+                connection_mode=self._config.connection_mode,
+                hardware_id=self._config.hardware_id
             )
             self._heartbeat.set_status_callback(self._get_playback_status)
 
