@@ -1066,7 +1066,7 @@ def get_device_playlist(hardware_id):
         if assignment.is_enabled and assignment.playlist:
             for item in assignment.playlist.items:
                 if item.content:
-                    items.append({'url': f"/api/v1/content/{item.content.id}/download", 'filename': item.content.filename, 'duration': item.duration_override or 10})
+                    items.append({'content_id': item.content.id, 'url': f"/api/v1/content/{item.content.id}/download", 'filename': item.content.filename, 'duration': item.duration_override or item.content.duration or 10})
     return jsonify({'device_id': device.device_id, 'status': device.status, 'items': items}), 200
 
 

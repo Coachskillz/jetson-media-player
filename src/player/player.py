@@ -243,8 +243,10 @@ class SkillzPlayer:
             True if initialization successful, False otherwise
         """
         try:
+            # Use cms_url in direct mode, hub_url in hub mode
+            heartbeat_url = self._config.cms_url if self._config.connection_mode == 'direct' else self._config.hub_url
             self._heartbeat = HeartbeatReporter(
-                hub_url=self._config.hub_url,
+                hub_url=heartbeat_url,
                 screen_id=self._config.screen_id,
                 interval=self._heartbeat_interval
             )
