@@ -254,8 +254,10 @@ def request_pairing_code():
         db.session.add(device)
         db.session.commit()
     else:
-        # Update pairing code and IP address
+        # Device is re-requesting pairing — reset to pending
         existing_device.pairing_code = pairing_code
+        existing_device.status = 'pending'
+        existing_device.network_id = None
         ip_address = data.get('ip_address')
         if ip_address:
             existing_device.ip_address = ip_address
