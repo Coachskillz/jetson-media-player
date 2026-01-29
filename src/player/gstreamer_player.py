@@ -12,9 +12,8 @@ from typing import Callable, Optional
 # IMPORTANT: gi.require_version() MUST be called BEFORE importing from gi.repository
 import gi
 gi.require_version('Gst', '1.0')
-gi.require_version('GstVideo', '1.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gst, GstVideo, GLib
+from gi.repository import Gst, GLib
 
 
 # Initialize GStreamer - REQUIRED before using any GStreamer elements
@@ -272,11 +271,9 @@ class GStreamerPlayer:
         # If player is already initialized, set it on the sink now
         if self._player is not None:
             video_sink = self._player.get_property('video-sink')
-            if video_sink:
-                overlay = GstVideo.VideoOverlay.get(video_sink)
-                if overlay:
-                    overlay.set_window_handle(xid)
-                    logger.info("Set video overlay window handle: %s", xid)
+            if video_sink and hasattr(video_sink, 'set_window_handle'):
+                video_sink.set_window_handle(xid)
+                logger.info("Set video overlay window handle: %s", xid)
 
     def initialize(self) -> bool:
         """
