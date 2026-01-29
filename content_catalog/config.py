@@ -51,7 +51,7 @@ class Config:
     ALLOWED_EXTENSIONS = ALLOWED_VIDEO_EXTENSIONS | ALLOWED_IMAGE_EXTENSIONS
 
     # Server Settings
-    PORT = int(os.environ.get('CONTENT_CATALOG_PORT', 5003))
+    PORT = int(os.environ.get('PORT', os.environ.get('CONTENT_CATALOG_PORT', 5003)))
     HOST = os.environ.get('CONTENT_CATALOG_HOST', '0.0.0.0')
 
     # JWT Settings

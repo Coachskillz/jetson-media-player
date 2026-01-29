@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zone Editor Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: #2d2d35;
+            border-bottom: 1px solid #3d3d45;
+        }
+        .toolbar h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: auto;
+        }
+        .btn {
+            padding: 8px 16px;
+            background: #00D4AA;
+            color: #1a1a1f;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn.secondary {
+            background: #3d3d45;
+            color: #fff;
+        }
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #editor-container {
+            flex: 1;
+            background: #1a1a2e;
+        }
+        .properties {
+            width: 300px;
+            background: #2d2d35;
+            border-left: 1px solid #3d3d45;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .properties h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .prop-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .prop-label {
+            width: 80px;
+            font-size: 13px;
+            color: #888;
+        }
+        .prop-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #3d3d45;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 13px;
+        }
+        .prop-input:focus {
+            outline: none;
+            border-color: #00D4AA;
+        }
+        .no-selection {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        #zone-props {
+            display: none;
+        }
+        .pixels-info {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #3d3d45;
+            font-size: 11px;
+            color: #666;
+        }
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .zoom-controls select {
+            padding: 6px 10px;
+            background: #3d3d45;
+            border: 1px solid #4d4d55;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="toolbar">
+            <h1>Zone Editor Test</h1>
+            <button class="btn" id="add-zone">+ Add Zone</button>
+            <button class="btn secondary" id="delete-zone">Delete</button>
+            <div class="zoom-controls">
+                <span style="color: #888; font-size: 13px;">Zoom:</span>
+                <select id="zoom-select">
+                    <option value="0.25">25%</option>
+                    <option value="0.5" selected>50%</option>
+                    <option value="0.75">75%</option>
+                    <option value="1">100%</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="editor-container"></div>
+
+            <div class="properties">
+                <h2>Zone Properties</h2>
+
+                <div class="no-selection" id="no-selection">
+                    Click a zone to select it
+                </div>
+
+                <div id="zone-props">
+                    <div class="prop-row">
+                        <span class="prop-label">Name</span>
+                        <input type="text" class="prop-input" id="prop-name">
+                    </div>
+                    <div class="prop-row">
+                        <span class="prop-label">Left (%)</span>
+                        <input type="number" class="prop-input" id="prop-left" step="0.1" min="0" max="100">
+                    </div>
+                    <div class="prop-row">
+                        <span class="prop-label">Top (%)</span>
+                        <input type="number" class="prop-input" id="prop-top" step="0.1" min="0" max="100">
+                    </div>
+                    <div class="prop-row">
+                        <span class="prop-label">Width (%)</span>
+                        <input type="number" class="prop-input" id="prop-width" step="0.1" min="1" max="100">
+                    </div>
+                    <div class="prop-row">
+                        <span class="prop-label">Height (%)</span>
+                        <input type="number" class="prop-input" id="prop-height" step="0.1" min="1" max="100">
+                    </div>
+                    <div class="pixels-info" id="pixels-info">
+                        Pixels: 0, 0 - 1920 x 1080
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/zone-editor.js"></script>
+    <script>
+        // Initialize the zone editor
+        const editor = new ZoneEditor({
+            container: document.getElementById('editor-container'),
+            canvasWidth: 1920,
+            canvasHeight: 1080,
+            zoom: 0.5,
+            onChange: (zones) => {
+                console.log('Zones changed:', zones);
+            },
+            onSelect: (zone) => {
+                updatePropertiesPanel(zone);
+            }
+        });
+
+        // Add initial zones
+        editor.setZones([
+            { id: '1', x: 0, y: 0, width: 960, height: 540, name: 'Zone 1' },
+            { id: '2', x: 960, y: 0, width: 960, height: 1080, name: 'Zone 2' }
+        ]);
+
+        // Properties panel elements
+        const noSelection = document.getElementById('no-selection');
+        const zoneProps = document.getElementById('zone-props');
+        const propName = document.getElementById('prop-name');
+        const propLeft = document.getElementById('prop-left');
+        const propTop = document.getElementById('prop-top');
+        const propWidth = document.getElementById('prop-width');
+        const propHeight = document.getElementById('prop-height');
+        const pixelsInfo = document.getElementById('pixels-info');
+
+        // Update properties panel
+        function updatePropertiesPanel(zone) {
+            if (!zone) {
+                noSelection.style.display = 'block';
+                zoneProps.style.display = 'none';
+                return;
+            }
+
+            noSelection.style.display = 'none';
+            zoneProps.style.display = 'block';
+
+            propName.value = zone.name;
+            propLeft.value = zone.x.toFixed(1);
+            propTop.value = zone.y.toFixed(1);
+            propWidth.value = zone.width.toFixed(1);
+            propHeight.value = zone.height.toFixed(1);
+
+            // Calculate pixel values
+            const px = Math.round((zone.x / 100) * 1920);
+            const py = Math.round((zone.y / 100) * 1080);
+            const pw = Math.round((zone.width / 100) * 1920);
+            const ph = Math.round((zone.height / 100) * 1080);
+            pixelsInfo.textContent = `Pixels: ${px}, ${py} - ${pw} x ${ph}`;
+        }
+
+        // Bind property inputs
+        propName.addEventListener('change', () => {
+            const zone = editor.getSelectedZone();
+            if (zone) editor.updateZone(zone.id, { name: propName.value });
+        });
+
+        propLeft.addEventListener('input', () => {
+            const zone = editor.getSelectedZone();
+            if (zone) {
+                editor.updateZone(zone.id, { x: parseFloat(propLeft.value) || 0 });
+                updatePropertiesPanel(editor.getSelectedZone());
+            }
+        });
+
+        propTop.addEventListener('input', () => {
+            const zone = editor.getSelectedZone();
+            if (zone) {
+                editor.updateZone(zone.id, { y: parseFloat(propTop.value) || 0 });
+                updatePropertiesPanel(editor.getSelectedZone());
+            }
+        });
+
+        propWidth.addEventListener('input', () => {
+            const zone = editor.getSelectedZone();
+            if (zone) {
+                editor.updateZone(zone.id, { width: parseFloat(propWidth.value) || 1 });
+                updatePropertiesPanel(editor.getSelectedZone());
+            }
+        });
+
+        propHeight.addEventListener('input', () => {
+            const zone = editor.getSelectedZone();
+            if (zone) {
+                editor.updateZone(zone.id, { height: parseFloat(propHeight.value) || 1 });
+                updatePropertiesPanel(editor.getSelectedZone());
+            }
+        });
+
+        // Toolbar buttons
+        document.getElementById('add-zone').addEventListener('click', () => {
+            editor.addZone();
+        });
+
+        document.getElementById('delete-zone').addEventListener('click', () => {
+            const zone = editor.getSelectedZone();
+            if (zone) editor.removeZone(zone.id);
+        });
+
+        document.getElementById('zoom-select').addEventListener('change', (e) => {
+            editor.setZoom(parseFloat(e.target.value));
+        });
+    </script>
+</body>
+</html>
