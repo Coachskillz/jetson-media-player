@@ -85,8 +85,19 @@ class KioskWindow(Gtk.Window):
         # Remove window decorations
         self.set_decorated(False)
 
+        # Skip the window manager taskbar/pager
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+
         # Always on top of other windows
         self.set_keep_above(True)
+
+        # Set explicit size to full screen before requesting fullscreen
+        screen = Gdk.Screen.get_default()
+        if screen:
+            self.set_default_size(screen.get_width(), screen.get_height())
+            self.move(0, 0)
+            self.resize(screen.get_width(), screen.get_height())
 
         # Set to fullscreen
         self.fullscreen()
@@ -102,6 +113,23 @@ class KioskWindow(Gtk.Window):
 
         # Connect realize signal to hide cursor after window is shown
         self.connect('realize', self._on_realize)
+
+        # After window is mapped, re-assert fullscreen and raise above all
+        self.connect('map-event', self._on_map_event)
+
+    def _on_map_event(self, widget, event) -> bool:
+        """Re-assert fullscreen and raise above desktop after window is mapped."""
+        import subprocess as _sp
+        try:
+            _sp.Popen(
+                ['bash', '-c',
+                 'sleep 1; DISPLAY=:0 wmctrl -r "Skillz Media Player" -b add,fullscreen,above; '
+                 'DISPLAY=:0 wmctrl -a "Skillz Media Player"'],
+                stdout=_sp.DEVNULL, stderr=_sp.DEVNULL
+            )
+        except Exception:
+            pass
+        return False
 
     def _setup_input_handlers(self) -> None:
         """Set up keyboard and mouse input handlers."""
