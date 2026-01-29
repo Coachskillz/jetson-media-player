@@ -949,6 +949,9 @@
                 <button class="btn btn-primary save-playlist-btn" id="savePlaylistBtn" onclick="savePlaylist()" title="Save playlist to server" style="padding: 8px 20px; font-size: 14px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 6px;">
                     <span id="savePlaylistIcon">💾</span> Save Playlist
                 </button>
+                <button class="btn" id="previewPlaylistBtn" onclick="previewPlaylist()" title="Preview playlist" style="padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; display: flex; align-items: center; gap: 6px; background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
+                    <span>▶️</span> Preview
+                </button>
                 <button class="playlist-action-btn" title="Refresh" onclick="if(currentPlaylistId) loadPlaylist(currentPlaylistId)">🔄</button>
                 <button class="playlist-action-btn" title="Delete" onclick="if(currentPlaylistId) deletePlaylist(currentPlaylistId, document.getElementById('playlistName').value)">🗑️</button>
             </div>
@@ -1024,7 +1027,7 @@
 
             <!-- Approved Assets -->
             <div class="asset-list" id="assetList" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
-                {% for item in content if item.status == 'approved' %}
+                {% for item in content if item.status in ['approved', 'published'] or item.status is none %}
                 <div class="asset-item"
                      data-id="{{ item.id }}"
                      data-title="{{ item.original_name }}"
@@ -1261,6 +1264,43 @@
     </div>
 </div>
 
+<!-- Playlist Preview Modal -->
+<div class="modal" id="playlistPreviewModal">
+    <div class="modal-content" style="max-width: 900px; padding: 0; overflow: hidden;">
+        <div class="modal-header" style="padding: 12px 20px; margin: 0; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="previewPlaylistTitle" style="margin: 0;">Playlist Preview</h3>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="previewNowPlaying" style="font-size: 13px; color: #6b7280;"></span>
+                <button class="close-btn" onclick="closePlaylistPreview()">&times;</button>
+            </div>
+        </div>
+        <div style="background: #000; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative;">
+            <div id="playlistPreviewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 64px; color: #333;">▶️</span>
+            </div>
+            <!-- Progress bar -->
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.2);">
+                <div id="previewItemProgress" style="height: 100%; background: #667eea; width: 0%; transition: width 0.1s linear;"></div>
+            </div>
+        </div>
+        <div style="padding: 12px 20px; background: #f9fafb; border-top: 1px solid #e5e7eb;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button id="previewPrevBtn" onclick="previewPrev()" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 16px;">⏮</button>
+                    <button id="previewPlayPauseBtn" onclick="previewPlayPause()" style="width: 44px; height: 44px; border-radius: 50%; border: none; background: #667eea; color: white; cursor: pointer; font-size: 20px;">⏸</button>
+                    <button id="previewNextBtn" onclick="previewNext()" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 16px;">⏭</button>
+                </div>
+                <div style="text-align: right;">
+                    <div id="previewItemTitle" style="font-size: 14px; font-weight: 600; color: #111827;">--</div>
+                    <div id="previewItemCounter" style="font-size: 12px; color: #6b7280;">Item 0 of 0</div>
+                </div>
+            </div>
+            <!-- Playlist item thumbnails strip -->
+            <div id="previewItemStrip" style="display: flex; gap: 4px; margin-top: 12px; overflow-x: auto; padding: 4px 0;"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Create Folder Modal -->
 <div class="modal" id="createFolderModal">
     <div class="modal-content" style="max-width: 400px;">
@@ -1425,12 +1465,14 @@ async function loadPlaylist(playlistId) {
                 id: item.id || Date.now().toString(),
                 contentId: item.content_id,
                 syncedContentId: item.synced_content_id || null,
-                title: item.content?.title || item.title || 'Unknown',
-                duration: item.duration || item.content?.duration || 0,
+                title: item.content?.title || item.content?.original_name || item.title || 'Unknown',
+                duration: item.duration_override || item.content?.duration || 10,
+                durationOverride: item.duration_override || null,
                 size: item.content?.file_size || 0,
                 filename: item.content?.local_filename || item.content?.filename || '',
                 type: item.content?.content_type || 'video',
-                thumbnail: item.content?.thumbnail_url || null
+                thumbnail: item.content?.thumbnail_url || null,
+                source: item.synced_content_id ? 'synced' : 'local'
             }));
 
             renderPlaylistItems();
@@ -1857,7 +1899,7 @@ function renderPlaylistItems() {
                     <div class="item-name">${item.title}</div>
                     <div class="item-type">📄</div>
                 </div>
-                <div class="item-duration">${item.duration.toFixed(2)}<span class="unit">sec</span></div>
+                <div class="item-duration">${Number(item.duration || 0).toFixed(2)}<span class="unit">sec</span></div>
                 <span class="item-status">✓</span>
                 <div class="item-actions">
                     <button class="item-action-btn" onclick="openItemSettings(${index})" title="Settings">⚙️</button>
@@ -2560,6 +2602,256 @@ async function archivePlaylist(playlistId, playlistName) {
     } catch (error) {
         showToast(false, 'Error', 'Connection error');
     }
+}
+
+// ========================================
+// Playlist Preview Player
+// ========================================
+
+let previewItems = [];
+let previewCurrentIndex = 0;
+let previewPlaying = false;
+let previewTimer = null;
+let previewProgressInterval = null;
+let previewItemStartTime = 0;
+
+async function previewPlaylist() {
+    if (!currentPlaylistId) {
+        showToast(false, 'Error', 'Save the playlist first to preview it');
+        return;
+    }
+
+    if (playlistItems.length === 0) {
+        showToast(false, 'Error', 'Add content items to the playlist before previewing');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/playlists/${currentPlaylistId}/preview`, {
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            showToast(false, 'Error', data.error || 'Failed to load preview');
+            return;
+        }
+
+        const data = await response.json();
+        previewItems = (data.items || []).filter(item => item.content);
+
+        if (previewItems.length === 0) {
+            showToast(false, 'Error', 'No playable content in this playlist');
+            return;
+        }
+
+        // Update modal title
+        document.getElementById('previewPlaylistTitle').textContent = `Preview: ${data.name}`;
+
+        // Build item strip thumbnails
+        const strip = document.getElementById('previewItemStrip');
+        strip.innerHTML = previewItems.map((item, i) => {
+            const ct = item.content.content_type || 'unknown';
+            const icon = ct === 'video' ? '🎬' : ct === 'image' ? '🖼' : '📄';
+            const title = item.content.title || item.content.original_name || 'Item';
+            const shortTitle = title.length > 12 ? title.substring(0, 12) + '...' : title;
+            return `<div class="preview-strip-item" data-index="${i}" onclick="previewGoTo(${i})"
+                         style="flex: 0 0 80px; text-align: center; padding: 6px 4px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; background: ${i === 0 ? '#eef2ff' : '#f3f4f6'}; ${i === 0 ? 'border-color: #667eea;' : ''}">
+                        <span style="font-size: 20px; display: block;">${icon}</span>
+                        <span style="font-size: 10px; color: #374151; display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${shortTitle}</span>
+                        <span style="font-size: 9px; color: #9ca3af;">${Number(item.effective_duration || 0).toFixed(0)}s</span>
+                    </div>`;
+        }).join('');
+
+        // Start playback
+        previewCurrentIndex = 0;
+        previewPlaying = true;
+        document.getElementById('previewPlayPauseBtn').textContent = '⏸';
+        document.getElementById('playlistPreviewModal').classList.add('active');
+        previewShowItem(0);
+
+    } catch (error) {
+        showToast(false, 'Error', 'Connection error loading preview');
+    }
+}
+
+function previewShowItem(index) {
+    if (index < 0 || index >= previewItems.length) return;
+
+    previewCurrentIndex = index;
+    const item = previewItems[index];
+    const content = item.content;
+    const contentType = content.content_type || 'unknown';
+    const filename = content.filename || content.original_name;
+    const contentUrl = `/admin/assets/${filename}`;
+    const title = content.title || content.original_name || 'Unknown';
+    const duration = item.effective_duration || item.duration_override || content.duration || 10;
+
+    // Update info
+    document.getElementById('previewItemTitle').textContent = title;
+    document.getElementById('previewItemCounter').textContent = `Item ${index + 1} of ${previewItems.length}`;
+    document.getElementById('previewNowPlaying').textContent = `${index + 1}/${previewItems.length}`;
+
+    // Highlight active item in strip
+    document.querySelectorAll('.preview-strip-item').forEach((el, i) => {
+        el.style.background = i === index ? '#eef2ff' : '#f3f4f6';
+        el.style.borderColor = i === index ? '#667eea' : 'transparent';
+    });
+
+    // Scroll strip item into view
+    const stripItem = document.querySelector(`.preview-strip-item[data-index="${index}"]`);
+    if (stripItem) stripItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // Clear any existing timers
+    clearTimeout(previewTimer);
+    clearInterval(previewProgressInterval);
+    document.getElementById('previewItemProgress').style.width = '0%';
+
+    const container = document.getElementById('playlistPreviewContainer');
+
+    if (contentType === 'video') {
+        container.innerHTML = `
+            <video id="playlistPreviewVideo" autoplay style="width: 100%; height: 100%; object-fit: contain;">
+                <source src="${contentUrl}" type="video/mp4">
+            </video>`;
+
+        const video = document.getElementById('playlistPreviewVideo');
+        if (!previewPlaying) video.pause();
+
+        video.addEventListener('ended', () => {
+            previewAdvance();
+        });
+
+        // Progress bar for video
+        video.addEventListener('loadedmetadata', () => {
+            previewProgressInterval = setInterval(() => {
+                if (video.duration > 0) {
+                    const pct = (video.currentTime / video.duration) * 100;
+                    document.getElementById('previewItemProgress').style.width = pct + '%';
+                }
+            }, 100);
+        });
+
+        video.addEventListener('error', () => {
+            container.innerHTML = `<div style="color: #ef4444; text-align: center;"><span style="font-size: 48px; display: block;">⚠</span><p>Failed to load video</p></div>`;
+            previewStartImageTimer(duration);
+        });
+
+    } else if (contentType === 'image') {
+        container.innerHTML = `<img src="${contentUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain;">`;
+        if (previewPlaying) {
+            previewStartImageTimer(duration);
+        }
+    } else {
+        container.innerHTML = `<div style="text-align: center; color: #9ca3af;"><span style="font-size: 64px; display: block; margin-bottom: 12px;">📄</span><p>${title}</p></div>`;
+        if (previewPlaying) {
+            previewStartImageTimer(duration);
+        }
+    }
+}
+
+function previewStartImageTimer(duration) {
+    const durationMs = (duration || 10) * 1000;
+    previewItemStartTime = Date.now();
+
+    previewProgressInterval = setInterval(() => {
+        const elapsed = Date.now() - previewItemStartTime;
+        const pct = Math.min((elapsed / durationMs) * 100, 100);
+        document.getElementById('previewItemProgress').style.width = pct + '%';
+    }, 50);
+
+    previewTimer = setTimeout(() => {
+        clearInterval(previewProgressInterval);
+        previewAdvance();
+    }, durationMs);
+}
+
+function previewAdvance() {
+    clearTimeout(previewTimer);
+    clearInterval(previewProgressInterval);
+
+    if (previewCurrentIndex < previewItems.length - 1) {
+        previewShowItem(previewCurrentIndex + 1);
+    } else {
+        // Loop back to start
+        previewShowItem(0);
+    }
+}
+
+function previewPlayPause() {
+    previewPlaying = !previewPlaying;
+    document.getElementById('previewPlayPauseBtn').textContent = previewPlaying ? '⏸' : '▶';
+
+    const video = document.getElementById('playlistPreviewVideo');
+    if (video) {
+        if (previewPlaying) {
+            video.play();
+        } else {
+            video.pause();
+        }
+    }
+
+    // For image/other items, pause or resume the timer
+    const item = previewItems[previewCurrentIndex];
+    const contentType = item?.content?.content_type || 'unknown';
+
+    if (contentType !== 'video') {
+        if (previewPlaying) {
+            // Resume - recalculate remaining time
+            const duration = item.effective_duration || 10;
+            const elapsed = Date.now() - previewItemStartTime;
+            const remaining = Math.max((duration * 1000) - elapsed, 500);
+
+            previewProgressInterval = setInterval(() => {
+                const totalElapsed = Date.now() - previewItemStartTime;
+                const pct = Math.min((totalElapsed / (duration * 1000)) * 100, 100);
+                document.getElementById('previewItemProgress').style.width = pct + '%';
+            }, 50);
+
+            previewTimer = setTimeout(() => {
+                clearInterval(previewProgressInterval);
+                previewAdvance();
+            }, remaining);
+        } else {
+            clearTimeout(previewTimer);
+            clearInterval(previewProgressInterval);
+        }
+    }
+}
+
+function previewPrev() {
+    if (previewCurrentIndex > 0) {
+        previewShowItem(previewCurrentIndex - 1);
+    } else {
+        previewShowItem(previewItems.length - 1);
+    }
+}
+
+function previewNext() {
+    previewAdvance();
+}
+
+function previewGoTo(index) {
+    previewShowItem(index);
+}
+
+function closePlaylistPreview() {
+    previewPlaying = false;
+    clearTimeout(previewTimer);
+    clearInterval(previewProgressInterval);
+
+    // Stop any playing video
+    const video = document.getElementById('playlistPreviewVideo');
+    if (video) {
+        video.pause();
+        video.src = '';
+    }
+
+    document.getElementById('playlistPreviewModal').classList.remove('active');
+    document.getElementById('playlistPreviewContainer').innerHTML = '<span style="font-size: 64px; color: #333;">▶️</span>';
+    document.getElementById('previewItemProgress').style.width = '0%';
+    previewItems = [];
+    previewCurrentIndex = 0;
 }
 </script>
 {% endblock %}
