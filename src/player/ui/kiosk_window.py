@@ -30,6 +30,10 @@ class KioskWindow(Gtk.Window):
     # Spec requires minimum 100x100px zones
     CORNER_TAP_SIZE = 100
 
+    # Multi-tap to minimize
+    TRIPLE_TAP_COUNT = 10
+    TRIPLE_TAP_WINDOW_MS = 5000
+
     def __init__(
         self,
         title: str = "Skillz Media Player",
@@ -46,6 +50,8 @@ class KioskWindow(Gtk.Window):
 
         self._on_menu_toggle = on_menu_toggle
         self._cursor_hidden = False
+        self._tap_timestamps = []
+        self._minimized = False
 
         # Configure window for kiosk mode
         self._setup_window()
@@ -147,7 +153,7 @@ class KioskWindow(Gtk.Window):
     def _on_button_press(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
         """
         Handle mouse/touch press events.
-        Detects corner taps for menu toggle.
+        Triple-tap anywhere minimizes/restores. Corner taps toggle menu.
 
         Args:
             widget: The widget
@@ -156,6 +162,20 @@ class KioskWindow(Gtk.Window):
         Returns:
             True if event was handled, False otherwise
         """
+        now = GLib.get_monotonic_time() // 1000  # microseconds to ms
+
+        # Track tap for triple-tap detection
+        self._tap_timestamps.append(now)
+        self._tap_timestamps = [
+            t for t in self._tap_timestamps
+            if (now - t) <= self.TRIPLE_TAP_WINDOW_MS
+        ]
+
+        if len(self._tap_timestamps) >= self.TRIPLE_TAP_COUNT:
+            self._tap_timestamps.clear()
+            self._toggle_minimize()
+            return True
+
         # Get window size
         allocation = self.get_allocation()
         width = allocation.width
@@ -174,6 +194,21 @@ class KioskWindow(Gtk.Window):
             return True
 
         return False
+
+    def _toggle_minimize(self) -> None:
+        """Toggle between minimized (iconified) and fullscreen."""
+        if self._minimized:
+            logger.info("Restoring fullscreen")
+            self.deiconify()
+            self.fullscreen()
+            self.set_keep_above(True)
+            self._minimized = False
+        else:
+            logger.info("Minimizing window")
+            self.set_keep_above(False)
+            self.unfullscreen()
+            self.iconify()
+            self._minimized = True
 
     def _on_destroy(self, widget: Gtk.Widget) -> None:
         """Handle window destroy."""

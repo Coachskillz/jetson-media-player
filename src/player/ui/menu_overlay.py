@@ -44,6 +44,8 @@ class MenuOverlay(Gtk.Box):
         on_refresh: Optional[Callable[[], None]] = None,
         on_exit: Optional[Callable[[], None]] = None,
         on_camera_toggle: Optional[Callable[[bool], None]] = None,
+        on_camera1_toggle: Optional[Callable[[bool], None]] = None,
+        on_camera2_toggle: Optional[Callable[[bool], None]] = None,
         on_restart: Optional[Callable[[], None]] = None
     ):
         """
@@ -54,7 +56,9 @@ class MenuOverlay(Gtk.Box):
             on_re_pair: Callback when re-pair is requested
             on_refresh: Callback when manual refresh is requested
             on_exit: Callback when exit is requested (exits the application)
-            on_camera_toggle: Callback when camera is toggled (bool = new state)
+            on_camera_toggle: Legacy callback (maps to camera1)
+            on_camera1_toggle: Callback when Camera 1 (Demographics) is toggled
+            on_camera2_toggle: Callback when Camera 2 (NCMEC Safety) is toggled
             on_restart: Callback when restart is requested (deprecated, use on_refresh)
         """
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=15)
@@ -63,7 +67,8 @@ class MenuOverlay(Gtk.Box):
         self._on_re_pair = on_re_pair
         self._on_refresh = on_refresh or on_restart  # Support legacy on_restart
         self._on_exit = on_exit
-        self._on_camera_toggle = on_camera_toggle
+        self._on_camera1_toggle = on_camera1_toggle or on_camera_toggle
+        self._on_camera2_toggle = on_camera2_toggle
 
         # Device info storage
         self._device_info: Dict[str, Any] = {}
@@ -178,19 +183,33 @@ class MenuOverlay(Gtk.Box):
         settings_box.set_margin_top(10)
         settings_box.set_margin_bottom(10)
 
-        # Camera toggle
-        camera_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        camera_label = Gtk.Label(label="Camera Enabled:")
-        camera_label.override_color(Gtk.StateFlags.NORMAL, self.TEXT_COLOR)
-        camera_label.set_halign(Gtk.Align.START)
-        camera_row.pack_start(camera_label, True, True, 0)
+        # Camera 1 toggle (Demographics / Commercial)
+        camera1_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        camera1_label = Gtk.Label(label="Camera 1 (Demographics):")
+        camera1_label.override_color(Gtk.StateFlags.NORMAL, self.TEXT_COLOR)
+        camera1_label.set_halign(Gtk.Align.START)
+        camera1_row.pack_start(camera1_label, True, True, 0)
 
-        self._camera_switch = Gtk.Switch()
-        self._camera_switch.set_active(True)
-        self._camera_switch.connect('notify::active', self._on_camera_toggled)
-        camera_row.pack_end(self._camera_switch, False, False, 0)
+        self._camera1_switch = Gtk.Switch()
+        self._camera1_switch.set_active(True)
+        self._camera1_switch.connect('notify::active', self._on_camera1_toggled)
+        camera1_row.pack_end(self._camera1_switch, False, False, 0)
 
-        settings_box.pack_start(camera_row, False, False, 0)
+        settings_box.pack_start(camera1_row, False, False, 0)
+
+        # Camera 2 toggle (NCMEC Safety)
+        camera2_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        camera2_label = Gtk.Label(label="Camera 2 (NCMEC Safety):")
+        camera2_label.override_color(Gtk.StateFlags.NORMAL, self.TEXT_COLOR)
+        camera2_label.set_halign(Gtk.Align.START)
+        camera2_row.pack_start(camera2_label, True, True, 0)
+
+        self._camera2_switch = Gtk.Switch()
+        self._camera2_switch.set_active(True)
+        self._camera2_switch.connect('notify::active', self._on_camera2_toggled)
+        camera2_row.pack_end(self._camera2_switch, False, False, 0)
+
+        settings_box.pack_start(camera2_row, False, False, 0)
 
         settings_frame.add(settings_box)
         self.pack_start(settings_frame, False, False, 5)
@@ -220,7 +239,7 @@ class MenuOverlay(Gtk.Box):
         self.pack_start(button_box, False, False, 5)
 
         # Keyboard hint
-        hint_label = Gtk.Label(label="Press Escape or tap top-right corner to close")
+        hint_label = Gtk.Label(label="Press Escape or tap any corner to close")
         hint_label.override_color(Gtk.StateFlags.NORMAL, self.SECONDARY_COLOR)
         hint_label.override_font(Pango.FontDescription("Sans Italic 10"))
         hint_label.set_margin_top(15)
@@ -292,12 +311,19 @@ class MenuOverlay(Gtk.Box):
         if self._on_exit:
             self._on_exit()
 
-    def _on_camera_toggled(self, switch: Gtk.Switch, gparam) -> None:
-        """Handle camera toggle switch."""
+    def _on_camera1_toggled(self, switch: Gtk.Switch, gparam) -> None:
+        """Handle Camera 1 (Demographics) toggle switch."""
         new_state = switch.get_active()
-        logger.info("Camera toggled: %s", "enabled" if new_state else "disabled")
-        if self._on_camera_toggle:
-            self._on_camera_toggle(new_state)
+        logger.info("Camera 1 (Demographics) toggled: %s", "enabled" if new_state else "disabled")
+        if self._on_camera1_toggle:
+            self._on_camera1_toggle(new_state)
+
+    def _on_camera2_toggled(self, switch: Gtk.Switch, gparam) -> None:
+        """Handle Camera 2 (NCMEC Safety) toggle switch."""
+        new_state = switch.get_active()
+        logger.info("Camera 2 (NCMEC) toggled: %s", "enabled" if new_state else "disabled")
+        if self._on_camera2_toggle:
+            self._on_camera2_toggle(new_state)
 
     def update_device_info(
         self,
@@ -307,6 +333,8 @@ class MenuOverlay(Gtk.Box):
         status: str = "",
         current_content: str = "",
         camera_enabled: bool = True,
+        camera1_enabled: bool = True,
+        camera2_enabled: bool = True,
         ip_address: str = "",
         network_status: str = "",
         cms_url: str = ""
@@ -320,7 +348,9 @@ class MenuOverlay(Gtk.Box):
             connection_mode: Connection mode (hub/direct)
             status: Current status
             current_content: Currently playing content
-            camera_enabled: Whether camera is enabled
+            camera_enabled: Legacy param (maps to camera1_enabled)
+            camera1_enabled: Whether Camera 1 (Demographics) is enabled
+            camera2_enabled: Whether Camera 2 (NCMEC Safety) is enabled
             ip_address: Device IP address
             network_status: Network connection status (Connected, Disconnected, etc.)
             cms_url: CMS server URL
@@ -360,10 +390,14 @@ class MenuOverlay(Gtk.Box):
                 display_url = f"{display_url[:27]}..."
             self._cms_url_label._value_label.set_text(display_url)
 
-        # Update camera switch without triggering callback
-        self._camera_switch.handler_block_by_func(self._on_camera_toggled)
-        self._camera_switch.set_active(camera_enabled)
-        self._camera_switch.handler_unblock_by_func(self._on_camera_toggled)
+        # Update camera switches without triggering callbacks
+        self._camera1_switch.handler_block_by_func(self._on_camera1_toggled)
+        self._camera1_switch.set_active(camera1_enabled if camera1_enabled is not None else camera_enabled)
+        self._camera1_switch.handler_unblock_by_func(self._on_camera1_toggled)
+
+        self._camera2_switch.handler_block_by_func(self._on_camera2_toggled)
+        self._camera2_switch.set_active(camera2_enabled)
+        self._camera2_switch.handler_unblock_by_func(self._on_camera2_toggled)
 
     def set_close_callback(self, callback: Callable[[], None]) -> None:
         """Set the close callback."""
@@ -381,9 +415,17 @@ class MenuOverlay(Gtk.Box):
         """Set the exit callback."""
         self._on_exit = callback
 
+    def set_camera1_toggle_callback(self, callback: Callable[[bool], None]) -> None:
+        """Set the Camera 1 (Demographics) toggle callback."""
+        self._on_camera1_toggle = callback
+
+    def set_camera2_toggle_callback(self, callback: Callable[[bool], None]) -> None:
+        """Set the Camera 2 (NCMEC Safety) toggle callback."""
+        self._on_camera2_toggle = callback
+
     def set_camera_toggle_callback(self, callback: Callable[[bool], None]) -> None:
-        """Set the camera toggle callback."""
-        self._on_camera_toggle = callback
+        """Legacy: Set camera toggle callback (maps to camera1)."""
+        self._on_camera1_toggle = callback
 
     def update_network_info(
         self,

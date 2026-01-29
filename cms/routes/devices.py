@@ -1400,3 +1400,95 @@ def get_device_layout(hardware_id):
         'status': device.status,
         'layout': layout_data
     }), 200
+
+
+@devices_bp.route('/<hardware_id>/heartbeat', methods=['POST'])
+def receive_heartbeat(hardware_id):
+    """
+    Receive a heartbeat from a device.
+
+    Devices send periodic heartbeats to report their health and playback
+    status. Updates last_seen, status, and stores latest metrics.
+
+    Args:
+        hardware_id: Device hardware ID or device_id
+
+    Request Body:
+        {
+            "status": "playing|paused|stopped|error|unknown",
+            "current_content": "filename.mp4",
+            "cpu_temp": 45.0,
+            "memory_usage_percent": 62.3,
+            "disk_free_gb": 12.5,
+            "uptime_seconds": 86400
+        }
+
+    Returns:
+        200: Heartbeat received
+        404: Device not found
+    """
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        device = Device.query.filter_by(device_id=hardware_id).first()
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    # Update last seen
+    device.last_seen = datetime.now(timezone.utc)
+
+    # Mark as active if it was offline
+    if device.status == 'offline':
+        device.status = 'active'
+
+    # Update IP address from request if available
+    remote_ip = request.remote_addr
+    if remote_ip and remote_ip != '127.0.0.1':
+        device.ip_address = remote_ip
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return jsonify({'message': 'Heartbeat received'}), 200
+
+
+@devices_bp.route('/<hardware_id>/connection-config', methods=['GET'])
+def get_connection_config(hardware_id):
+    """
+    Get connection configuration for a device.
+
+    Returns the connection mode and URLs the device should use
+    for syncing content and sending heartbeats.
+
+    Args:
+        hardware_id: Device hardware ID or device_id
+
+    Returns:
+        200: Connection configuration
+            {
+                "connection_mode": "direct" | "hub",
+                "cms_url": "http://...",
+                "hub_url": "http://..." (if hub mode),
+                "hub_code": "ABCD" (if hub mode)
+            }
+        404: Device not found
+    """
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        device = Device.query.filter_by(device_id=hardware_id).first()
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    config = {
+        'connection_mode': device.mode or 'direct',
+        'cms_url': request.host_url.rstrip('/'),
+    }
+
+    if device.hub_id and device.hub:
+        config['hub_url'] = f"http://{device.hub.ip_address}:{device.hub.port or 5000}" if device.hub.ip_address else None
+        config['hub_code'] = device.hub.code
+
+    return jsonify(config), 200

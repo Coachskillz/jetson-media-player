@@ -23,6 +23,9 @@ from .gstreamer_player import GStreamerPlayer, PlayerState
 from .playlist_manager import PlaylistManager, get_playlist_manager
 from .sync_service import SyncService, get_sync_service
 from .heartbeat import HeartbeatReporter
+from .health_server import HealthServer
+from .database_sync import DatabaseSyncService
+from .analytics_store import AnalyticsStore
 
 from src.common.cms_client import CMSClient
 from src.common.device_id import get_device_info
@@ -93,6 +96,11 @@ class KioskPlayer:
         self._playlist_manager: Optional[PlaylistManager] = None
         self._sync_service: Optional[SyncService] = None
         self._heartbeat: Optional[HeartbeatReporter] = None
+
+        # Infrastructure services
+        self._health_server: Optional[HealthServer] = None
+        self._database_sync: Optional[DatabaseSyncService] = None
+        self._analytics_store: Optional[AnalyticsStore] = None
 
         logger.info("KioskPlayer initialized")
 
@@ -345,12 +353,39 @@ class KioskPlayer:
         return False
 
     def _start_background_services(self) -> None:
-        """Start sync and heartbeat services."""
+        """Start sync, heartbeat, health server, database sync, and analytics."""
         if self._sync_service:
             self._sync_service.start()
 
         if self._heartbeat:
             self._heartbeat.start()
+
+        # Start health server (port 8080) for remote commands from CMS
+        try:
+            self._health_server = HealthServer(port=8080, player_controller=self)
+            self._health_server.start()
+        except Exception as e:
+            logger.error("Failed to start health server: %s", e)
+
+        # Start database sync (NCMEC every 6h, Loyalty every 4h)
+        try:
+            hub_url = getattr(self._config, 'hub_url', '') or ''
+            cms_url = getattr(self._config, 'cms_url', '') or ''
+            connection_mode = getattr(self._config, 'connection_mode', 'hub')
+            self._database_sync = DatabaseSyncService(
+                hub_url=hub_url,
+                cms_url=cms_url,
+                connection_mode=connection_mode,
+            )
+            self._database_sync.start()
+        except Exception as e:
+            logger.error("Failed to start database sync: %s", e)
+
+        # Initialize analytics store (SQLite persistence)
+        try:
+            self._analytics_store = AnalyticsStore()
+        except Exception as e:
+            logger.error("Failed to initialize analytics store: %s", e)
 
         logger.info("Background services started")
 
@@ -361,6 +396,15 @@ class KioskPlayer:
 
         if self._sync_service:
             self._sync_service.stop()
+
+        if self._health_server:
+            self._health_server.stop()
+
+        if self._database_sync:
+            self._database_sync.stop()
+
+        if self._analytics_store:
+            self._analytics_store.close()
 
     # -------------------------------------------------------------------------
     # State Machine Callbacks
@@ -621,6 +665,41 @@ class KioskPlayer:
             logger.info("Keyboard interrupt received")
 
         self.stop()
+
+    # -------------------------------------------------------------------------
+    # Health Server Interface (called via HTTP from CMS)
+    # -------------------------------------------------------------------------
+
+    def minimize(self) -> None:
+        """Minimize the player window (called by health server)."""
+        if self._window:
+            GLib.idle_add(self._window.iconify)
+            logger.info("Player minimized via remote command")
+
+    def maximize(self) -> None:
+        """Restore the player window to fullscreen (called by health server)."""
+        if self._window:
+            def _restore():
+                self._window.deiconify()
+                self._window.fullscreen()
+                self._window.set_keep_above(True)
+            GLib.idle_add(_restore)
+            logger.info("Player maximized via remote command")
+
+    def get_status(self) -> dict:
+        """Get player status for health server."""
+        status = "unknown"
+        if self._running:
+            if self._config and self._config.paired:
+                status = "playing" if (self._gst_player and self._gst_player.is_playing) else "paired_idle"
+            else:
+                status = "pairing"
+
+        return {
+            "status": status,
+            "device_id": self._device_info.get("hardware_id", ""),
+            "pairing_code": getattr(self._config, 'pairing_code', None),
+        }
 
     def _signal_handler(self, signum: int, frame) -> None:
         """Handle system signals."""

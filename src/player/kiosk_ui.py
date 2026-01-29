@@ -27,6 +27,10 @@ CORNER_TAP_ZONE_SIZE = 100
 # Debounce time for menu toggle in milliseconds
 MENU_DEBOUNCE_MS = 200
 
+# Multi-tap to minimize settings
+TRIPLE_TAP_COUNT = 10
+TRIPLE_TAP_WINDOW_MS = 5000  # All taps must occur within this window
+
 
 class KioskWindowState(Enum):
     """Represents the state of the kiosk window."""
@@ -82,6 +86,10 @@ class KioskWindow(Gtk.Window):
 
         # Track last menu toggle time for debouncing
         self._last_menu_toggle_time: int = 0
+
+        # Triple-tap to minimize tracking
+        self._tap_timestamps: List[int] = []
+        self._minimized = False
 
         # Container for content widgets
         self._content_stack: Optional[Gtk.Stack] = None
@@ -247,7 +255,10 @@ class KioskWindow(Gtk.Window):
 
     def _handle_button_press(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
         """
-        Handle mouse/touch button press for corner tap detection.
+        Handle mouse/touch button press for corner tap and triple-tap detection.
+
+        Triple-tap anywhere on screen minimizes/restores the window.
+        Corner taps toggle the menu overlay.
 
         Args:
             widget: The widget that received the event
@@ -256,6 +267,21 @@ class KioskWindow(Gtk.Window):
         Returns:
             True if the event was handled
         """
+        now = GLib.get_monotonic_time() // 1000  # microseconds to ms
+
+        # Track tap for triple-tap detection
+        self._tap_timestamps.append(now)
+        # Keep only taps within the time window
+        self._tap_timestamps = [
+            t for t in self._tap_timestamps
+            if (now - t) <= TRIPLE_TAP_WINDOW_MS
+        ]
+
+        if len(self._tap_timestamps) >= TRIPLE_TAP_COUNT:
+            self._tap_timestamps.clear()
+            self._toggle_minimize()
+            return True
+
         x, y = event.x, event.y
 
         # Get window dimensions
@@ -269,6 +295,21 @@ class KioskWindow(Gtk.Window):
             return self._request_menu()
 
         return False
+
+    def _toggle_minimize(self) -> None:
+        """Toggle between minimized (iconified) and fullscreen."""
+        if self._minimized:
+            logger.info("Restoring fullscreen")
+            self.deiconify()
+            self.fullscreen()
+            self.set_keep_above(True)
+            self._minimized = False
+        else:
+            logger.info("Minimizing window")
+            self.set_keep_above(False)
+            self.unfullscreen()
+            self.iconify()
+            self._minimized = True
 
     def _is_corner_tap(
         self,

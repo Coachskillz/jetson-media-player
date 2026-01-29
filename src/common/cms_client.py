@@ -103,12 +103,12 @@ class CMSClient:
     def request_pairing(self) -> Optional[str]:
         """Request pairing with CMS and get a 6-digit code.
 
+        The CMS generates the pairing code server-side.
         Uses exponential backoff retry logic for connection errors.
 
         Returns:
             The 6-digit pairing code if successful, None otherwise.
         """
-        self.pairing_code = generate_pairing_code()
         hardware_id = self._get_hardware_id()
 
         def make_request():
@@ -116,7 +116,6 @@ class CMSClient:
                 f"{self.cms_url}/api/v1/devices/pairing/request",
                 json={
                     "hardware_id": hardware_id,
-                    "pairing_code": self.pairing_code,
                 },
                 timeout=self.timeout
             )
@@ -125,8 +124,14 @@ class CMSClient:
             response = retry_with_backoff(make_request, max_retries=self.max_retries)
 
             if response.status_code == 200:
-                logger.info(f"Pairing requested. Code: {self.pairing_code}")
-                return self.pairing_code
+                data = response.json()
+                self.pairing_code = data.get('pairing_code')
+                if self.pairing_code:
+                    logger.info(f"Pairing requested. Code: {self.pairing_code}")
+                    return self.pairing_code
+                else:
+                    logger.error("CMS did not return a pairing code")
+                    return None
             elif response.status_code == 404:
                 logger.error(
                     f"Device not registered. Register first at "
@@ -249,15 +254,19 @@ class CMSClient:
         """
         hardware_id = self._get_hardware_id()
         name = self.device_info.get('hostname', 'Unknown Device')
+        ip_address = self.device_info.get('ip_address')
 
         def make_request():
+            payload = {
+                "hardware_id": hardware_id,
+                "mode": mode,
+                "name": name,
+            }
+            if ip_address:
+                payload["ip_address"] = ip_address
             return requests.post(
                 f"{self.cms_url}/api/v1/devices/register",
-                json={
-                    "hardware_id": hardware_id,
-                    "mode": mode,
-                    "name": name,
-                },
+                json=payload,
                 timeout=self.timeout
             )
 
