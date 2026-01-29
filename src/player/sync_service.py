@@ -323,10 +323,13 @@ class SyncService:
 
         The hub provides a unified config. When running direct mode,
         we assemble the same format from CMS playlist + layout endpoints.
+
+        Falls back to layout layer items for the default playlist when
+        the playlist endpoint returns empty (e.g. no DeviceAssignment).
         """
         items = playlist_data.get('items', [])
 
-        # Build default playlist from CMS items
+        # Build default playlist from CMS playlist endpoint items
         default_items = []
         for item in items:
             default_items.append({
@@ -337,8 +340,26 @@ class SyncService:
                 'url': item.get('url', ''),
             })
 
+        # If playlist endpoint returned no items, extract from layout layers
+        if not default_items and layout_data and layout_data.get('layout'):
+            layout = layout_data['layout']
+            for layer in layout.get('layers', []):
+                for layer_item in layer.get('items', []):
+                    default_items.append({
+                        'content_id': layer_item.get('content_id', ''),
+                        'filename': layer_item.get('filename', ''),
+                        'duration': layer_item.get('duration', 10),
+                        'file_hash': layer_item.get('file_hash', ''),
+                        'url': layer_item.get('url', ''),
+                    })
+            if default_items:
+                logger.info(
+                    "Using %d items from layout (playlist endpoint was empty)",
+                    len(default_items)
+                )
+
         config = {
-            'playlist_version': hash(str(items)) & 0xFFFFFFFF,
+            'playlist_version': hash(str(default_items)) & 0xFFFFFFFF,
             'updated_at': None,
             'default_playlist': {
                 'items': default_items,
