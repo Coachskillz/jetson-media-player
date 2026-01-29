@@ -121,6 +121,8 @@ def create_app(config_name: Optional[str] = None) -> Flask:
             _seed_test_data(app)
         else:
             app.logger.info('Skipping test data seeding (SEED_TEST_DATA not enabled)')
+        # Seed demo content (tenants + published assets)
+        _seed_demo_content(app)
 
     # Configure logging
     _configure_logging(app)
@@ -325,6 +327,119 @@ def _seed_test_data(app: Flask) -> None:
     except Exception as e:
         db.session.rollback()
         app.logger.error(f'Failed to commit test data: {e}')
+
+
+def _seed_demo_content(app: Flask) -> None:
+    """
+    Seed demo tenants and published content assets on first run.
+
+    Copies sample media from the media/ directory into content_catalog/uploads/
+    and creates ContentAsset records with 'published' status. Idempotent.
+    """
+    import shutil
+    import uuid as _uuid
+    from pathlib import Path
+    from datetime import timezone
+
+    try:
+        from content_catalog.models.content import ContentAsset
+        from content_catalog.models.tenant import Tenant
+        from content_catalog.models.catalog import Catalog
+        from content_catalog.models.organization import Organization
+        from content_catalog.models.user import User
+    except ImportError:
+        app.logger.debug('Models not available, skipping demo content seeding')
+        return
+
+    tenants_data = [
+        {'name': 'High Octane Network', 'slug': 'high-octane', 'desc': 'Convenience stores and fuel stations'},
+        {'name': 'On The Wave TV', 'slug': 'on-the-wave', 'desc': 'West Marine partnership'},
+    ]
+
+    media_items = [
+        {'filename': 'bus_ad._4.mp4', 'title': 'Bus Ad', 'duration': 22.055, 'size': 7101354, 'mime': 'video/mp4'},
+        {'filename': '8517AleveAleveArthritisPiggybackConnectedTVC15s16915MIAV1096000HInnovid.MP4', 'title': 'Aleve Arthritis Ad', 'duration': 15.015, 'size': 7999657, 'mime': 'video/mp4'},
+        {'filename': 'social_coachskillz_the_word_look_in_a_dynamic_font_with_eyeballs_in__a79139cb-e492-4549-ba6c-6a5db23cf569_2.mp4', 'title': 'Coach Skillz Promo', 'duration': 5.208, 'size': 5704195, 'mime': 'video/mp4'},
+    ]
+
+    # --- Tenants ---
+    tenant_map = {}
+    for td in tenants_data:
+        existing = Tenant.query.filter_by(slug=td['slug']).first()
+        if existing:
+            tenant_map[td['slug']] = existing
+        else:
+            t = Tenant(uuid=str(_uuid.uuid4()), name=td['name'], slug=td['slug'], description=td['desc'], is_active=True, requires_content_approval=False)
+            db.session.add(t)
+            db.session.flush()
+            tenant_map[td['slug']] = t
+            app.logger.info(f"Seeded tenant: {td['name']}")
+
+    ho_tenant = tenant_map.get('high-octane')
+
+    # --- Catalog ---
+    catalog = Catalog.query.filter_by(name='Content Library').first()
+    catalog_id = catalog.id if catalog else None
+
+    # --- Org and admin user for ownership ---
+    org = Organization.query.filter_by(name='Skillz Media').first()
+    org_id = org.id if org else None
+    admin = User.query.filter_by(role='super_admin').first()
+    admin_id = admin.id if admin else None
+
+    # --- Content Assets ---
+    base_dir = Path(app.config.get('BASE_DIR', os.path.dirname(os.path.abspath(__file__))))
+    media_dir = base_dir.parent / 'media'
+    uploads_dir = Path(app.config.get('UPLOADS_PATH', base_dir / 'uploads'))
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    now = datetime.now(timezone.utc)
+
+    for item in media_items:
+        existing = ContentAsset.query.filter_by(title=item['title']).first()
+        if existing:
+            continue
+
+        # Copy media file
+        src = media_dir / item['filename']
+        dest = uploads_dir / item['filename']
+        if src.exists() and not dest.exists():
+            shutil.copy2(str(src), str(dest))
+            app.logger.info(f"Copied media: {item['filename']}")
+
+        asset = ContentAsset(
+            uuid=str(_uuid.uuid4()),
+            title=item['title'],
+            filename=item['filename'],
+            file_path=f"uploads/{item['filename']}",
+            file_size=item['size'],
+            duration=item['duration'],
+            duration_ms=int(item['duration'] * 1000),
+            resolution='1920x1080',
+            format='mp4',
+            asset_type='video',
+            content_type=item['mime'],
+            original_filename=item['filename'],
+            organization_id=org_id,
+            owner_org_type='SKILLZ',
+            uploaded_by=admin_id,
+            status='published',
+            published_at=now,
+            tenant_id=ho_tenant.id if ho_tenant else None,
+            catalog_id=catalog_id,
+            version=1,
+            synced_to_cms=False,
+            created_at=now,
+        )
+        db.session.add(asset)
+        app.logger.info(f"Seeded asset: {item['title']} ({item['duration']}s)")
+
+    try:
+        db.session.commit()
+        app.logger.info("Demo content seeding complete")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Failed to seed demo content: {e}")
 
 
 def _configure_logging(app: Flask) -> None:

@@ -86,11 +86,12 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         from cms.models.user import User
         return User.query.get(user_id)
 
-    # Create database tables and seed default users
+    # Create database tables and seed default data
     with app.app_context():
         db.create_all()
         _run_migrations(app)
         _seed_default_users(app)
+        _seed_demo_content(app)
 
     # Configure logging
     _configure_logging(app)
@@ -300,6 +301,135 @@ def _seed_default_users(app: Flask) -> None:
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Failed to seed default users: {e}")
+
+
+def _seed_demo_content(app: Flask) -> None:
+    """
+    Seed demo networks, content, folder, and playlist on first run.
+
+    Copies sample media from the media/ directory into cms/uploads/
+    and creates corresponding database records. Idempotent.
+    """
+    import shutil
+    import uuid as _uuid
+    from pathlib import Path
+    from datetime import timezone
+
+    try:
+        from cms.models import Content, Network
+        from cms.models.playlist import Playlist, PlaylistItem
+        from cms.models.folder import Folder
+    except ImportError:
+        app.logger.debug('Models not available yet, skipping demo content seeding')
+        return
+
+    # Media files with metadata
+    media_items = [
+        {'filename': 'bus_ad._4.mp4', 'title': 'Bus Ad', 'duration': 22, 'size': 7101354, 'mime': 'video/mp4'},
+        {'filename': '8517AleveAleveArthritisPiggybackConnectedTVC15s16915MIAV1096000HInnovid.MP4', 'title': 'Aleve Arthritis Ad', 'duration': 15, 'size': 7999657, 'mime': 'video/mp4'},
+        {'filename': 'social_coachskillz_the_word_look_in_a_dynamic_font_with_eyeballs_in__a79139cb-e492-4549-ba6c-6a5db23cf569_2.mp4', 'title': 'Coach Skillz Promo', 'duration': 5, 'size': 5704195, 'mime': 'video/mp4'},
+    ]
+
+    networks_data = [
+        {'name': 'High Octane Network', 'slug': 'high-octane'},
+        {'name': 'On The Wave TV', 'slug': 'on-the-wave'},
+    ]
+
+    # --- Networks ---
+    network_ids = {}
+    for nd in networks_data:
+        existing = Network.query.filter_by(slug=nd['slug']).first()
+        if existing:
+            network_ids[nd['slug']] = existing.id
+        else:
+            net = Network(id=str(_uuid.uuid4()), name=nd['name'], slug=nd['slug'])
+            db.session.add(net)
+            db.session.flush()
+            network_ids[nd['slug']] = net.id
+            app.logger.info(f"Seeded network: {nd['name']}")
+
+    ho_id = network_ids.get('high-octane')
+
+    # --- Folder ---
+    folder = Folder.query.filter_by(name='Ads').first()
+    if not folder:
+        folder = Folder(id=str(_uuid.uuid4()), name='Ads', icon='🎬', network_id=ho_id)
+        db.session.add(folder)
+        db.session.flush()
+        app.logger.info("Seeded folder: Ads")
+
+    # --- Content ---
+    # Resolve paths
+    base_dir = Path(app.config.get('BASE_DIR', os.path.dirname(os.path.abspath(__file__))))
+    media_dir = base_dir.parent / 'media'
+    uploads_dir = Path(app.config.get('UPLOADS_PATH', base_dir / 'uploads'))
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    content_ids = []
+    for item in media_items:
+        existing = Content.query.filter_by(original_name=item['filename']).first()
+        if existing:
+            content_ids.append(existing.id)
+            continue
+
+        # Copy media file if available
+        src = media_dir / item['filename']
+        dest = uploads_dir / item['filename']
+        if src.exists() and not dest.exists():
+            shutil.copy2(str(src), str(dest))
+            app.logger.info(f"Copied media: {item['filename']}")
+
+        content = Content(
+            id=str(_uuid.uuid4()),
+            filename=item['filename'],
+            original_name=item['filename'],
+            mime_type=item['mime'],
+            file_size=item['size'],
+            duration=item['duration'],
+            status='approved',
+            network_id=ho_id,
+            folder_id=folder.id,
+            source='upload',
+        )
+        db.session.add(content)
+        db.session.flush()
+        content_ids.append(content.id)
+        app.logger.info(f"Seeded content: {item['title']} ({item['duration']}s)")
+
+    # --- Playlist ---
+    if not Playlist.query.filter_by(name='Demo Playlist').first():
+        playlist = Playlist(
+            id=str(_uuid.uuid4()),
+            name='Demo Playlist',
+            description='Sample playlist with 3 video ads',
+            network_id=ho_id,
+            trigger_type='manual',
+            loop_mode='continuous',
+            priority='normal',
+            is_active=True,
+            sync_status='draft',
+            version=1,
+        )
+        db.session.add(playlist)
+        db.session.flush()
+
+        for pos, cid in enumerate(content_ids):
+            pi = PlaylistItem(
+                id=str(_uuid.uuid4()),
+                playlist_id=playlist.id,
+                content_id=cid,
+                position=pos,
+            )
+            db.session.add(pi)
+
+        app.logger.info(f"Seeded playlist: Demo Playlist ({len(content_ids)} items)")
+
+    try:
+        db.session.commit()
+        app.logger.info("Demo content seeding complete")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Failed to seed demo content: {e}")
 
 
 def _configure_logging(app: Flask) -> None:
