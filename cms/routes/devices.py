@@ -1497,3 +1497,52 @@ def get_connection_config(hardware_id):
         config['hub_code'] = device.hub.code
 
     return jsonify(config), 200
+
+
+@devices_bp.route('/<device_identifier>/connection-config', methods=['PUT'])
+@login_required
+def update_connection_config(device_identifier):
+    """
+    Update connection configuration for a device.
+
+    Args:
+        device_identifier: Device device_id (SKZ-X-XXXX) or hardware_id
+
+    Returns:
+        200: Updated connection configuration
+        400: Invalid request body
+        404: Device not found
+    """
+    device = Device.query.filter_by(device_id=device_identifier).first()
+    if not device:
+        device = Device.query.filter_by(hardware_id=device_identifier).first()
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    connection_mode = data.get('connection_mode')
+    if connection_mode and connection_mode in ('direct', 'hub'):
+        device.connection_mode = connection_mode
+
+    hub_url = data.get('hub_url')
+    if hub_url is not None:
+        device.hub_url = hub_url
+
+    cms_url = data.get('cms_url')
+    if cms_url is not None:
+        device.cms_url = cms_url
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to save: {str(e)}'}), 500
+
+    return jsonify({
+        'connection_mode': device.connection_mode,
+        'cms_url': device.cms_url or request.host_url.rstrip('/'),
+        'hub_url': device.hub_url,
+    }), 200
