@@ -36,7 +36,7 @@ class Config:
     ALLOWED_EXTENSIONS = ALLOWED_VIDEO_EXTENSIONS | ALLOWED_IMAGE_EXTENSIONS
 
     # Server Settings
-    PORT = int(os.environ.get('CMS_PORT', 5002))
+    PORT = int(os.environ.get('PORT', os.environ.get('CMS_PORT', 5002)))
     HOST = os.environ.get('CMS_HOST', '0.0.0.0')
 
     # Device ID Settings
