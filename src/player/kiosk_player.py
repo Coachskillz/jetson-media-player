@@ -788,9 +788,39 @@ class KioskPlayer:
         logger.debug("Sync complete: %s", success)
 
     def _on_content_updated(self) -> None:
-        """Handle new content downloaded."""
+        """Handle new content downloaded.
+
+        Called from the sync service background thread when new files
+        are downloaded.  If the player hasn't started yet (no GStreamer
+        pipeline), schedule initialisation + playback on the GTK main
+        thread so video actually begins once content is available.
+        """
         if self._playlist_manager:
             self._playlist_manager.reload()
+
+        # If GStreamer was never initialised (no content at startup),
+        # kick off playback now that content has arrived.
+        if not self._gst_player or not self._gst_player.is_initialized:
+            if self._playlist_manager and self._playlist_manager.default_playlist_length > 0:
+                logger.info("Content arrived — initialising GStreamer and starting playback")
+                GLib.idle_add(self._late_start_playback)
+        elif self._gst_player and not self._gst_player.is_playing:
+            # GStreamer exists but was idle (e.g. playlist was empty before)
+            if self._playlist_manager and self._playlist_manager.default_playlist_length > 0:
+                logger.info("Content arrived — resuming playback")
+                GLib.idle_add(self._late_start_playback)
+
+    def _late_start_playback(self) -> bool:
+        """Initialise GStreamer (if needed) and start playback on GTK main thread."""
+        try:
+            if not self._gst_player or not self._gst_player.is_initialized:
+                if not self._initialize_gstreamer():
+                    logger.error("Late GStreamer init failed")
+                    return False
+            self._start_playback()
+        except Exception as e:
+            logger.error("Late start playback failed: %s", e)
+        return False  # Don't repeat
 
     def _get_playback_status(self) -> dict:
         """Get playback status for heartbeat."""

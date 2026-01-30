@@ -70,6 +70,7 @@ class SyncService:
         self._thread: Optional[threading.Thread] = None
         self._running = False
         self._stop_event = threading.Event()
+        self._sync_lock = threading.Lock()  # Prevent concurrent syncs
 
         # Sync statistics
         self._last_sync_time: Optional[datetime] = None
@@ -174,6 +175,17 @@ class SyncService:
         Returns:
             True if sync was successful, False otherwise
         """
+        if not self._sync_lock.acquire(blocking=False):
+            logger.info("Sync already in progress — skipping")
+            return False
+
+        try:
+            return self._do_sync()
+        finally:
+            self._sync_lock.release()
+
+    def _do_sync(self) -> bool:
+        """Execute the sync (called while holding _sync_lock)."""
         logger.info("Starting sync...")
         self._total_syncs += 1
 
@@ -190,16 +202,10 @@ class SyncService:
             # Check if content update is needed
             content_updated = False
 
-            # Check playlist version
-            remote_version = remote_config.get('playlist_version', 0)
-            local_version = self._config.playlist_version
-
-            if remote_version > local_version:
-                logger.info(
-                    "Playlist update available: v%d -> v%d",
-                    local_version,
-                    remote_version
-                )
+            # Always update playlist config when CMS returns items.
+            # The file existence check in _sync_content prevents
+            # redundant downloads, so this is cheap and reliable.
+            if remote_config.get('default_playlist', {}).get('items'):
                 if self._update_playlist(remote_config):
                     content_updated = True
 
@@ -359,7 +365,7 @@ class SyncService:
                 )
 
         config = {
-            'playlist_version': hash(str(default_items)) & 0xFFFFFFFF,
+            'playlist_version': len(default_items),
             'updated_at': None,
             'default_playlist': {
                 'items': default_items,
@@ -453,17 +459,20 @@ class SyncService:
 
             local_path = self.media_dir / filename
 
-            # Skip if file already exists with correct hash
+            # Skip if file already exists (and hash matches when available)
             if local_path.exists():
                 expected_hash = content.get('file_hash')
-                if expected_hash and self._verify_file_hash(local_path, expected_hash):
+                if not expected_hash:
+                    # No hash provided — trust the existing file
+                    logger.debug("Content already exists (no hash to verify): %s", filename)
+                    continue
+                if self._verify_file_hash(local_path, expected_hash):
                     logger.debug("Content already exists: %s", filename)
                     continue
-                elif expected_hash:
-                    logger.warning(
-                        "Content hash mismatch, re-downloading: %s",
-                        filename
-                    )
+                logger.warning(
+                    "Content hash mismatch, re-downloading: %s",
+                    filename
+                )
 
             # Download the content
             if self._download_content(content_id, filename):
