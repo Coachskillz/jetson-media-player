@@ -2519,7 +2519,7 @@ def _push_layout_impl(layout_id):
                 'name': content.original_name,
                 'filename': content.filename,
                 'type': content.mime_type if hasattr(content, 'mime_type') else 'video',
-                'file_path': content.file_path,
+                'file_path': content.filename,
                 'file_size': content.file_size,
                 'checksum': content.checksum if hasattr(content, 'checksum') else None
             })
