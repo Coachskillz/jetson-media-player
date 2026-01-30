@@ -229,7 +229,11 @@ class User(UserMixin, db.Model):
         """
         if self.locked_until is None:
             return False
-        return datetime.now(timezone.utc) < self.locked_until
+        locked = self.locked_until
+        # SQLite stores datetimes as naive — make them comparable
+        if locked.tzinfo is None:
+            locked = locked.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) < locked
 
     def is_active(self):
         """

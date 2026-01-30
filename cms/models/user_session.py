@@ -110,7 +110,14 @@ class UserSession(db.Model):
         Returns:
             True if current time is past expires_at, False otherwise
         """
-        return datetime.now(timezone.utc) > self.expires_at
+        if not self.expires_at:
+            return True
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        # SQLite stores datetimes as naive — make them comparable
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return now > expires
 
     def is_valid(self):
         """
@@ -152,7 +159,10 @@ class UserSession(db.Model):
         Returns:
             timedelta of remaining time, or timedelta(0) if expired
         """
-        remaining = self.expires_at - datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        remaining = (expires or datetime.now(timezone.utc)) - datetime.now(timezone.utc)
         return remaining if remaining.total_seconds() > 0 else timedelta(0)
 
     def to_dict(self, include_token=False):
