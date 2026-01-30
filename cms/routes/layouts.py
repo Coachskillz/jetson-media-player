@@ -2421,37 +2421,19 @@ def list_layout_assignments(layout_id):
 
 @layouts_bp.route('/<layout_id>/push', methods=['POST'])
 def push_layout_to_device(layout_id):
-    """
-    Push a layout (with all associated content) to a device.
+    """Push a layout (with all associated content) to a device."""
+    import json
+    import traceback as _tb
 
-    This endpoint bundles the layout configuration along with all content
-    files referenced by the layout's layers (playlists, static content, etc.)
-    and initiates a sync to the specified device.
+    try:
+        return _push_layout_impl(layout_id)
+    except Exception as e:
+        import sys
+        _tb.print_exc()
+        return jsonify({'error': str(e), 'traceback': _tb.format_exc()}), 500
 
-    The content is uploaded to the device's local storage so it can play
-    offline without requiring an internet connection.
 
-    Args:
-        layout_id: Layout UUID
-
-    Request Body:
-        {
-            "device_id": "uuid-of-device" (required)
-        }
-
-    Returns:
-        200: Push initiated successfully
-            {
-                "status": "success",
-                "message": "Layout push initiated",
-                "layout_id": "...",
-                "device_id": "...",
-                "content_files": [...],  # List of content files to sync
-                "assignment_id": "..."   # DeviceLayout assignment ID
-            }
-        400: Missing required field or invalid data
-        404: Layout or device not found
-    """
+def _push_layout_impl(layout_id):
     import json
 
     # Validate layout_id format
