@@ -9,7 +9,7 @@ security and compliance purposes.
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class AuditLog(db.Model):
@@ -55,7 +55,7 @@ class AuditLog(db.Model):
     ip_address = db.Column(db.String(45), nullable=True)
     user_agent = db.Column(db.String(500), nullable=True)
     session_id = db.Column(db.String(36), nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc), index=True)
 
     # Relationship to User (optional - user may be deleted)
     user = db.relationship('User', backref=db.backref('audit_logs', lazy='dynamic'))

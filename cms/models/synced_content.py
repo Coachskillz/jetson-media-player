@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import json
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class SyncedContent(db.Model):
@@ -109,9 +109,9 @@ class SyncedContent(db.Model):
     content_catalog_url = db.Column(db.String(500), nullable=True)
 
     # Timestamps
-    synced_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    created_at = db.Column(db.DateTime, nullable=True)
-    published_at = db.Column(db.DateTime, nullable=True)
+    synced_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), nullable=True)
+    published_at = db.Column(DateTimeUTC(), nullable=True)
 
     # Folder organization
     folder_id = db.Column(db.String(36), db.ForeignKey("folders.id"), nullable=True)

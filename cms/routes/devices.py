@@ -1070,29 +1070,6 @@ def get_device_playlist(hardware_id):
     return jsonify({'device_id': device.device_id, 'status': device.status, 'items': items}), 200
 
 
-@devices_bp.route('/<hardware_id>/playlist/toggle/<int:position>', methods=['POST'])
-def toggle_playlist_item(hardware_id, position):
-    """Toggle a playlist item on/off for testing sync. No auth required."""
-    device = Device.query.filter_by(hardware_id=hardware_id).first()
-    if not device:
-        return jsonify({'error': 'Device not found'}), 404
-    for assignment in device.assignments:
-        if assignment.is_enabled and assignment.playlist:
-            items = sorted(assignment.playlist.items, key=lambda i: i.position)
-            if 0 <= position < len(items):
-                item = items[position]
-                # Toggle: delete to remove, or we just disable the assignment
-                # Simplest: delete the playlist item
-                content_name = item.content.filename if item.content else 'unknown'
-                db.session.delete(item)
-                db.session.commit()
-                return jsonify({
-                    'message': f'Removed item at position {position}: {content_name}',
-                    'remaining_items': len(items) - 1
-                }), 200
-    return jsonify({'error': f'No item at position {position}'}), 404
-
-
 @devices_bp.route('/<device_id>/remote/command', methods=['POST'])
 @login_required
 def send_remote_command(device_id):

@@ -23,7 +23,7 @@ Supported trigger types:
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 # Valid trigger types for playlist assignments
@@ -78,9 +78,9 @@ class DeviceAssignment(db.Model):
     trigger_type = db.Column(db.String(50), nullable=False, default='default', index=True)
     priority = db.Column(db.Integer, nullable=False, default=0)
     is_enabled = db.Column(db.Boolean, nullable=False, default=False)  # Default OFF, except 'default' trigger
-    start_date = db.Column(db.DateTime, nullable=True)
-    end_date = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    start_date = db.Column(DateTimeUTC(), nullable=True)
+    end_date = db.Column(DateTimeUTC(), nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     device = db.relationship('Device', backref=db.backref('assignments', lazy='dynamic', cascade='all, delete-orphan'))

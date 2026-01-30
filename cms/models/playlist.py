@@ -12,7 +12,7 @@ import enum
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class TriggerType(enum.Enum):
@@ -108,15 +108,15 @@ class Playlist(db.Model):
     trigger_config = db.Column(db.Text, nullable=True)  # JSON string for trigger configuration
     loop_mode = db.Column(db.String(20), nullable=False, default=LoopMode.CONTINUOUS.value)
     priority = db.Column(db.String(20), nullable=False, default=Priority.NORMAL.value)
-    start_date = db.Column(db.DateTime, nullable=True)
-    end_date = db.Column(db.DateTime, nullable=True)
+    start_date = db.Column(DateTimeUTC(), nullable=True)
+    end_date = db.Column(DateTimeUTC(), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     # Sync tracking fields
     sync_status = db.Column(db.String(20), nullable=False, default=SyncStatus.DRAFT.value)
     version = db.Column(db.Integer, nullable=False, default=1)
-    last_synced_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_synced_at = db.Column(DateTimeUTC(), nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     network = db.relationship('Network', backref=db.backref('playlists', lazy='dynamic'))
@@ -275,7 +275,7 @@ class PlaylistItem(db.Model):
     )
     position = db.Column(db.Integer, nullable=False, default=0)
     duration_override = db.Column(db.Integer, nullable=True)  # Duration in seconds for images
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     content = db.relationship('Content', backref=db.backref('playlist_items', lazy='dynamic'))

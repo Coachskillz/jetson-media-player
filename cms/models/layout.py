@@ -31,7 +31,7 @@ Device-to-layout assignments with scheduling:
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class ScreenLayout(db.Model):
@@ -73,8 +73,8 @@ class ScreenLayout(db.Model):
     background_content = db.Column(db.Text, nullable=True)
     is_template = db.Column(db.Boolean, nullable=False, default=False)
     thumbnail_path = db.Column(db.String(500), nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     layers = db.relationship(
@@ -281,8 +281,8 @@ class ScreenLayer(db.Model):
     playlist = db.relationship('Playlist', backref=db.backref('layers', lazy='dynamic'))
 
     # Timestamps
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         """
@@ -508,8 +508,8 @@ class LayerContent(db.Model):
     ticker_direction = db.Column(db.String(50), nullable=False, default='left')
 
     # Timestamps
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     layer = db.relationship('ScreenLayer', backref=db.backref('content_assignments', lazy='dynamic', cascade='all, delete-orphan'))
@@ -679,7 +679,7 @@ class LayerPlaylistAssignment(db.Model):
     )
     trigger_type = db.Column(db.String(50), nullable=False, default='default', index=True)
     priority = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Unique constraint on (device_id, layer_id, playlist_id)
     __table_args__ = (
@@ -839,10 +839,10 @@ class DeviceLayout(db.Model):
         index=True
     )
     priority = db.Column(db.Integer, nullable=False, default=0)
-    start_date = db.Column(db.DateTime, nullable=True)
-    end_date = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    last_pushed_at = db.Column(db.DateTime, nullable=True)
+    start_date = db.Column(DateTimeUTC(), nullable=True)
+    end_date = db.Column(DateTimeUTC(), nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    last_pushed_at = db.Column(DateTimeUTC(), nullable=True)
 
     # Relationships
     device = db.relationship('Device', backref=db.backref('layout_assignments', lazy='dynamic', cascade='all, delete-orphan'))

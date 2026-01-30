@@ -9,7 +9,7 @@ Represents a device (screen/display) that can operate in two modes:
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class Device(db.Model):
@@ -47,8 +47,8 @@ class Device(db.Model):
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
     name = db.Column(db.String(200), nullable=True)
     status = db.Column(db.String(50), nullable=False, default='pending')
-    last_seen = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_seen = db.Column(DateTimeUTC(), nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Camera 1 settings (demographics and loyalty recognition)
     camera1_enabled = db.Column(db.Boolean, default=False)

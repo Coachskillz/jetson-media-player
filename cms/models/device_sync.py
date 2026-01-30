@@ -12,7 +12,7 @@ import enum
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class DeviceSyncStatus(enum.Enum):
@@ -66,11 +66,11 @@ class DevicePlaylistSync(db.Model):
     )
     synced_version = db.Column(db.Integer, nullable=True)  # None if never synced
     sync_status = db.Column(db.String(20), nullable=False, default=DeviceSyncStatus.PENDING.value)
-    last_sync_attempt = db.Column(db.DateTime, nullable=True)
-    last_successful_sync = db.Column(db.DateTime, nullable=True)
+    last_sync_attempt = db.Column(DateTimeUTC(), nullable=True)
+    last_successful_sync = db.Column(DateTimeUTC(), nullable=True)
     error_message = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     device = db.relationship('Device', backref=db.backref('playlist_syncs', lazy='dynamic', cascade='all, delete-orphan'))
@@ -163,9 +163,9 @@ class ContentSyncRecord(db.Model):
     )
     sync_status = db.Column(db.String(20), nullable=False, default=DeviceSyncStatus.PENDING.value)
     file_checksum = db.Column(db.String(64), nullable=True)  # SHA256 of file on device
-    synced_at = db.Column(db.DateTime, nullable=True)
+    synced_at = db.Column(DateTimeUTC(), nullable=True)
     error_message = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     device = db.relationship('Device', backref=db.backref('content_syncs', lazy='dynamic', cascade='all, delete-orphan'))

@@ -11,7 +11,7 @@ Includes PendingHub for hubs that have announced but not yet been paired by an a
 from datetime import datetime, timezone, timedelta
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class PendingHub(db.Model):
@@ -43,8 +43,8 @@ class PendingHub(db.Model):
     lan_ip = db.Column(db.String(45), nullable=True)
     tunnel_url = db.Column(db.String(200), nullable=True)
     version = db.Column(db.String(20), nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    expires_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(DateTimeUTC(), nullable=True)
 
     def to_dict(self):
         """Serialize pending hub to dictionary."""
@@ -114,7 +114,7 @@ class Hub(db.Model):
     name = db.Column(db.String(200), nullable=False)
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=False, index=True)
     status = db.Column(db.String(50), nullable=False, default='pending')
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Hardware identification
     hardware_id = db.Column(db.String(50), unique=True, nullable=True, index=True)
@@ -127,7 +127,7 @@ class Hub(db.Model):
     hostname = db.Column(db.String(255), nullable=True)
 
     # Status/monitoring
-    last_heartbeat = db.Column(db.DateTime, nullable=True)
+    last_heartbeat = db.Column(DateTimeUTC(), nullable=True)
     screens_connected = db.Column(db.Integer, default=0)
     version = db.Column(db.String(20), nullable=True)
 
@@ -135,7 +135,7 @@ class Hub(db.Model):
     api_token = db.Column(db.String(255), nullable=True, unique=True, index=True)
 
     # Timestamps
-    paired_at = db.Column(db.DateTime, nullable=True)
+    paired_at = db.Column(DateTimeUTC(), nullable=True)
     location = db.Column(db.String(500), nullable=True)  # Physical address
 
     # Relationships

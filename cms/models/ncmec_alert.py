@@ -6,7 +6,7 @@ the NCMEC missing children database.
 """
 
 from datetime import datetime, timezone
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class NCMECAlert(db.Model):
@@ -27,7 +27,7 @@ class NCMECAlert(db.Model):
     # Detection information
     captured_image_path = db.Column(db.String(500), nullable=False)
     confidence_score = db.Column(db.Float, nullable=False)
-    detected_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    detected_at = db.Column(DateTimeUTC(), nullable=False, default=lambda: datetime.now(timezone.utc))
     
     # Location info (denormalized for quick access)
     store_name = db.Column(db.String(200), nullable=True)
@@ -39,17 +39,17 @@ class NCMECAlert(db.Model):
     
     # Review information
     reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_at = db.Column(DateTimeUTC(), nullable=True)
     review_notes = db.Column(db.Text, nullable=True)
     
     # If reported to authorities
-    reported_at = db.Column(db.DateTime, nullable=True)
+    reported_at = db.Column(DateTimeUTC(), nullable=True)
     reported_to = db.Column(db.String(500), nullable=True)
     report_reference = db.Column(db.String(200), nullable=True)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     device = db.relationship('Device', backref=db.backref('ncmec_alerts', lazy='dynamic'))
@@ -98,8 +98,8 @@ class NCMECNotificationConfig(db.Model):
     min_confidence_threshold = db.Column(db.Float, default=0.85)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     def get_email_list(self):
         """Get list of email addresses."""

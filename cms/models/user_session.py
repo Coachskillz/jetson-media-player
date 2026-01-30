@@ -16,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 import secrets
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 # Default session durations
@@ -52,9 +52,9 @@ class UserSession(db.Model):
     ip_address = db.Column(db.String(45), nullable=True)
     user_agent = db.Column(db.String(500), nullable=True)
     device_info = db.Column(db.Text, nullable=True)
-    expires_at = db.Column(db.DateTime, nullable=False)
-    last_active = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(DateTimeUTC(), nullable=False)
+    last_active = db.Column(DateTimeUTC(), nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user = db.relationship('User', backref=db.backref('sessions', lazy='dynamic', cascade='all, delete-orphan'))
@@ -112,12 +112,7 @@ class UserSession(db.Model):
         """
         if not self.expires_at:
             return True
-        now = datetime.now(timezone.utc)
-        expires = self.expires_at
-        # SQLite stores datetimes as naive — make them comparable
-        if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=timezone.utc)
-        return now > expires
+        return datetime.now(timezone.utc) > self.expires_at
 
     def is_valid(self):
         """
@@ -159,10 +154,7 @@ class UserSession(db.Model):
         Returns:
             timedelta of remaining time, or timedelta(0) if expired
         """
-        expires = self.expires_at
-        if expires and expires.tzinfo is None:
-            expires = expires.replace(tzinfo=timezone.utc)
-        remaining = (expires or datetime.now(timezone.utc)) - datetime.now(timezone.utc)
+        remaining = self.expires_at - datetime.now(timezone.utc)
         return remaining if remaining.total_seconds() > 0 else timedelta(0)
 
     def to_dict(self, include_token=False):

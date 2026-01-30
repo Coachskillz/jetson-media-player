@@ -8,7 +8,7 @@ Each network has a unique slug for URL-friendly identification.
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class Network(db.Model):
@@ -33,7 +33,7 @@ class Network(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Relationships will be added as other models are created
     # hubs = db.relationship('Hub', backref='network', lazy='dynamic')

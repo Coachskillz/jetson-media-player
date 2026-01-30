@@ -20,8 +20,38 @@ SQLAlchemy models for the Content Management System including:
 - Synced Content (cached content from Content Catalog)
 """
 
+from datetime import datetime, timezone
+
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import DateTime as _SADateTime
+from sqlalchemy.types import TypeDecorator
+
+
+class DateTimeUTC(TypeDecorator):
+    """DateTime type that ensures values are always timezone-aware (UTC).
+
+    SQLite stores datetimes as naive strings.  This TypeDecorator adds UTC
+    timezone info when reading and strips it when writing, so Python code
+    can safely compare with ``datetime.now(timezone.utc)`` without hitting
+    "can't compare offset-naive and offset-aware datetimes".
+    """
+
+    impl = _SADateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None and isinstance(value, datetime):
+            if value.tzinfo is not None:
+                value = value.astimezone(timezone.utc)
+            return value.replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None and isinstance(value, datetime):
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+        return value
 
 
 class Base(DeclarativeBase):

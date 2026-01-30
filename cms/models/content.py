@@ -13,7 +13,7 @@ import enum
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class ContentStatus(enum.Enum):
@@ -63,7 +63,7 @@ class Content(db.Model):
     duration = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default=ContentStatus.PENDING.value)
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Content Catalog integration
     # Links CMS content to a Content Catalog asset for syncing

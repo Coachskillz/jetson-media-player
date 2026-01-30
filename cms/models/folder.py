@@ -8,7 +8,7 @@ Supports nested folders (folders within folders).
 from datetime import datetime, timezone
 import uuid
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class Folder(db.Model):
@@ -36,7 +36,7 @@ class Folder(db.Model):
     color = db.Column(db.String(20), default='#667eea')
     parent_id = db.Column(db.String(36), db.ForeignKey('folders.id'), nullable=True)
     network_id = db.Column(db.String(36), db.ForeignKey('networks.id'), nullable=True, index=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Self-referential relationship for nested folders
     children = db.relationship('Folder', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')

@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import uuid
 import secrets
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 class UserInvitation(db.Model):
@@ -46,9 +46,9 @@ class UserInvitation(db.Model):
     invited_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False, index=True)
     token = db.Column(db.String(100), unique=True, nullable=False, index=True, default=lambda: secrets.token_urlsafe(32))
     status = db.Column(db.String(50), nullable=False, default='pending')
-    expires_at = db.Column(db.DateTime, nullable=True)
-    accepted_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(DateTimeUTC(), nullable=True)
+    accepted_at = db.Column(DateTimeUTC(), nullable=True)
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     network = db.relationship('Network', backref=db.backref('invitations', lazy='dynamic'))

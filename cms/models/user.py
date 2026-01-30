@@ -25,7 +25,7 @@ import uuid
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from cms.models import db
+from cms.models import db, DateTimeUTC
 
 
 # Role hierarchy - higher number means more privileges
@@ -95,32 +95,32 @@ class User(UserMixin, db.Model):
     # Invitation and approval tracking
     invited_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     approved_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
-    approved_at = db.Column(db.DateTime, nullable=True)
+    approved_at = db.Column(DateTimeUTC(), nullable=True)
     rejection_reason = db.Column(db.Text, nullable=True)
 
     # Suspension tracking
-    suspended_at = db.Column(db.DateTime, nullable=True)
+    suspended_at = db.Column(DateTimeUTC(), nullable=True)
     suspended_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     suspended_reason = db.Column(db.Text, nullable=True)
 
     # Deactivation tracking
-    deactivated_at = db.Column(db.DateTime, nullable=True)
+    deactivated_at = db.Column(DateTimeUTC(), nullable=True)
     deactivated_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     deactivated_reason = db.Column(db.Text, nullable=True)
 
     # Security fields
     failed_login_attempts = db.Column(db.Integer, nullable=False, default=0)
-    locked_until = db.Column(db.DateTime, nullable=True)
-    password_changed_at = db.Column(db.DateTime, nullable=True)
+    locked_until = db.Column(DateTimeUTC(), nullable=True)
+    password_changed_at = db.Column(DateTimeUTC(), nullable=True)
     must_change_password = db.Column(db.Boolean, nullable=False, default=False)
 
     # Login tracking
-    last_login = db.Column(db.DateTime, nullable=True)
+    last_login = db.Column(DateTimeUTC(), nullable=True)
     last_login_ip = db.Column(db.String(45), nullable=True)
 
     # Timestamps
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, nullable=True, onupdate=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(DateTimeUTC(), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(DateTimeUTC(), nullable=True, onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     network = db.relationship('Network', backref=db.backref('users', lazy='dynamic'))
@@ -229,11 +229,7 @@ class User(UserMixin, db.Model):
         """
         if self.locked_until is None:
             return False
-        locked = self.locked_until
-        # SQLite stores datetimes as naive — make them comparable
-        if locked.tzinfo is None:
-            locked = locked.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) < locked
+        return datetime.now(timezone.utc) < self.locked_until
 
     def is_active(self):
         """
