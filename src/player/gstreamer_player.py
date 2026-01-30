@@ -83,15 +83,16 @@ class GStreamerPlayer:
 
     def _create_player(self) -> Gst.Element:
         """
-        Create and configure the GStreamer playbin3 element.
+        Create and configure the GStreamer playbin element.
 
         Returns:
-            Configured playbin3 element
+            Configured playbin element
         """
-        # Use playbin3 for gapless playback support
-        player = Gst.ElementFactory.make('playbin3', 'player')
+        # playbin3 hangs at PREROLLING on Jetson Orin Nano (GStreamer 1.20).
+        # playbin (v2) works reliably with nvv4l2decoder hardware decode.
+        player = Gst.ElementFactory.make('playbin', 'player')
         if player is None:
-            raise RuntimeError("Failed to create playbin3 element. Is GStreamer installed?")
+            raise RuntimeError("Failed to create playbin element. Is GStreamer installed?")
 
         # Configure video sink — must support GstVideoOverlay for GTK embedding.
         # nv3dsink renders to its own window and CANNOT embed in GTK.

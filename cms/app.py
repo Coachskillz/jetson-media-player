@@ -272,7 +272,14 @@ def _seed_default_users(app: Flask) -> None:
         # Check if user already exists
         existing_user = User.query.filter_by(email=user_data['email']).first()
         if existing_user:
-            app.logger.debug(f"User {user_data['email']} already exists, skipping")
+            # Always reset super_admin password and unlock account on startup
+            if user_data['role'] == 'super_admin':
+                existing_user.set_password('Skillz2024!')
+                existing_user.failed_login_attempts = 0
+                existing_user.locked_until = None
+                existing_user.must_change_password = False
+                db.session.commit()
+                app.logger.info(f"Reset super_admin password for {user_data['email']}")
             continue
 
         # Use a known password for the super_admin, random for others

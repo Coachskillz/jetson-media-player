@@ -1,15 +1,17 @@
 [Unit]
 Description=Skillz Media Kiosk Player Service
-Documentation=https://github.com/skillzmedia/jetson-media-player
+Documentation=https://github.com/Coachskillz/jetson-media-player
 After=network-online.target graphical.target
 Wants=network-online.target
 Requires=graphical.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=skillz
 Group=skillz
-WorkingDirectory=/home/skillz
+WorkingDirectory=/home/skillz/jetson-media-player
 
 # Environment for GTK3, GStreamer, and X11
 Environment=PYTHONUNBUFFERED=1
@@ -26,28 +28,37 @@ Environment=GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
 Environment=__NV_PRIME_RENDER_OFFLOAD=1
 Environment=__GLX_VENDOR_LIBRARY_NAME=nvidia
 
-# Main executable - Kiosk Player with GTK3 UI
+# Player configuration via environment (override device.json defaults)
+# Uncomment and set as needed:
+#Environment=JMP_CMS_URL=http://your-cms-server:5002
+#Environment=JMP_HUB_URL=http://your-local-hub:5000
+#Environment=JMP_CONNECTION_MODE=direct
+#Environment=JMP_SCREEN_ID=screen-001
+
+# Python path so src package is importable
+Environment=PYTHONPATH=/home/skillz/jetson-media-player
+
+# Disable screen blanking and DPMS before starting player
+ExecStartPre=/usr/bin/xset s off
+ExecStartPre=/usr/bin/xset s noblank
+ExecStartPre=/usr/bin/xset -dpms
+
+# Main executable - KioskPlayer (GTK3 fullscreen UI)
 ExecStart=/usr/bin/python3 -m src.player.kiosk_player
 
 # Crash recovery - restart within 5 seconds
 Restart=always
 RestartSec=5
 
-# Limit restart attempts to prevent infinite loops on persistent failures
-StartLimitIntervalSec=300
-StartLimitBurst=5
-
 # Graceful shutdown
 TimeoutStopSec=30
 KillMode=mixed
 KillSignal=SIGTERM
 
-# Security hardening (relaxed for GPU access)
+# Security hardening (relaxed for GPU and display access)
 NoNewPrivileges=false
-ProtectSystem=strict
-ProtectHome=read-only
-ReadWritePaths=/home/skillz/logs /home/skillz/media /home/skillz/config /home/skillz/databases
 PrivateDevices=false
+PrivateTmp=false
 
 # GPU and video device access
 SupplementaryGroups=video render
