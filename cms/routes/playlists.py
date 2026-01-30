@@ -1461,6 +1461,13 @@ def push_playlist_to_devices(playlist_id):
 
         # Mark playlist as synced
         playlist.mark_synced()
+
+        # Bump pending_sync_version on all assigned devices for fast delivery
+        for assignment in assignments:
+            device = assignment.device
+            if device:
+                device.pending_sync_version = (device.pending_sync_version or 0) + 1
+
         db.session.commit()
 
     except Exception as e:

@@ -76,6 +76,9 @@ class Device(db.Model):
     # Layout assignment
     layout_id = db.Column(db.String(36), db.ForeignKey('screen_layouts.id', ondelete='SET NULL'), nullable=True, index=True)
 
+    # Sync version — bumped when CMS wants device to sync immediately
+    pending_sync_version = db.Column(db.Integer, nullable=False, default=0)
+
     # Store/Location information (required for pairing)
     store_name = db.Column(db.String(200), nullable=True)  # Store name or number
     store_address = db.Column(db.String(300), nullable=True)
@@ -123,6 +126,7 @@ class Device(db.Model):
             'pairing_code': self.pairing_code,
             'layout_id': self.layout_id,
             'layout_name': self.layout.name if self.layout else None,
+            'pending_sync_version': self.pending_sync_version,
             # Store/Location information
             'store_name': self.store_name,
             'store_address': self.store_address,

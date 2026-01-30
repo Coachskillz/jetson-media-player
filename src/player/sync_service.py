@@ -30,6 +30,12 @@ class SyncService:
     # Default sync interval in seconds (5 minutes)
     DEFAULT_SYNC_INTERVAL = 300
 
+    # Fast poll interval for sync-check (15 seconds)
+    FAST_CHECK_INTERVAL = 15
+
+    # Timeout for the lightweight sync-check request
+    FAST_CHECK_TIMEOUT = 5
+
     # Default media directory on Jetson devices
     DEFAULT_MEDIA_DIR = "/home/skillz/media"
 
@@ -68,9 +74,11 @@ class SyncService:
 
         # Background thread state
         self._thread: Optional[threading.Thread] = None
+        self._fast_check_thread: Optional[threading.Thread] = None
         self._running = False
         self._stop_event = threading.Event()
         self._sync_lock = threading.Lock()  # Prevent concurrent syncs
+        self._last_known_sync_version = 0
 
         # Sync statistics
         self._last_sync_time: Optional[datetime] = None
@@ -134,6 +142,15 @@ class SyncService:
         )
         self._thread.start()
 
+        # Start fast sync-check thread (direct mode only)
+        if self.connection_mode == "direct":
+            self._fast_check_thread = threading.Thread(
+                target=self._fast_check_loop,
+                name="SyncFastCheck",
+                daemon=True
+            )
+            self._fast_check_thread.start()
+
         logger.info("Sync service started")
 
     def stop(self) -> None:
@@ -147,6 +164,9 @@ class SyncService:
 
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
+
+        if self._fast_check_thread and self._fast_check_thread.is_alive():
+            self._fast_check_thread.join(timeout=5)
 
         logger.info("Sync service stopped")
 
@@ -167,6 +187,42 @@ class SyncService:
                 self.sync_now()
 
         logger.info("Sync loop ended")
+
+    def _check_sync_version(self) -> Optional[int]:
+        """Check the CMS sync version endpoint. Returns version or None."""
+        if self.connection_mode != "direct":
+            return None
+        url = f"{self.cms_url}/api/v1/devices/{self.hardware_id}/sync-check"
+        try:
+            response = requests.get(url, timeout=self.FAST_CHECK_TIMEOUT)
+            if response.status_code == 200:
+                return response.json().get('v', 0)
+        except requests.RequestException:
+            pass
+        return None
+
+    def _fast_check_loop(self) -> None:
+        """Background thread that polls sync-check every 15 seconds."""
+        logger.info("Fast sync-check loop started (interval: %ds)", self.FAST_CHECK_INTERVAL)
+
+        while self._running:
+            if self._stop_event.wait(timeout=self.FAST_CHECK_INTERVAL):
+                break
+            if not self._running:
+                break
+
+            version = self._check_sync_version()
+            if version is not None and version > self._last_known_sync_version:
+                logger.info(
+                    "Sync version changed: %d -> %d — triggering immediate sync",
+                    self._last_known_sync_version, version
+                )
+                self._last_known_sync_version = version
+                self.sync_now()
+            elif version is not None:
+                self._last_known_sync_version = version
+
+        logger.info("Fast sync-check loop ended")
 
     def sync_now(self) -> bool:
         """

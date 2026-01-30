@@ -3146,7 +3146,15 @@ input:disabled + .toggle-slider {
             if (response.ok) {
                 const contentCount = data.content_files_count || 0;
                 const playlistCount = data.playlists_count || 0;
-                showSaveStatus('saved', `Layout pushed! (${contentCount} files, ${playlistCount} playlists)`);
+
+                // Bump sync version so device picks up changes within 15 seconds
+                await fetch(`/api/v1/devices/{{ device.device_id }}/request-sync`, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                showSaveStatus('saved', `Layout pushed! Device will sync within 15 seconds. (${contentCount} files, ${playlistCount} playlists)`);
             } else {
                 showSaveStatus('error', data.error || 'Failed to push layout');
             }

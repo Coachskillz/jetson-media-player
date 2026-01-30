@@ -228,6 +228,20 @@ def _run_migrations(app: Flask) -> None:
         db.session.rollback()
         app.logger.error(f'Migration: playlist_items rebuild failed: {e}')
 
+    # Migration: Add pending_sync_version column to devices table
+    if 'devices' in inspector.get_table_names():
+        device_columns = [c['name'] for c in inspector.get_columns('devices')]
+        if 'pending_sync_version' not in device_columns:
+            try:
+                db.session.execute(text(
+                    'ALTER TABLE devices ADD COLUMN pending_sync_version INTEGER NOT NULL DEFAULT 0'
+                ))
+                db.session.commit()
+                app.logger.info('Migration: Added pending_sync_version column to devices')
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(f'Migration: pending_sync_version failed: {e}')
+
 
 def _seed_default_users(app: Flask) -> None:
     """

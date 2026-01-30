@@ -1070,6 +1070,57 @@ def get_device_playlist(hardware_id):
     return jsonify({'device_id': device.device_id, 'status': device.status, 'items': items}), 200
 
 
+@devices_bp.route('/<hardware_id>/sync-check', methods=['GET'])
+def sync_check(hardware_id):
+    """Lightweight sync version check (no auth - called by Jetson every 15s)."""
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        device = Device.query.filter_by(device_id=hardware_id).first()
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    device.last_seen = datetime.now(timezone.utc)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return jsonify({'v': device.pending_sync_version or 0}), 200
+
+
+@devices_bp.route('/<device_id>/request-sync', methods=['POST'])
+@login_required
+def request_device_sync(device_id):
+    """Bump sync version to trigger near-immediate device sync."""
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    device.pending_sync_version = (device.pending_sync_version or 0) + 1
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed: {str(e)}'}), 500
+
+    log_action(
+        action='device.sync_requested',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        details={'new_version': device.pending_sync_version}
+    )
+
+    return jsonify({
+        'message': 'Sync requested',
+        'pending_sync_version': device.pending_sync_version
+    }), 200
+
+
 @devices_bp.route('/<device_id>/remote/command', methods=['POST'])
 @login_required
 def send_remote_command(device_id):
