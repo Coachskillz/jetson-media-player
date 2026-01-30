@@ -311,25 +311,37 @@ def login():
         }), 500
 
     # Log successful login
-    log_auth_action(
-        action='login',
-        user_email=email,
-        success=True,
-        user_id=user.id,
-        user_name=user.name,
-        user_role=user.role,
-        details={
-            'remember_me': remember_me,
-            'session_id': session.id
-        },
-    )
+    try:
+        log_auth_action(
+            action='login',
+            user_email=email,
+            success=True,
+            user_id=user.id,
+            user_name=user.name,
+            user_role=user.role,
+            details={
+                'remember_me': remember_me,
+                'session_id': session.id
+            },
+        )
+    except Exception:
+        pass  # Don't let audit logging break login
 
-    return jsonify({
-        'message': 'Login successful',
-        'user': user.to_dict(),
-        'session': session.to_dict(include_token=True),
-        'must_change_password': user.must_change_password
-    }), 200
+    try:
+        return jsonify({
+            'message': 'Login successful',
+            'user': user.to_dict(),
+            'session': session.to_dict(include_token=True),
+            'must_change_password': user.must_change_password
+        }), 200
+    except Exception as e:
+        # Return minimal success response if serialization fails
+        return jsonify({
+            'message': 'Login successful',
+            'token': session.token,
+            'must_change_password': user.must_change_password,
+            '_serialization_error': str(e)
+        }), 200
 
 
 @auth_bp.route('/logout', methods=['POST'])
