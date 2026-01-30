@@ -1,0 +1,25 @@
+# =============================================================================
+# Jetson Edge Device Dependencies (Player + Detection)
+# =============================================================================
+# Install with: pip3 install -r requirements-edge.txt
+#
+# SYSTEM PACKAGES (install via apt, NOT pip):
+#   sudo apt install python3-gi gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0
+#   sudo apt install gstreamer1.0-tools gstreamer1.0-plugins-base
+#   sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
+#   sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
+#   sudo apt install libzmq3-dev
+#
+# JETSON-SPECIFIC (pre-installed with JetPack 6.x):
+#   - TensorRT (inference engine)
+#   - DeepStream SDK (video analytics)
+#   - CUDA + cuDNN
+#   - faiss-gpu (install from NVIDIA repo, not pip)
+# =============================================================================
+
+# Core
+PyYAML>=6.0
+requests>=2.31.0
+
+# IPC between player and detection
+pyzmq>=25.0

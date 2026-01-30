@@ -2518,7 +2518,7 @@ def _push_layout_impl(layout_id):
                 'id': content.id,
                 'name': content.original_name,
                 'filename': content.filename,
-                'type': content.content_type,
+                'type': content.mime_type if hasattr(content, 'mime_type') else 'video',
                 'file_path': content.file_path,
                 'file_size': content.file_size,
                 'checksum': content.checksum if hasattr(content, 'checksum') else None

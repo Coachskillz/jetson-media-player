@@ -1,0 +1,54 @@
+# Skillz Media - nvdsanalytics Configuration
+# People counting, line crossing, and dwell time analytics
+
+[property]
+enable=1
+config-width=1920
+config-height=1080
+# OSD display mode (disabled for headless)
+osd-mode=0
+display-font-size=12
+
+# ============================================================
+# ROI Zone: Main Store Area
+# Define the polygon for the primary viewing/counting zone
+# Coordinates are in pixels (1920x1080)
+# ============================================================
+[roi-filtering-stream-0]
+enable=1
+# Polygon: covers main camera field of view
+roi-RF=300;200;1620;200;1620;880;300;880
+# Inverse ROI: 0 = count inside, 1 = count outside
+inverse-roi=0
+class-id=-1
+
+# ============================================================
+# Line Crossing: Entry/Exit Counter
+# Horizontal line near the bottom of frame for entry counting
+# ============================================================
+[line-crossing-stream-0]
+enable=1
+# Entry line (horizontal)
+line-crossing-Entry=100;800;1820;800
+# Direction: 0=both, 1=up only, 2=down only
+extended=0
+# Class filter: -1 = all classes
+class-id=-1
+# Mode: 0=balanced, 1=strict
+mode=strict
+
+# ============================================================
+# Direction Detection
+# ============================================================
+[direction-detection-stream-0]
+enable=0
+
+# ============================================================
+# Overcrowding Detection
+# ============================================================
+[overcrowding-stream-0]
+enable=1
+roi-OC=300;200;1620;200;1620;880;300;880
+# Threshold: alert when more than N people in zone
+object-threshold=20
+class-id=-1

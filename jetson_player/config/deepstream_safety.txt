@@ -1,0 +1,92 @@
+# Skillz Media - Safety Pipeline (Camera 1 - NCMEC)
+# DeepStream configuration for missing children detection
+# CSI Port 0 - RetinaFace + ArcFace + NCMEC FAISS matching
+
+[application]
+enable-perf-measurement=1
+perf-measurement-interval-sec=5
+
+[tiled-display]
+enable=0
+
+[source0]
+enable=1
+# Type 5 = CSI Camera
+type=5
+camera-id=0
+camera-csi-sensor-id=0
+camera-width=1920
+camera-height=1080
+camera-fps-n=30
+camera-fps-d=1
+# GPU for video decode
+gpu-id=0
+
+[streammux]
+gpu-id=0
+batch-size=1
+batched-push-timeout=40000
+width=1920
+height=1080
+live-source=1
+enable-padding=0
+
+[primary-gie]
+enable=1
+gpu-id=0
+gie-unique-id=1
+# RetinaFace face detector
+config-file=config/retinaface_safety_config.txt
+model-engine-file=../../models/retinaface_fp16.engine
+batch-size=1
+# Process every 3rd frame (10 FPS effective)
+interval=2
+# Detector mode
+network-type=0
+# Pre-cluster threshold
+pre-cluster-threshold=0.4
+# FP16 precision
+network-mode=2
+# Minimum detection size
+cluster-mode=2
+
+[tracker]
+enable=1
+gpu-id=0
+# IOU tracker
+tracker-width=640
+tracker-height=384
+ll-lib-file=/opt/nvidia/deepstream/deepstream/lib/libnvds_nvmultiobjecttracker.so
+ll-config-file=config/tracker_safety_config.yml
+enable-past-frame=0
+enable-batch-process=0
+
+[secondary-gie0]
+enable=1
+gpu-id=0
+gie-unique-id=2
+# ArcFace face encoder
+config-file=config/arcface_safety_config.txt
+model-engine-file=../../models/arcface_fp16.engine
+batch-size=16
+# Operate on faces detected by primary GIE
+operate-on-gie-id=1
+operate-on-class-ids=0
+# Output tensor metadata for embedding extraction
+output-tensor-meta=1
+# Encoder mode (custom network)
+network-type=100
+# FP16 precision
+network-mode=2
+
+[sink0]
+enable=1
+# Fakesink - no display output (headless)
+type=1
+gpu-id=0
+
+[osd]
+enable=0
+
+[tests]
+file-loop=0

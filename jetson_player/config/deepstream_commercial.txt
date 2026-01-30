@@ -1,0 +1,101 @@
+# Skillz Media - Commercial Pipeline (Camera 2 - Marketing/Loyalty)
+# DeepStream configuration for age/gender, loyalty, and analytics
+# CSI Port 1 - RetinaFace + Age/Gender + ArcFace (loyalty) + nvdsanalytics
+
+[application]
+enable-perf-measurement=1
+perf-measurement-interval-sec=5
+
+[tiled-display]
+enable=0
+
+[source0]
+enable=1
+# Type 5 = CSI Camera
+type=5
+camera-id=1
+camera-csi-sensor-id=1
+camera-width=1920
+camera-height=1080
+camera-fps-n=30
+camera-fps-d=1
+gpu-id=0
+
+[streammux]
+gpu-id=0
+batch-size=1
+batched-push-timeout=40000
+width=1920
+height=1080
+live-source=1
+enable-padding=0
+
+[primary-gie]
+enable=1
+gpu-id=0
+gie-unique-id=1
+# RetinaFace face detector
+config-file=config/retinaface_commercial_config.txt
+model-engine-file=../../models/retinaface_fp16.engine
+batch-size=1
+# Process every 3rd frame (10 FPS effective)
+interval=2
+network-type=0
+pre-cluster-threshold=0.4
+network-mode=2
+cluster-mode=2
+
+[tracker]
+enable=1
+gpu-id=0
+tracker-width=640
+tracker-height=384
+ll-lib-file=/opt/nvidia/deepstream/deepstream/lib/libnvds_nvmultiobjecttracker.so
+ll-config-file=config/tracker_commercial_config.yml
+enable-past-frame=1
+enable-batch-process=0
+
+[secondary-gie0]
+enable=1
+gpu-id=0
+gie-unique-id=2
+# Age/Gender classifier
+config-file=config/agegender_config.txt
+model-engine-file=../../models/agegender_int8.engine
+batch-size=16
+operate-on-gie-id=1
+operate-on-class-ids=0
+# Classifier mode
+network-type=1
+# INT8 precision
+network-mode=1
+
+[secondary-gie1]
+enable=1
+gpu-id=0
+gie-unique-id=3
+# ArcFace for loyalty recognition
+config-file=config/arcface_loyalty_config.txt
+model-engine-file=../../models/arcface_fp16.engine
+batch-size=16
+operate-on-gie-id=1
+operate-on-class-ids=0
+output-tensor-meta=1
+network-type=100
+network-mode=2
+
+[nvds-analytics]
+enable=1
+config-file=config/analytics_config.txt
+
+[sink0]
+enable=1
+# Fakesink - no display output (headless)
+type=1
+gpu-id=0
+
+[osd]
+enable=0
+
+[tests]
+file-loop=0

@@ -88,3 +88,1068 @@
 2026-01-28 18:56:39,016 - app - INFO - Registered admin web blueprint at /admin
 2026-01-28 18:56:39,018 - app - INFO - Registered partner web blueprint at /partner
 2026-01-28 18:56:39,018 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:21:39,161 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:21:39,162 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:21:39,163 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:21:39,166 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:21:39,166 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:21:39,166 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:21:39,167 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:21:39,167 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:21:39,167 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:21:39,167 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:21:39,168 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:21:39,169 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:21:39,173 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:21:39,175 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:21:39,175 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:25:55,049 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:25:55,050 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:25:55,051 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:25:55,054 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:25:55,054 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:25:55,054 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:25:55,055 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:25:55,055 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:25:55,055 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:25:55,055 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:25:55,056 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:25:55,057 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:25:55,061 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:25:55,063 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:25:55,063 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:25:59,641 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:25:59,642 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:25:59,643 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:25:59,646 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:25:59,646 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:25:59,646 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:25:59,647 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:25:59,647 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:25:59,647 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:25:59,647 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:25:59,648 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:25:59,649 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:25:59,653 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:25:59,655 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:25:59,655 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:26:11,699 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:26:11,700 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:26:11,701 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:26:11,704 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:26:11,704 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:26:11,704 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:26:11,705 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:26:11,705 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:26:11,705 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:26:11,705 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:26:11,706 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:26:11,707 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:26:11,711 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:26:11,713 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:26:11,713 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:26:17,334 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:26:17,335 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:26:17,336 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:26:17,338 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:26:17,338 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:26:17,338 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:26:17,339 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:26:17,339 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:26:17,339 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:26:17,339 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:26:17,340 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:26:17,341 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:26:17,345 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:26:17,347 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:26:17,347 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:26:20,856 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:26:20,857 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:26:20,858 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:26:20,861 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:26:20,861 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:26:20,861 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:26:20,862 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:26:20,862 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:26:20,862 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:26:20,862 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:26:20,864 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:26:20,864 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:26:20,868 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:26:20,870 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:26:20,870 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:26:30,812 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:26:30,814 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:26:30,815 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:26:30,817 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:26:30,817 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:26:30,817 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:26:30,818 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:26:30,818 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:26:30,818 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:26:30,818 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:26:30,820 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:26:30,820 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:26:30,824 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:26:30,826 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:26:30,827 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:34:55,918 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:34:55,919 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:34:55,920 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:34:55,922 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:34:55,922 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:34:55,923 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:34:55,923 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:34:55,923 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:34:55,924 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:34:55,924 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:34:55,925 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:34:55,926 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:34:55,930 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:34:55,932 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:34:55,932 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:04,764 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:04,765 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:04,766 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:04,768 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:04,768 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:04,769 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:04,769 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:04,769 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:04,770 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:04,770 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:04,771 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:04,772 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:04,776 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:04,777 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:04,778 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:10,390 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:10,391 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:10,392 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:10,394 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:10,394 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:10,394 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:10,395 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:10,395 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:10,395 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:10,395 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:10,397 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:10,397 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:10,401 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:10,403 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:10,404 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:15,991 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:15,992 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:15,993 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:15,995 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:15,995 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:15,995 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:15,996 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:15,996 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:15,996 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:15,996 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:15,998 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:15,998 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:16,002 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:16,004 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:16,004 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:19,505 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:19,506 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:19,507 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:19,509 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:19,509 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:19,509 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:19,510 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:19,510 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:19,510 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:19,510 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:19,512 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:19,512 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:19,516 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:19,518 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:19,518 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:23,037 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:23,038 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:23,039 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:23,042 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:23,042 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:23,042 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:23,043 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:23,043 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:23,043 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:23,043 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:23,044 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:23,045 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:23,049 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:23,051 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:23,051 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:27,612 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:27,613 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:27,614 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:27,616 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:27,616 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:27,616 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:27,617 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:27,617 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:27,617 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:27,617 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:27,619 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:27,619 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:27,623 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:27,625 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:27,626 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:35:53,250 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:35:53,251 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:35:53,252 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:35:53,254 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:35:53,254 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:35:53,255 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:35:53,255 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:35:53,255 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:35:53,256 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:35:53,256 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:35:53,257 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:35:53,258 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:35:53,262 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:35:53,264 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:35:53,264 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:36:15,867 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:36:15,868 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:36:15,869 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:36:15,871 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:36:15,871 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:36:15,871 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:36:15,872 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:36:15,872 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:36:15,872 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:36:15,872 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:36:15,874 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:36:15,874 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:36:15,878 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:36:15,880 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:36:15,881 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:36:21,489 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:36:21,490 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:36:21,491 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:36:21,493 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:36:21,494 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:36:21,494 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:36:21,495 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:36:21,495 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:36:21,495 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:36:21,495 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:36:21,496 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:36:21,497 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:36:21,501 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:36:21,503 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:36:21,503 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:36:52,512 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:36:52,513 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:36:52,514 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:36:52,516 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:36:52,517 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:36:52,517 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:36:52,518 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:36:52,518 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:36:52,518 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:36:52,518 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:36:52,519 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:36:52,520 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:36:52,524 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:36:52,526 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:36:52,526 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:38:31,367 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:38:31,368 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:38:31,369 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:38:31,372 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:38:31,372 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:38:31,372 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:38:31,373 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:38:31,373 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:38:31,373 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:38:31,373 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:38:31,374 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:38:31,375 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:38:31,379 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:38:31,381 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:38:31,381 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:40:32,653 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:40:32,654 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:40:32,655 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:40:32,657 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:40:32,658 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:40:32,658 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:40:32,659 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:40:32,659 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:40:32,659 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:40:32,659 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:40:32,660 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:40:32,661 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:40:32,665 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:40:32,667 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:40:32,667 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:40:41,533 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:40:41,534 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:40:41,535 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:40:41,538 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:40:41,538 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:40:41,538 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:40:41,539 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:40:41,539 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:40:41,539 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:40:41,539 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:40:41,540 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:40:41,541 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:40:41,545 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:40:41,547 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:40:41,548 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:40:48,228 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:40:48,229 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:40:48,230 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:40:48,233 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:40:48,233 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:40:48,233 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:40:48,234 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:40:48,234 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:40:48,234 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:40:48,234 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:40:48,235 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:40:48,236 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:40:48,240 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:40:48,242 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:40:48,242 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:41:02,421 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:41:02,422 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:41:02,423 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:41:02,426 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:41:02,426 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:41:02,426 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:41:02,427 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:41:02,427 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:41:02,427 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:41:02,427 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:41:02,428 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:41:02,429 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:41:02,433 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:41:02,435 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:41:02,435 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:41:06,963 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:41:06,964 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:41:06,965 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:41:06,967 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:41:06,967 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:41:06,967 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:41:06,968 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:41:06,968 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:41:06,968 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:41:06,968 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:41:06,970 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:41:06,970 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:41:06,974 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:41:06,976 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:41:06,977 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:55:14,639 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:55:14,640 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:55:14,641 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:55:14,643 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:55:14,644 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:55:14,644 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:55:14,645 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:55:14,645 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:55:14,645 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:55:14,645 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:55:14,646 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:55:14,647 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:55:14,651 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:55:14,653 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:55:14,653 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:55:21,369 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:55:21,370 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:55:21,371 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:55:21,373 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:55:21,374 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:55:21,374 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:55:21,374 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:55:21,375 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:55:21,375 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:55:21,375 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:55:21,376 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:55:21,377 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:55:21,381 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:55:21,383 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:55:21,383 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:55:31,251 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:55:31,252 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:55:31,253 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:55:31,255 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:55:31,255 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:55:31,255 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:55:31,256 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:55:31,256 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:55:31,256 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:55:31,256 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:55:31,258 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:55:31,258 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:55:31,262 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:55:31,264 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:55:31,265 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 21:55:41,164 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 21:55:41,165 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 21:55:41,166 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 21:55:41,169 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 21:55:41,169 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 21:55:41,169 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 21:55:41,170 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 21:55:41,170 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 21:55:41,170 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 21:55:41,170 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 21:55:41,171 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 21:55:41,172 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 21:55:41,176 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 21:55:41,178 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 21:55:41,178 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:03,506 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:03,507 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:03,508 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:03,510 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:03,511 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:03,511 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:03,512 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:03,512 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:03,512 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:03,512 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:03,513 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:03,514 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:03,518 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:03,520 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:03,520 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:08,116 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:08,117 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:08,118 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:08,120 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:08,121 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:08,121 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:08,122 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:08,122 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:08,122 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:08,122 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:08,123 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:08,124 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:08,128 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:08,130 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:08,130 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:16,972 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:16,973 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:16,974 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:16,977 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:16,977 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:16,977 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:16,978 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:16,978 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:16,978 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:16,978 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:16,979 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:16,980 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:16,984 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:16,986 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:16,986 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:20,470 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:20,471 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:20,472 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:20,474 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:20,474 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:20,474 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:20,475 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:20,475 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:20,475 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:20,475 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:20,477 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:20,477 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:20,481 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:20,483 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:20,484 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:31,479 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:31,480 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:31,481 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:31,483 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:31,483 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:31,484 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:31,484 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:31,485 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:31,485 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:31,485 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:31,486 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:31,487 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:31,491 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:31,493 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:31,493 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:40,327 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:40,328 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:40,329 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:40,331 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:40,331 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:40,331 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:40,332 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:40,332 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:40,332 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:40,332 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:40,334 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:40,334 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:40,338 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:40,340 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:40,341 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:08:50,235 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:08:50,236 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:08:50,237 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:08:50,240 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:08:50,240 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:08:50,240 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:08:50,241 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:08:50,241 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:08:50,241 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:08:50,241 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:08:50,242 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:08:50,243 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:08:50,247 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:08:50,249 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:08:50,250 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:09:04,450 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:09:04,451 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:09:04,452 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:09:04,454 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:09:04,455 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:09:04,455 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:09:04,455 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:09:04,456 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:09:04,456 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:09:04,456 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:09:04,457 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:09:04,458 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:09:04,462 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:09:04,464 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:09:04,464 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:09:10,085 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:09:10,086 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:09:10,087 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:09:10,089 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:09:10,089 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:09:10,089 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:09:10,090 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:09:10,090 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:09:10,090 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:09:10,090 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:09:10,092 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:09:10,092 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:09:10,096 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:09:10,098 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:09:10,099 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:09:17,872 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:09:17,873 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:09:17,874 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:09:17,876 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:09:17,877 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:09:17,877 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:09:17,878 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:09:17,878 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:09:17,878 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:09:17,878 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:09:17,879 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:09:17,880 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:09:17,884 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:09:17,886 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:09:17,886 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:09:30,937 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:09:30,938 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:09:30,939 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:09:30,942 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:09:30,942 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:09:30,942 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:09:30,943 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:09:30,943 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:09:30,943 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:09:30,943 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:09:30,944 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:09:30,945 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:09:30,949 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:09:30,951 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:09:30,951 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 22:09:37,647 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 22:09:37,648 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 22:09:37,649 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 22:09:37,651 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 22:09:37,652 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 22:09:37,652 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 22:09:37,653 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 22:09:37,653 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 22:09:37,653 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 22:09:37,653 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 22:09:37,654 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 22:09:37,655 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 22:09:37,659 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 22:09:37,661 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 22:09:37,661 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:04:46,438 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:04:46,439 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:04:46,440 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:04:46,442 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:04:46,443 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:04:46,443 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:04:46,444 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:04:46,444 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:04:46,444 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:04:46,444 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:04:46,445 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:04:46,446 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:04:46,450 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:04:46,452 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:04:46,452 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:04:54,212 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:04:54,213 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:04:54,214 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:04:54,216 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:04:54,216 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:04:54,217 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:04:54,217 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:04:54,217 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:04:54,217 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:04:54,218 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:04:54,219 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:04:54,219 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:04:54,224 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:04:54,226 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:04:54,226 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:04:57,739 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:04:57,740 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:04:57,741 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:04:57,744 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:04:57,744 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:04:57,744 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:04:57,745 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:04:57,745 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:04:57,745 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:04:57,745 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:04:57,746 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:04:57,747 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:04:57,751 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:04:57,753 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:04:57,753 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:34:03,645 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:34:03,646 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:34:03,647 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:34:03,649 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:34:03,650 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:34:03,650 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:34:03,650 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:34:03,651 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:34:03,651 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:34:03,651 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:34:03,652 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:34:03,653 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:34:03,657 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:34:03,659 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:34:03,659 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:34:12,482 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:34:12,483 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:34:12,484 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:34:12,487 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:34:12,487 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:34:12,487 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:34:12,488 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:34:12,488 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:34:12,488 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:34:12,488 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:34:12,489 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:34:12,490 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:34:12,494 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:34:12,496 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:34:12,496 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:34:29,735 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:34:29,736 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:34:29,737 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:34:29,739 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:34:29,739 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:34:29,739 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:34:29,740 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:34:29,740 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:34:29,740 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:34:29,740 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:34:29,742 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:34:29,742 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:34:29,746 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:34:29,748 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:34:29,749 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:35:20,916 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:35:20,917 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:35:20,918 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:35:20,920 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:35:20,920 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:35:20,921 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:35:20,921 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:35:20,921 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:35:20,922 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:35:20,922 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:35:20,923 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:35:20,924 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:35:20,928 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:35:20,930 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:35:20,930 - app - INFO - Registered magic_link blueprint at /
+2026-01-28 23:35:32,865 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-28 23:35:32,866 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-28 23:35:32,867 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-28 23:35:32,869 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-28 23:35:32,869 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-28 23:35:32,870 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-28 23:35:32,870 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-28 23:35:32,870 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-28 23:35:32,871 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-28 23:35:32,871 - app - DEBUG - Catalog blueprint not available yet
+2026-01-28 23:35:32,872 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-28 23:35:32,873 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-28 23:35:32,877 - app - INFO - Registered admin web blueprint at /admin
+2026-01-28 23:35:32,879 - app - INFO - Registered partner web blueprint at /partner
+2026-01-28 23:35:32,879 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:38:25,264 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:38:25,265 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:38:25,266 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:38:25,268 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:38:25,269 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:38:25,269 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:38:25,269 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:38:25,270 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:38:25,270 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:38:25,270 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:38:25,271 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:38:25,272 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:38:25,276 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:38:25,278 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:38:25,278 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:38:47,790 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:38:47,791 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:38:47,792 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:38:47,794 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:38:47,795 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:38:47,795 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:38:47,796 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:38:47,796 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:38:47,796 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:38:47,796 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:38:47,797 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:38:47,798 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:38:47,802 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:38:47,804 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:38:47,804 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:38:56,566 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:38:56,567 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:38:56,568 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:38:56,570 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:38:56,570 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:38:56,571 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:38:56,571 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:38:56,571 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:38:56,572 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:38:56,572 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:38:56,573 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:38:56,574 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:38:56,578 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:38:56,580 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:38:56,580 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:55:59,400 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:55:59,402 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:55:59,403 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:55:59,405 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:55:59,405 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:55:59,405 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:55:59,406 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:55:59,406 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:55:59,406 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:55:59,406 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:55:59,408 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:55:59,408 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:55:59,412 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:55:59,414 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:55:59,415 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:56:10,293 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:56:10,294 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:56:10,295 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:56:10,297 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:56:10,297 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:56:10,298 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:56:10,298 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:56:10,299 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:56:10,299 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:56:10,299 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:56:10,300 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:56:10,301 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:56:10,305 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:56:10,307 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:56:10,307 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:56:28,569 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:56:28,570 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:56:28,571 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:56:28,573 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:56:28,573 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:56:28,573 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:56:28,574 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:56:28,574 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:56:28,574 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:56:28,574 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:56:28,576 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:56:28,576 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:56:28,581 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:56:28,583 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:56:28,583 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 07:56:40,466 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 07:56:40,467 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 07:56:40,468 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 07:56:40,470 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 07:56:40,470 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 07:56:40,471 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 07:56:40,471 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 07:56:40,472 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 07:56:40,472 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 07:56:40,472 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 07:56:40,473 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 07:56:40,474 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 07:56:40,478 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 07:56:40,480 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 07:56:40,480 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 08:17:26,504 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 08:17:26,505 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 08:17:26,506 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 08:17:26,509 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 08:17:26,509 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 08:17:26,509 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 08:17:26,510 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 08:17:26,510 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 08:17:26,510 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 08:17:26,510 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 08:17:26,512 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 08:17:26,512 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 08:17:26,516 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 08:17:26,518 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 08:17:26,519 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 08:17:34,206 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 08:17:34,207 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 08:17:34,208 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 08:17:34,210 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 08:17:34,211 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 08:17:34,211 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 08:17:34,212 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 08:17:34,212 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 08:17:34,212 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 08:17:34,212 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 08:17:34,213 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 08:17:34,214 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 08:17:34,218 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 08:17:34,220 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 08:17:34,220 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 08:17:50,305 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 08:17:50,306 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 08:17:50,307 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 08:17:50,309 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 08:17:50,309 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 08:17:50,309 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 08:17:50,310 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 08:17:50,310 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 08:17:50,310 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 08:17:50,310 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 08:17:50,312 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 08:17:50,312 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 08:17:50,316 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 08:17:50,318 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 08:17:50,319 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:16:04,206 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:16:04,208 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:16:04,209 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:16:04,211 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:16:04,211 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:16:04,211 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:16:04,212 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:16:04,212 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:16:04,212 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:16:04,212 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:16:04,214 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:16:04,214 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:16:04,218 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:16:04,220 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:16:04,221 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:31:12,353 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:31:12,354 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:31:12,355 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:31:12,358 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:31:12,358 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:31:12,358 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:31:12,359 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:31:12,359 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:31:12,359 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:31:12,359 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:31:12,360 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:31:12,361 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:31:12,365 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:31:12,367 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:31:12,367 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:31:20,009 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:31:20,010 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:31:20,011 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:31:20,013 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:31:20,014 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:31:20,014 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:31:20,015 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:31:20,015 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:31:20,015 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:31:20,015 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:31:20,016 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:31:20,017 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:31:20,021 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:31:20,023 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:31:20,023 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:33:39,144 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:33:39,145 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:33:39,146 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:33:39,148 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:33:39,148 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:33:39,149 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:33:39,149 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:33:39,150 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:33:39,150 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:33:39,150 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:33:39,151 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:33:39,152 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:33:39,156 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:33:39,158 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:33:39,158 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:35:47,611 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:35:47,613 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:35:47,614 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:35:47,616 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:35:47,616 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:35:47,616 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:35:47,617 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:35:47,617 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:35:47,617 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:35:47,617 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:35:47,619 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:35:47,619 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:35:47,623 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:35:47,625 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:35:47,626 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:36:04,999 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:36:05,000 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:36:05,001 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:36:05,004 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:36:05,004 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:36:05,004 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:36:05,005 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:36:05,005 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:36:05,005 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:36:05,005 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:36:05,006 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:36:05,007 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:36:05,011 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:36:05,013 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:36:05,013 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:36:35,238 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:36:35,239 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:36:35,240 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:36:35,242 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:36:35,242 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:36:35,243 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:36:35,243 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:36:35,244 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:36:35,244 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:36:35,244 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:36:35,245 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:36:35,246 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:36:35,250 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:36:35,252 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:36:35,252 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:43:21,638 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:43:21,639 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:43:21,640 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:43:21,643 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:43:21,643 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:43:21,643 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:43:21,644 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:43:21,644 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:43:21,644 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:43:21,644 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:43:21,645 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:43:21,646 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:43:21,650 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:43:21,652 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:43:21,652 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:43:29,410 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:43:29,411 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:43:29,412 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:43:29,414 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:43:29,415 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:43:29,415 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:43:29,415 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:43:29,416 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:43:29,416 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:43:29,416 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:43:29,417 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:43:29,418 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:43:29,422 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:43:29,424 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:43:29,424 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:43:37,177 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:43:37,178 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:43:37,179 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:43:37,181 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:43:37,181 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:43:37,182 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:43:37,182 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:43:37,182 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:43:37,183 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:43:37,183 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:43:37,184 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:43:37,185 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:43:37,189 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:43:37,191 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:43:37,191 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:43:42,819 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:43:42,820 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:43:42,821 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:43:42,824 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:43:42,824 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:43:42,824 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:43:42,825 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:43:42,825 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:43:42,825 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:43:42,825 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:43:42,826 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:43:42,827 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:43:42,831 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:43:42,833 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:43:42,833 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 09:43:49,510 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 09:43:49,511 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 09:43:49,512 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 09:43:49,514 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 09:43:49,515 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 09:43:49,515 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 09:43:49,516 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 09:43:49,516 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 09:43:49,516 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 09:43:49,516 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 09:43:49,517 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 09:43:49,518 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 09:43:49,522 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 09:43:49,524 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 09:43:49,524 - app - INFO - Registered magic_link blueprint at /
+2026-01-29 12:00:54,873 - app - INFO - Registered auth blueprint at /admin/api
+2026-01-29 12:00:54,874 - app - INFO - Registered users blueprint at /api/v1/users
+2026-01-29 12:00:54,875 - app - INFO - Registered organizations blueprint at /api/v1/organizations
+2026-01-29 12:00:54,878 - app - INFO - Registered assets blueprint at /api/v1/assets
+2026-01-29 12:00:54,878 - app - INFO - Registered approved_assets blueprint at /api/v1/approved-assets
+2026-01-29 12:00:54,878 - app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-01-29 12:00:54,879 - app - INFO - Registered approvals blueprint at /api/v1/approvals
+2026-01-29 12:00:54,879 - app - INFO - Registered audit blueprint at /admin/api/audit-logs
+2026-01-29 12:00:54,879 - app - INFO - Registered audit_admin blueprint at /admin/api
+2026-01-29 12:00:54,879 - app - DEBUG - Catalog blueprint not available yet
+2026-01-29 12:00:54,881 - app - INFO - Registered catalogs blueprint at /api/v1/catalogs
+2026-01-29 12:00:54,881 - app - INFO - Registered tenants blueprint at /api/v1/tenants
+2026-01-29 12:00:54,885 - app - INFO - Registered admin web blueprint at /admin
+2026-01-29 12:00:54,887 - app - INFO - Registered partner web blueprint at /partner
+2026-01-29 12:00:54,888 - app - INFO - Registered magic_link blueprint at /
