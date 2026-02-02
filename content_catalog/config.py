@@ -17,9 +17,13 @@ def get_database_url():
         if url.startswith('postgres://'):
             url = url.replace('postgres://', 'postgresql://', 1)
         return url
-    # Fallback to SQLite for development
+    # Use Railway volume for SQLite if available
+    volume_path = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
     base_dir = Path(__file__).parent.resolve()
-    db_path = Path(os.environ.get('CONTENT_CATALOG_DATABASE_PATH', base_dir / 'data' / 'content_catalog.db'))
+    if volume_path:
+        db_path = Path(volume_path) / 'content_catalog.db'
+    else:
+        db_path = Path(os.environ.get('CONTENT_CATALOG_DATABASE_PATH', base_dir / 'data' / 'content_catalog.db'))
     return f'sqlite:///{db_path}'
 
 
