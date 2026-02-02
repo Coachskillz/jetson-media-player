@@ -41,8 +41,16 @@ class Config:
     BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5003')
 
     # File Storage Paths
-    UPLOADS_PATH = Path(os.environ.get('CONTENT_CATALOG_UPLOAD_PATH', BASE_DIR / 'uploads'))
-    THUMBNAILS_PATH = Path(os.environ.get('CONTENT_CATALOG_THUMBNAILS_PATH', BASE_DIR / 'uploads' / 'thumbnails'))
+    # Use Railway volume mount if available, then env var, then local default
+    UPLOADS_PATH = Path(
+        os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+        or os.environ.get('CONTENT_CATALOG_UPLOAD_PATH')
+        or str(BASE_DIR / 'uploads')
+    )
+    THUMBNAILS_PATH = Path(
+        os.environ.get('CONTENT_CATALOG_THUMBNAILS_PATH')
+        or str(UPLOADS_PATH / 'thumbnails')
+    )
 
     # Upload Constraints
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB max upload size
