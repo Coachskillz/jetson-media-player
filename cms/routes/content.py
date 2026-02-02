@@ -1429,3 +1429,61 @@ def push_content_from_catalog():
             'success': False,
             'error': f'Failed to create content record: {str(e)}'
         }), 500
+
+
+@content_bp.route('/from-catalog/resync', methods=['POST'])
+def resync_catalog_content():
+    """
+    Re-download missing files and fix durations for all catalog-sourced content.
+
+    Service-to-service endpoint authenticated via X-Service-API-Key header.
+    For each Content record with source='catalog':
+      - If the file is missing locally, re-download from Content Catalog
+      - If duration is 0/null and it's a video, extract via ffprobe
+    """
+    api_key = request.headers.get('X-Service-API-Key')
+    expected_key = os.environ.get('CMS_SERVICE_API_KEY', 'skillz-cms-service-key-2026')
+    if not api_key or api_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    catalog_url = current_app.config.get('CONTENT_CATALOG_URL', '')
+    uploads_path = Path(current_app.config.get('UPLOADS_PATH', './uploads'))
+    uploads_path.mkdir(parents=True, exist_ok=True)
+
+    catalog_content = Content.query.filter_by(source='catalog').all()
+    results = {'total': len(catalog_content), 'redownloaded': 0, 'duration_fixed': 0, 'errors': []}
+
+    for content in catalog_content:
+        file_path = uploads_path / content.filename
+
+        # Re-download if missing
+        if not file_path.exists() and content.catalog_asset_uuid and catalog_url:
+            try:
+                download_url = f"{catalog_url}/api/v1/assets/uuid/{content.catalog_asset_uuid}/file"
+                resp = requests.get(download_url, stream=True, timeout=(10, 120))
+                if resp.status_code == 200:
+                    with open(str(file_path), 'wb') as f:
+                        for chunk in resp.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                    content.file_size = os.path.getsize(str(file_path))
+                    results['redownloaded'] += 1
+                else:
+                    results['errors'].append(f"{content.id}: download returned {resp.status_code}")
+            except Exception as e:
+                results['errors'].append(f"{content.id}: {str(e)}")
+
+        # Fix duration if missing
+        if file_path.exists() and content.duration in (None, 0) and content.mime_type and content.mime_type.startswith('video/'):
+            extracted = _extract_video_duration(file_path)
+            if extracted:
+                content.duration = extracted
+                results['duration_fixed'] += 1
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        results['errors'].append(f"commit failed: {str(e)}")
+
+    return jsonify(results), 200

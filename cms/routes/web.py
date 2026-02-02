@@ -9,6 +9,11 @@ Blueprint for web page rendering:
 - GET /playlists: Playlist management page
 """
 
+import os
+import logging
+from pathlib import Path
+
+import requests as http_requests
 from flask import Blueprint, render_template, abort, redirect, url_for, request, flash, jsonify, send_from_directory, current_app
 from flask_login import login_required, current_user
 
@@ -18,6 +23,8 @@ from cms.routes.locations import Location
 from cms.models.device_assignment import TRIGGER_TYPES
 from cms.models.synced_content import SyncedContent
 from cms.services.content_sync_service import ContentSyncService
+
+logger = logging.getLogger(__name__)
 
 
 # Create web blueprint (no url_prefix since these are root-level pages)
@@ -65,18 +72,67 @@ def filter_networks_for_user(networks_query):
 
 
 
+def _serve_content_file(filename):
+    """
+    Serve a content file, falling back to Content Catalog if not found locally.
+
+    If the file doesn't exist on disk, looks up the Content record to find the
+    catalog_asset_uuid, downloads from Content Catalog, caches locally, and serves.
+    """
+    uploads_path = Path(str(current_app.config.get("UPLOADS_PATH", "./uploads")))
+    file_path = uploads_path / filename
+
+    if file_path.exists():
+        return send_from_directory(str(uploads_path), filename)
+
+    # File not found locally — try to fetch from Content Catalog
+    content = Content.query.filter_by(filename=filename).first()
+    if not content or not content.catalog_asset_uuid:
+        abort(404)
+
+    catalog_url = current_app.config.get('CONTENT_CATALOG_URL', '')
+    if not catalog_url:
+        abort(404)
+
+    download_url = f"{catalog_url}/api/v1/assets/uuid/{content.catalog_asset_uuid}/file"
+    try:
+        resp = http_requests.get(download_url, stream=True, timeout=(10, 120))
+        if resp.status_code != 200:
+            logger.warning("Content Catalog returned %s for %s", resp.status_code, download_url)
+            abort(404)
+
+        # Cache the file locally
+        uploads_path.mkdir(parents=True, exist_ok=True)
+        with open(str(file_path), 'wb') as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+        # Extract duration if missing
+        if content.duration in (None, 0) and content.mime_type and content.mime_type.startswith('video/'):
+            from cms.routes.content import _extract_video_duration
+            extracted = _extract_video_duration(file_path)
+            if extracted:
+                content.duration = extracted
+                db.session.commit()
+
+        return send_from_directory(str(uploads_path), filename)
+
+    except Exception as e:
+        logger.error("Failed to fetch from Content Catalog: %s", e)
+        abort(404)
+
+
 @web_bp.route("/cms/uploads/<filename>")
 def serve_upload(filename):
     """Serve uploaded content files."""
-    uploads_path = current_app.config.get("UPLOADS_PATH", "./uploads")
-    return send_from_directory(uploads_path, filename)
+    return _serve_content_file(filename)
 
 
 @web_bp.route("/admin/assets/<filename>")
 def serve_admin_asset(filename):
     """Serve content files for playlist preview."""
-    uploads_path = current_app.config.get("UPLOADS_PATH", "./uploads")
-    return send_from_directory(uploads_path, filename)
+    return _serve_content_file(filename)
 
 
 @web_bp.route('/')

@@ -891,6 +891,48 @@ def download_asset(asset_id):
         }), 500
 
 
+@assets_bp.route('/uuid/<asset_uuid>/file', methods=['GET'])
+def download_asset_by_uuid(asset_uuid):
+    """
+    Download a content file by asset UUID (public, used by CMS proxy).
+
+    Args:
+        asset_uuid: The content asset UUID string
+
+    Returns:
+        200: File content streamed inline
+        404: Asset not found
+    """
+    asset = ContentAsset.query.filter_by(uuid=asset_uuid).first()
+
+    if not asset:
+        return jsonify({'error': 'Asset not found'}), 404
+
+    file_path = asset.file_path
+
+    # Resolve file path
+    if not os.path.isabs(file_path) or not os.path.exists(file_path):
+        uploads_path = current_app.config.get('UPLOADS_PATH', 'uploads')
+        relative = file_path
+        if relative.startswith('uploads/'):
+            relative = relative[len('uploads/'):]
+        resolved = os.path.join(str(uploads_path), relative)
+        if os.path.exists(resolved):
+            file_path = resolved
+
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found on storage'}), 404
+
+    try:
+        return send_file(
+            file_path,
+            mimetype=get_mime_type(asset.filename),
+            as_attachment=False
+        )
+    except Exception as e:
+        return jsonify({'error': f'Failed to serve file: {str(e)}'}), 500
+
+
 @assets_bp.route('/<int:asset_id>/preview', methods=['GET'])
 def preview_asset(asset_id):
     """

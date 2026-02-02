@@ -47,7 +47,7 @@ class Config:
     DEVICE_ID_PREFIX_HUB = 'SKZ-H'
 
     # Content Catalog Settings
-    CONTENT_CATALOG_URL = os.environ.get('CONTENT_CATALOG_URL', 'https://catalog.skillzmedia.com')
+    CONTENT_CATALOG_URL = os.environ.get('CONTENT_CATALOG_URL', 'https://jetson-media-player-production.up.railway.app')
 
     @classmethod
     def init_app(cls, app):
