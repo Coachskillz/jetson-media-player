@@ -1240,23 +1240,23 @@ def checkout_asset(asset_id):
 def add_content_from_catalog():
     """
     Add content to CMS from Content Catalog drag-and-drop.
-    
+
     Called when user drags an approved asset from Content Catalog
     and drops it into CMS content library.
     """
     from cms.models import db
     from cms.models.content import Content
     from datetime import datetime, timezone
-    
+
     data = request.get_json()
-    
+
     if not data:
         return jsonify({'error': 'No data provided'}), 400
-    
+
     catalog_uuid = data.get('catalog_uuid')
     if not catalog_uuid:
         return jsonify({'error': 'catalog_uuid is required'}), 400
-    
+
     # Check if content already exists
     existing = Content.query.filter_by(catalog_asset_uuid=catalog_uuid).first()
     if existing:
@@ -1265,7 +1265,7 @@ def add_content_from_catalog():
             'message': f'This asset is already in your library as "{existing.title or existing.original_name}"',
             'content_id': existing.id
         }), 409
-    
+
     # Create new content entry
     try:
         content = Content(
@@ -1278,20 +1278,145 @@ def add_content_from_catalog():
             source='catalog',
             created_at=datetime.now(timezone.utc)
         )
-        
+
         db.session.add(content)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Content added to library',
             'content_id': content.id,
             'title': content.title
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'error': 'Failed to add content',
             'message': str(e)
+        }), 500
+
+
+@content_bp.route('/from-catalog/push', methods=['POST'])
+def push_content_from_catalog():
+    """
+    Receive content pushed from Content Catalog service.
+
+    Service-to-service endpoint authenticated via X-Service-API-Key header.
+    Downloads the file from Content Catalog and creates a CMS Content record.
+
+    JSON Body:
+        catalog_uuid: Content Catalog asset UUID (required)
+        title: Asset title
+        filename: Original filename
+        mime_type: MIME type
+        file_size: File size in bytes
+        duration: Duration in seconds
+        network_slug: Tenant slug to match CMS network
+        download_url: URL to download the file from Content Catalog
+
+    Returns:
+        201: Content received and created
+        409: Content already exists
+        400: Missing required fields
+        401: Invalid API key
+        500: Server error
+    """
+    from datetime import datetime, timezone
+
+    # Authenticate via service API key
+    api_key = request.headers.get('X-Service-API-Key')
+    expected_key = os.environ.get('CMS_SERVICE_API_KEY', 'skillz-cms-service-key-2026')
+    if not api_key or api_key != expected_key:
+        return jsonify({'error': 'Unauthorized', 'message': 'Valid service API key required'}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    catalog_uuid = data.get('catalog_uuid')
+    if not catalog_uuid:
+        return jsonify({'error': 'catalog_uuid is required'}), 400
+
+    # Check if content already exists
+    existing = Content.query.filter_by(catalog_asset_uuid=catalog_uuid).first()
+    if existing:
+        return jsonify({
+            'success': True,
+            'message': 'Content already exists in CMS',
+            'cms_content_id': existing.id,
+            'catalog_asset_uuid': catalog_uuid
+        }), 409
+
+    # Find matching network by slug
+    network_id = None
+    network_slug = data.get('network_slug')
+    if network_slug:
+        network = Network.query.filter_by(slug=network_slug).first()
+        if network:
+            network_id = network.id
+
+    # Download file from Content Catalog
+    download_url = data.get('download_url')
+    stored_filename = None
+    actual_file_size = data.get('file_size', 0)
+
+    if download_url:
+        try:
+            resp = requests.get(download_url, stream=True, timeout=(10, 120))
+            if resp.status_code == 200:
+                uploads_path = Path(current_app.config.get('UPLOADS_PATH', './uploads'))
+                uploads_path.mkdir(parents=True, exist_ok=True)
+
+                original_name = data.get('filename', 'unknown')
+                file_ext = original_name.rsplit('.', 1)[1].lower() if '.' in original_name else ''
+                stored_filename = f"{uuid.uuid4()}.{file_ext}" if file_ext else str(uuid.uuid4())
+                file_path = uploads_path / stored_filename
+
+                with open(str(file_path), 'wb') as f:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+
+                actual_file_size = os.path.getsize(str(file_path))
+        except Exception as e:
+            current_app.logger.warning(f"Failed to download file from catalog: {e}")
+
+    # Determine mime type
+    mime_type = data.get('mime_type', 'video/mp4')
+    if not mime_type or mime_type == 'unknown':
+        filename = data.get('filename', '')
+        mime_type = get_mime_type(filename) if filename else 'video/mp4'
+
+    try:
+        content = Content(
+            filename=stored_filename or f"catalog_{catalog_uuid}",
+            original_name=data.get('filename', 'Unknown'),
+            mime_type=mime_type,
+            file_size=actual_file_size,
+            duration=int(data.get('duration') or 0),
+            network_id=network_id,
+            catalog_asset_uuid=catalog_uuid,
+            source='catalog',
+            status='approved',
+            created_at=datetime.now(timezone.utc)
+        )
+
+        db.session.add(content)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Content transferred to CMS',
+            'cms_content_id': content.id,
+            'network_id': network_id,
+            'catalog_asset_uuid': catalog_uuid,
+            'file_downloaded': stored_filename is not None
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to create content record: {str(e)}'
         }), 500

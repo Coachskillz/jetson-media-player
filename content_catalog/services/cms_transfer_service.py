@@ -3,133 +3,56 @@ CMS Transfer Service
 
 Handles automatic transfer of approved content from Content Catalog to CMS.
 When content is fully approved (Skillz + Venue or auto-approved), this service:
-1. Copies the file to CMS storage
-2. Creates a Content record in CMS database
-3. Links it to the correct Network via slug matching
+1. Calls the CMS API to push the content record
+2. CMS downloads the file from Content Catalog
+3. CMS creates a Content record linked to the correct Network
+
+Works both locally and on Railway (or any remote deployment) by using
+HTTP API calls instead of direct file/database access.
 """
 
 import os
-import shutil
-import sqlite3
-from datetime import datetime, timezone
-import uuid
-from pathlib import Path
+import logging
+import requests
+from requests.exceptions import RequestException, Timeout, ConnectionError
 
-# Paths - adjust these based on your deployment
-CONTENT_CATALOG_UPLOADS = Path('/Users/skillzmedia/Projects/jetson-media-player/content_catalog/uploads')
-CMS_UPLOADS = Path('/Users/skillzmedia/Projects/jetson-media-player/cms/uploads')
-CMS_DATABASE = Path('/Users/skillzmedia/Projects/jetson-media-player/cms/data/cms.db')
+logger = logging.getLogger(__name__)
+
+# CMS endpoint URL - set via environment variable for production
+CMS_ENDPOINT = os.environ.get('CMS_ENDPOINT', 'https://keen-ambition-production.up.railway.app')
+
+# Service API key for CMS authentication
+CMS_SERVICE_API_KEY = os.environ.get('CMS_SERVICE_API_KEY', 'skillz-cms-service-key-2026')
+
+# Content Catalog base URL (for CMS to download files from)
+CONTENT_CATALOG_BASE_URL = os.environ.get('BASE_URL', 'https://jetson-media-player-production.up.railway.app')
 
 
 class CMSTransferService:
-    """Service for transferring approved content to CMS."""
-    
-    @staticmethod
-    def get_cms_network_id(tenant_slug):
-        """
-        Find the CMS Network ID that matches the tenant slug.
-        
-        Args:
-            tenant_slug: The slug of the Content Catalog tenant
-            
-        Returns:
-            Network ID (UUID string) or None if not found
-        """
-        try:
-            conn = sqlite3.connect(str(CMS_DATABASE))
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM networks WHERE slug = ?", (tenant_slug,))
-            result = cursor.fetchone()
-            conn.close()
-            return result[0] if result else None
-        except Exception as e:
-            print(f"Error finding CMS network: {e}")
-            return None
-    
-    @staticmethod
-    def content_exists_in_cms(catalog_asset_uuid):
-        """
-        Check if content with this catalog_asset_uuid already exists in CMS.
-        
-        Args:
-            catalog_asset_uuid: The UUID of the content asset in Content Catalog
-            
-        Returns:
-            True if exists, False otherwise
-        """
-        try:
-            conn = sqlite3.connect(str(CMS_DATABASE))
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id FROM content WHERE catalog_asset_uuid = ?", 
-                (catalog_asset_uuid,)
-            )
-            result = cursor.fetchone()
-            conn.close()
-            return result is not None
-        except Exception as e:
-            print(f"Error checking CMS content: {e}")
-            return False
-    
+    """Service for transferring approved content to CMS via API."""
+
     @staticmethod
     def transfer_to_cms(content_asset, tenant):
         """
-        Transfer an approved content asset to CMS.
-        
+        Transfer an approved content asset to CMS via API.
+
+        Calls the CMS /api/v1/content/from-catalog/push endpoint which:
+        1. Creates a Content record in the CMS database
+        2. Downloads the file from Content Catalog
+        3. Links it to the matching Network by slug
+
         Args:
             content_asset: ContentAsset instance from Content Catalog
             tenant: Tenant instance the content is approved for
-            
+
         Returns:
             dict with success status and details
         """
         try:
-            # Check if already transferred
-            if CMSTransferService.content_exists_in_cms(content_asset.uuid):
-                return {
-                    'success': False,
-                    'error': 'Content already exists in CMS',
-                    'catalog_asset_uuid': content_asset.uuid
-                }
-            
-            # Find matching CMS network
-            network_id = CMSTransferService.get_cms_network_id(tenant.slug)
-            if not network_id:
-                return {
-                    'success': False,
-                    'error': f'No matching CMS network found for tenant slug: {tenant.slug}',
-                    'tenant_slug': tenant.slug
-                }
-            
-            # Copy file to CMS uploads
-            source_path = CONTENT_CATALOG_UPLOADS / content_asset.file_path
-            if not source_path.exists():
-                # Try with just filename
-                source_path = CONTENT_CATALOG_UPLOADS / content_asset.filename
-            
-            if not source_path.exists():
-                return {
-                    'success': False,
-                    'error': f'Source file not found: {source_path}',
-                    'file_path': str(source_path)
-                }
-            
-            # Create destination path
-            CMS_UPLOADS.mkdir(parents=True, exist_ok=True)
-            dest_filename = f"{content_asset.uuid}_{content_asset.filename}"
-            dest_path = CMS_UPLOADS / dest_filename
-            
-            # Copy file
-            shutil.copy2(str(source_path), str(dest_path))
-            
-            # Create CMS content record
-            content_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc).isoformat()
-            
-            conn = sqlite3.connect(str(CMS_DATABASE))
-            cursor = conn.cursor()
-            
-            # Determine mime_type from format
+            # Build download URL for the CMS to fetch the file
+            download_url = f"{CONTENT_CATALOG_BASE_URL}/api/v1/assets/{content_asset.id}/download"
+
+            # Determine mime type
             format_to_mime = {
                 'mp4': 'video/mp4',
                 'mov': 'video/quicktime',
@@ -144,56 +67,111 @@ class CMSTransferService:
             }
             mime_type = format_to_mime.get(
                 (content_asset.format or '').lower(),
-                content_asset.content_type or 'video/mp4'
+                getattr(content_asset, 'content_type', None) or 'video/mp4'
             )
 
-            cursor.execute("""
-                INSERT INTO content (
-                    id, title, original_name, filename, mime_type,
-                    file_size, duration, network_id, catalog_asset_uuid,
-                    source, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                content_id,
-                content_asset.title,
-                content_asset.original_filename or content_asset.filename,
-                dest_filename,
-                mime_type,
-                content_asset.file_size or 0,
-                int(content_asset.duration or 0),
-                network_id,
-                content_asset.uuid,
-                'catalog',
-                'active',
-                now
-            ))
-            
-            conn.commit()
-            conn.close()
-            
-            return {
-                'success': True,
-                'message': 'Content transferred to CMS',
-                'cms_content_id': content_id,
-                'network_id': network_id,
-                'catalog_asset_uuid': content_asset.uuid,
-                'file_path': str(dest_path)
+            payload = {
+                'catalog_uuid': content_asset.uuid,
+                'title': content_asset.title,
+                'filename': content_asset.filename,
+                'mime_type': mime_type,
+                'file_size': content_asset.file_size or 0,
+                'duration': content_asset.duration or 0,
+                'network_slug': tenant.slug,
+                'download_url': download_url,
             }
-            
-        except Exception as e:
+
+            headers = {
+                'X-Service-API-Key': CMS_SERVICE_API_KEY,
+                'Content-Type': 'application/json',
+            }
+
+            url = f"{CMS_ENDPOINT}/api/v1/content/from-catalog/push"
+            logger.info(
+                "Transferring content %s to CMS at %s (network: %s)",
+                content_asset.uuid, CMS_ENDPOINT, tenant.slug
+            )
+
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=(10, 120),
+            )
+
+            data = response.json()
+
+            if response.status_code in (200, 201):
+                logger.info(
+                    "Content transferred successfully: %s -> CMS content %s",
+                    content_asset.uuid, data.get('cms_content_id')
+                )
+                return {
+                    'success': True,
+                    'message': data.get('message', 'Content transferred to CMS'),
+                    'cms_content_id': data.get('cms_content_id'),
+                    'network_id': data.get('network_id'),
+                    'catalog_asset_uuid': content_asset.uuid,
+                }
+
+            elif response.status_code == 409:
+                # Content already exists in CMS
+                logger.info(
+                    "Content already exists in CMS: %s",
+                    content_asset.uuid
+                )
+                return {
+                    'success': True,
+                    'message': 'Content already exists in CMS',
+                    'cms_content_id': data.get('cms_content_id'),
+                    'catalog_asset_uuid': content_asset.uuid,
+                }
+
+            else:
+                error_msg = data.get('error', f'HTTP {response.status_code}')
+                logger.error("CMS transfer failed: %s", error_msg)
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'catalog_asset_uuid': content_asset.uuid,
+                }
+
+        except ConnectionError as e:
+            logger.error("Cannot connect to CMS at %s: %s", CMS_ENDPOINT, e)
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Cannot connect to CMS: {e}',
             }
-    
+
+        except Timeout as e:
+            logger.error("Timeout connecting to CMS: %s", e)
+            return {
+                'success': False,
+                'error': f'CMS request timed out: {e}',
+            }
+
+        except RequestException as e:
+            logger.error("CMS transfer request failed: %s", e)
+            return {
+                'success': False,
+                'error': str(e),
+            }
+
+        except Exception as e:
+            logger.error("Unexpected error during CMS transfer: %s", e)
+            return {
+                'success': False,
+                'error': str(e),
+            }
+
     @staticmethod
     def transfer_approved_content(content_venue_approval):
         """
         Transfer content when a ContentVenueApproval is fully approved.
-        
+
         Args:
             content_venue_approval: ContentVenueApproval instance
-            
+
         Returns:
             dict with success status and details
         """
@@ -202,7 +180,7 @@ class CMSTransferService:
                 'success': False,
                 'error': 'Content is not fully approved'
             }
-        
+
         return CMSTransferService.transfer_to_cms(
             content_venue_approval.content_asset,
             content_venue_approval.tenant

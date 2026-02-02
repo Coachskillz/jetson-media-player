@@ -134,9 +134,16 @@ class KioskPlayer:
             if self._cms_url_override:
                 self._config.cms_url = self._cms_url_override
 
+            # Ensure hardware_id is populated in config from device_info
+            if not self._config.hardware_id and self._device_info.get('device_id'):
+                self._config.hardware_id = self._device_info['device_id']
+                self._config.save_device()
+                logger.info("Auto-populated hardware_id: %s", self._config.hardware_id)
+
             logger.info(
-                "Config loaded - paired: %s, cms_url: %s",
+                "Config loaded - paired: %s, hardware_id: %s, cms_url: %s",
                 self._config.paired,
+                self._config.hardware_id,
                 self._config.cms_url
             )
             return True

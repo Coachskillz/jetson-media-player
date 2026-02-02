@@ -863,6 +863,17 @@ def download_asset(asset_id):
 
     file_path = asset.file_path
 
+    # Resolve file path — handle both absolute and relative paths
+    if not os.path.isabs(file_path) or not os.path.exists(file_path):
+        uploads_path = current_app.config.get('UPLOADS_PATH', 'uploads')
+        # Strip leading 'uploads/' prefix if present (legacy relative paths)
+        relative = file_path
+        if relative.startswith('uploads/'):
+            relative = relative[len('uploads/'):]
+        resolved = os.path.join(str(uploads_path), relative)
+        if os.path.exists(resolved):
+            file_path = resolved
+
     # Verify file exists
     if not os.path.exists(file_path):
         return jsonify({'error': 'File not found on storage'}), 404
@@ -898,6 +909,16 @@ def preview_asset(asset_id):
         return jsonify({'error': 'Asset not found'}), 404
 
     file_path = asset.file_path
+
+    # Resolve file path — handle both absolute and relative paths
+    if not os.path.isabs(file_path) or not os.path.exists(file_path):
+        uploads_path = current_app.config.get('UPLOADS_PATH', 'uploads')
+        relative = file_path
+        if relative.startswith('uploads/'):
+            relative = relative[len('uploads/'):]
+        resolved = os.path.join(str(uploads_path), relative)
+        if os.path.exists(resolved):
+            file_path = resolved
 
     # Verify file exists
     if not os.path.exists(file_path):
@@ -1328,3 +1349,57 @@ def list_approved_assets():
         'per_page': per_page,
         'pages': pagination.pages
     }), 200
+
+
+@assets_bp.route('/service/purge', methods=['POST'])
+def service_purge_assets():
+    """
+    Service-level endpoint to purge/delete assets.
+
+    Authenticated via X-Service-API-Key header (same key used for CMS communication).
+    Accepts a list of asset IDs to delete, or purge_all=true to delete everything.
+
+    Request Body:
+        {
+            "asset_ids": [1, 2, 3]   // specific assets to delete
+        }
+        OR
+        {
+            "purge_all": true         // delete all assets
+        }
+
+    Returns:
+        200: Assets deleted successfully
+        401: Unauthorized
+    """
+    api_key = request.headers.get('X-Service-API-Key')
+    expected_key = os.environ.get('CMS_SERVICE_API_KEY', 'skillz-cms-service-key-2026')
+
+    if not api_key or api_key != expected_key:
+        return jsonify({'error': 'Unauthorized', 'message': 'Valid service API key required'}), 401
+
+    data = request.get_json(silent=True) or {}
+    purge_all = data.get('purge_all', False)
+    asset_ids = data.get('asset_ids', [])
+
+    try:
+        if purge_all:
+            count = ContentAsset.query.delete()
+            db.session.commit()
+            return jsonify({'message': f'Purged all {count} assets'}), 200
+
+        if not asset_ids:
+            return jsonify({'error': 'Provide asset_ids list or purge_all=true'}), 400
+
+        deleted = 0
+        for aid in asset_ids:
+            asset = db.session.get(ContentAsset, aid)
+            if asset:
+                db.session.delete(asset)
+                deleted += 1
+        db.session.commit()
+        return jsonify({'message': f'Deleted {deleted} assets', 'deleted_ids': asset_ids[:deleted]}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to purge assets: {str(e)}'}), 500
