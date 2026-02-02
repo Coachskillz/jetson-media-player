@@ -19,7 +19,10 @@ class Config:
     BASE_DIR = Path(__file__).parent.resolve()
 
     # Database Settings (SQLite)
-    DATABASE_PATH = Path(os.environ.get('CMS_DATABASE_PATH', BASE_DIR / 'data' / 'cms.db'))
+    # Use Railway volume if available for persistent storage
+    _volume_path = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    _data_dir = Path(_volume_path) if _volume_path else BASE_DIR / 'data'
+    DATABASE_PATH = Path(os.environ.get('CMS_DATABASE_PATH', _data_dir / 'cms.db'))
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
         f'sqlite:///{DATABASE_PATH}'
@@ -27,7 +30,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # File Storage Paths
-    UPLOADS_PATH = Path(os.environ.get('CMS_UPLOAD_PATH', BASE_DIR / 'uploads'))
+    UPLOADS_PATH = Path(os.environ.get('CMS_UPLOAD_PATH', _data_dir / 'uploads' if _volume_path else BASE_DIR / 'uploads'))
 
     # Upload Constraints
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB max upload size
