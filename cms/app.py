@@ -91,7 +91,9 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         db.create_all()
         _run_migrations(app)
         _seed_default_users(app)
-        _seed_demo_content(app)
+        # Only seed demo content if explicitly enabled (not in production)
+        if os.environ.get('SEED_DEMO_CONTENT', '').lower() in ('true', '1', 'yes'):
+            _seed_demo_content(app)
 
     # Configure logging
     _configure_logging(app)

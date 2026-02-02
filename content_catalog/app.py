@@ -116,13 +116,14 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         _seed_default_catalog(app)
         # Seed test data (organizations and users) for development/testing
         # Skip in production unless explicitly enabled
-        seed_test_data = os.environ.get('SEED_TEST_DATA', 'true').lower() in ('true', '1', 'yes')
+        seed_test_data = os.environ.get('SEED_TEST_DATA', 'false').lower() in ('true', '1', 'yes')
         if seed_test_data:
             _seed_test_data(app)
         else:
             app.logger.info('Skipping test data seeding (SEED_TEST_DATA not enabled)')
-        # Seed demo content (tenants + published assets)
-        _seed_demo_content(app)
+        # Only seed demo content if explicitly enabled (not in production)
+        if os.environ.get('SEED_DEMO_CONTENT', '').lower() in ('true', '1', 'yes'):
+            _seed_demo_content(app)
 
     # Configure logging
     _configure_logging(app)
