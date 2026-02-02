@@ -1606,3 +1606,23 @@ def update_connection_config(device_identifier):
         'cms_url': device.cms_url or request.host_url.rstrip('/'),
         'hub_url': device.hub_url,
     }), 200
+
+
+@devices_bp.route('/<device_id>', methods=['DELETE'])
+@login_required
+def delete_device(device_id):
+    """Delete a device from the CMS."""
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    try:
+        db.session.delete(device)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete device: {str(e)}'}), 500
+
+    return jsonify({'message': 'Device deleted successfully'}), 200
