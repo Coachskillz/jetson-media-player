@@ -421,3 +421,44 @@ def update_tenant(tenant_id):
         }), 500
 
     return jsonify(tenant.to_dict()), 200
+
+
+@tenants_bp.route('/<tenant_id>/settings', methods=['PUT'])
+@api_key_or_jwt_required
+def update_tenant_settings(tenant_id):
+    """
+    Update tenant settings via service API key or JWT.
+
+    Args:
+        tenant_id: Tenant UUID or slug
+
+    Request Body:
+        {
+            "requires_content_approval": true/false
+        }
+
+    Returns:
+        200: Updated tenant
+        404: Tenant not found
+    """
+    tenant = Tenant.get_by_uuid(tenant_id)
+    if not tenant:
+        tenant = Tenant.get_by_slug(tenant_id)
+    if not tenant:
+        return jsonify({'error': 'Tenant not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if 'requires_content_approval' in data:
+        tenant.requires_content_approval = bool(data['requires_content_approval'])
+
+    if 'is_active' in data:
+        tenant.is_active = bool(data['is_active'])
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update tenant: {str(e)}'}), 500
+
+    return jsonify(tenant.to_dict()), 200
