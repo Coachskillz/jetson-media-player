@@ -1388,13 +1388,22 @@ def push_content_from_catalog():
         filename = data.get('filename', '')
         mime_type = get_mime_type(filename) if filename else 'video/mp4'
 
+    # Get duration from payload, or extract from downloaded file via ffprobe
+    duration = int(data.get('duration') or 0)
+    if duration == 0 and stored_filename and mime_type.startswith('video/'):
+        uploads_path = Path(current_app.config.get('UPLOADS_PATH', './uploads'))
+        file_path = uploads_path / stored_filename
+        extracted = _extract_video_duration(file_path)
+        if extracted:
+            duration = extracted
+
     try:
         content = Content(
             filename=stored_filename or f"catalog_{catalog_uuid}",
             original_name=data.get('filename', 'Unknown'),
             mime_type=mime_type,
             file_size=actual_file_size,
-            duration=int(data.get('duration') or 0),
+            duration=duration,
             network_id=network_id,
             catalog_asset_uuid=catalog_uuid,
             source='catalog',

@@ -108,19 +108,7 @@ def list_approved_content():
     # Execute query
     content_list = query.order_by(Content.created_at.desc()).all()
 
-    # Add content_type helper field to each item
-    result = []
-    for content in content_list:
-        content_data = content.to_dict()
-        if content.is_video:
-            content_data['content_type'] = 'video'
-        elif content.is_image:
-            content_data['content_type'] = 'image'
-        elif content.is_audio:
-            content_data['content_type'] = 'audio'
-        else:
-            content_data['content_type'] = 'unknown'
-        result.append(content_data)
+    result = [content.to_dict() for content in content_list]
 
     return jsonify({
         'content': result,

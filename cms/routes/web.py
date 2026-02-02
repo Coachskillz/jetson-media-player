@@ -77,6 +77,8 @@ def serve_admin_asset(filename):
     """Serve content files for playlist preview."""
     uploads_path = current_app.config.get("UPLOADS_PATH", "./uploads")
     return send_from_directory(uploads_path, filename)
+
+
 @web_bp.route('/')
 @login_required
 def dashboard():

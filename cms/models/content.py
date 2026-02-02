@@ -84,11 +84,22 @@ class Content(db.Model):
         Returns:
             Dictionary containing all content fields
         """
+        # Derive content_type from mime_type for frontend use
+        if self.is_video:
+            content_type = 'video'
+        elif self.is_image:
+            content_type = 'image'
+        elif self.is_audio:
+            content_type = 'audio'
+        else:
+            content_type = 'unknown'
+
         return {
             'id': self.id,
             'filename': self.filename,
             'original_name': self.original_name,
             'mime_type': self.mime_type,
+            'content_type': content_type,
             'file_size': self.file_size,
             'width': self.width,
             'height': self.height,
