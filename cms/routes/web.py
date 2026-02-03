@@ -257,7 +257,10 @@ def devices_page():
     devices = Device.query.filter(Device.status != 'pending').order_by(Device.created_at.desc()).all()
     hubs = Hub.query.order_by(Hub.name).all()
     playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
-    locations = Location.query.all()
+    try:
+        locations = Location.query.all()
+    except Exception:
+        locations = []
     total_screen_count = len(devices)
 
     # If filtering by hub, only show devices for that hub

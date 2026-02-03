@@ -86,6 +86,12 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         from cms.models.user import User
         return User.query.get(user_id)
 
+    # Import models defined outside cms/models/ so create_all() knows about them
+    try:
+        from cms.routes.locations import Location  # noqa: F401
+    except ImportError:
+        pass
+
     # Create database tables and seed default data
     with app.app_context():
         db.create_all()

@@ -83263,3 +83263,20 @@ FROM locations]
 2026-01-27 17:10:22,503 - cms.app - INFO - Registered layouts web blueprint at /
 2026-01-27 17:10:22,505 - cms.app - INFO - Registered NCMEC blueprints
 2026-01-27 17:10:22,505 - cms.app - INFO - Registered locations blueprint at /api/locations
+2026-02-03 14:44:09,501 - cms.app - INFO - Registered devices blueprint at /api/v1/devices
+2026-02-03 14:44:09,503 - cms.app - INFO - Registered hubs blueprint at /api/v1/hubs
+2026-02-03 14:44:09,505 - cms.app - INFO - Registered content blueprint at /api/v1/content
+2026-02-03 14:44:09,505 - cms.app - INFO - Registered thea blueprint at /api/v1/thea
+2026-02-03 14:44:09,506 - cms.app - INFO - Registered catalog blueprint at /api/v1/catalog
+2026-02-03 14:44:09,508 - cms.app - INFO - Registered playlists blueprint at /api/v1/playlists
+2026-02-03 14:44:09,509 - cms.app - INFO - Registered networks blueprint at /api/v1/networks
+2026-02-03 14:44:09,513 - cms.app - INFO - Registered layouts blueprint at /api/v1/layouts
+2026-02-03 14:44:09,514 - cms.app - INFO - Registered auth blueprint at /api/v1/auth
+2026-02-03 14:44:09,516 - cms.app - INFO - Registered users blueprint at /api/v1/users
+2026-02-03 14:44:09,517 - cms.app - INFO - Registered invitations blueprint at /api/v1/invitations
+2026-02-03 14:44:09,517 - cms.app - INFO - Registered sessions blueprint at /api/v1/sessions
+2026-02-03 14:44:09,518 - cms.app - INFO - Registered audit blueprint at /api/v1/audit-logs
+2026-02-03 14:44:09,520 - cms.app - INFO - Registered web blueprint at /
+2026-02-03 14:44:09,521 - cms.app - INFO - Registered layouts web blueprint at /
+2026-02-03 14:44:09,523 - cms.app - INFO - Registered NCMEC blueprints
+2026-02-03 14:44:09,523 - cms.app - INFO - Registered locations blueprint at /api/locations
