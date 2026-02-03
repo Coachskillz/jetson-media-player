@@ -1721,10 +1721,10 @@ function filterContentAssets() {
     items.forEach(item => {
         let show = true;
 
-        // Network filter - use slug for matching (like content.html does)
-        if (currentNetworkSlug) {
+        // Network filter - use network ID for matching (data-networks contains UUIDs)
+        if (currentNetworkId) {
             const networks = JSON.parse(item.dataset.networks || '[]');
-            show = networks.includes(currentNetworkSlug);
+            show = networks.includes(currentNetworkId);
         }
 
         // Folder filter
