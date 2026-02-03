@@ -592,6 +592,32 @@ def update_content_status(content_id):
     return jsonify(content.to_dict()), 200
 
 
+@content_bp.route('/<content_id>/metadata', methods=['PATCH'])
+@login_required
+def update_content_metadata(content_id):
+    """Update content metadata (duration, original_name)."""
+    content = db.session.get(Content, content_id)
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    if 'duration' in data:
+        content.duration = int(data['duration'])
+    if 'original_name' in data:
+        content.original_name = str(data['original_name'])[:500]
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify(content.to_dict()), 200
+
+
 # =============================================================================
 # Content Sync Endpoints
 # =============================================================================

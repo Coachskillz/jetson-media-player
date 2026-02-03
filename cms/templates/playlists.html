@@ -2273,10 +2273,28 @@ function previewContent(element) {
             trimEndSeconds = videoDuration;
             previewedContent.duration = videoDuration;
 
-            // Update total time display
+            // Update displayed duration
+            document.getElementById('previewDuration').textContent = Math.round(videoDuration) + 's';
             document.getElementById('trimTotalTime').textContent = formatTime(videoDuration);
             document.getElementById('trimEndTime').value = formatTime(videoDuration);
             document.getElementById('trimStartTime').value = '00:00';
+
+            // Save detected duration to server if it was missing
+            if ((!duration || duration === '0' || duration === '10') && id) {
+                fetch(`/api/v1/content/${id}/metadata`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ duration: Math.round(videoDuration) })
+                }).catch(() => {});
+            }
+
+            // Update the asset item's data attribute so future clicks show correct duration
+            const assetEl = document.querySelector(`.asset-item[data-id="${id}"]`);
+            if (assetEl) {
+                assetEl.dataset.duration = Math.round(videoDuration);
+                const metaEl = assetEl.querySelector('.asset-meta');
+                if (metaEl) metaEl.innerHTML = `<span>🎬</span> ${Math.round(videoDuration)}s`;
+            }
 
             // Initialize slider
             setTimeout(() => {
