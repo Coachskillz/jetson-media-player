@@ -599,33 +599,62 @@ def playlists_page():
 
     content = []
 
-    # Add synced content (same logic as content_page)
+    # Build a lookup of local Content by catalog_asset_uuid so we can
+    # enrich SyncedContent records with local data (correct filename, duration).
+    local_by_catalog_uuid = {}
+    for item in content_items:
+        if item.catalog_asset_uuid:
+            local_by_catalog_uuid[item.catalog_asset_uuid] = item
+
+    # Add synced content, enriched with local Content data when available
+    synced_uuids = set()
     for item in synced_items:
         item_network_ids = item.get_network_ids_list()
         if not content_accessible(item_network_ids):
             continue
 
+        local = local_by_catalog_uuid.get(item.source_uuid)
         folder = Folder.query.get(item.folder_id) if item.folder_id else None
-        content.append({
-            'id': item.id,
-            'original_name': item.title,
-            'filename': getattr(item, 'local_filename', None) or item.filename,
-            'duration': item.duration or 0,
-            'file_size': item.file_size or 0,
-            'network_ids': item_network_ids,  # List of network IDs
-            'folder_id': item.folder_id,
-            'folder': folder,
-            'status': item.status,
-            'is_video': item.content_type == 'video',
-            'is_image': item.content_type == 'image',
-            'source': 'synced',
-        })
 
-    # Add local content (not synced)
-    synced_uuids = {item.source_uuid for item in synced_items if item.source_uuid}
+        # Prefer local Content data for filename, duration, and file_size
+        # since it has the actual CMS storage filename and ffprobe/browser-detected duration
+        if local:
+            synced_uuids.add(item.source_uuid)
+            content.append({
+                'id': local.id,
+                'original_name': item.title or local.original_name or local.filename,
+                'filename': local.filename,
+                'duration': local.duration or item.duration or 0,
+                'file_size': local.file_size or item.file_size or 0,
+                'network_ids': item_network_ids,
+                'folder_id': item.folder_id,
+                'folder': folder,
+                'status': item.status or local.status,
+                'is_video': item.content_type == 'video',
+                'is_image': item.content_type == 'image',
+                'source': 'synced',
+            })
+        else:
+            synced_uuids.add(item.source_uuid)
+            content.append({
+                'id': item.id,
+                'original_name': item.title,
+                'filename': getattr(item, 'local_filename', None) or item.filename,
+                'duration': item.duration or 0,
+                'file_size': item.file_size or 0,
+                'network_ids': item_network_ids,
+                'folder_id': item.folder_id,
+                'folder': folder,
+                'status': item.status,
+                'is_video': item.content_type == 'video',
+                'is_image': item.content_type == 'image',
+                'source': 'synced',
+            })
+
+    # Add local content that doesn't have a corresponding SyncedContent record
     for item in content_items:
         if item.catalog_asset_uuid and item.catalog_asset_uuid in synced_uuids:
-            continue  # Skip if already added from synced
+            continue  # Already added above with enriched data
 
         network_ids = [item.network_id] if item.network_id else []
         if not content_accessible(network_ids):
@@ -638,7 +667,7 @@ def playlists_page():
             'filename': item.filename,
             'duration': item.duration or 0,
             'file_size': item.file_size or 0,
-            'network_ids': network_ids,  # List of network IDs
+            'network_ids': network_ids,
             'folder_id': item.folder_id,
             'folder': folder,
             'status': item.status,
