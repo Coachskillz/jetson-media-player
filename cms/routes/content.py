@@ -1426,7 +1426,7 @@ def push_content_from_catalog():
     try:
         content = Content(
             filename=stored_filename or f"catalog_{catalog_uuid}",
-            original_name=data.get('filename', 'Unknown'),
+            original_name=data.get('title') or data.get('filename', 'Unknown'),
             mime_type=mime_type,
             file_size=actual_file_size,
             duration=duration,
