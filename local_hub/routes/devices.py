@@ -251,3 +251,136 @@ def list_devices():
         'devices': [device.to_dict() for device in devices],
         'count': len(devices)
     }), 200
+
+
+@devices_bp.route('/<int:device_id>', methods=['DELETE'])
+def delete_device(device_id):
+    """
+    Delete a device from the hub.
+
+    Use this when swapping out hardware for repairs. The device
+    is removed from the local hub database and the deletion is
+    forwarded to the CMS.
+
+    Args:
+        device_id: Device ID (local database ID)
+
+    Returns:
+        200: Device deleted
+            {
+                "success": true,
+                "message": "Device deleted",
+                "device_id": "SKZ-H-XXX-0001"
+            }
+        404: Device not found
+            {
+                "success": false,
+                "error": "Device not found"
+            }
+    """
+    device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({
+            'success': False,
+            'error': 'Device not found'
+        }), 404
+
+    device_id_str = device.device_id
+    hardware_id = device.hardware_id
+    cms_device_id = device.cms_device_id
+
+    # Forward deletion to CMS if we have a CMS device ID
+    if cms_device_id:
+        _forward_deletion_to_cms(cms_device_id)
+
+    # Delete from local database
+    db.session.delete(device)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Device deleted',
+        'device_id': device_id_str,
+        'hardware_id': hardware_id
+    }), 200
+
+
+@devices_bp.route('/by-hardware/<hardware_id>', methods=['DELETE'])
+def delete_device_by_hardware_id(hardware_id):
+    """
+    Delete a device by its hardware ID.
+
+    Alternative to delete by database ID - useful when you know
+    the Jetson's hardware ID but not the local database ID.
+
+    Args:
+        hardware_id: The device's hardware ID
+
+    Returns:
+        200: Device deleted
+        404: Device not found
+    """
+    device = Device.get_by_hardware_id(hardware_id)
+
+    if not device:
+        return jsonify({
+            'success': False,
+            'error': 'Device not found'
+        }), 404
+
+    device_id_str = device.device_id
+    cms_device_id = device.cms_device_id
+
+    # Forward deletion to CMS if we have a CMS device ID
+    if cms_device_id:
+        _forward_deletion_to_cms(cms_device_id)
+
+    # Delete from local database
+    db.session.delete(device)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Device deleted',
+        'device_id': device_id_str,
+        'hardware_id': hardware_id
+    }), 200
+
+
+def _forward_deletion_to_cms(cms_device_id):
+    """
+    Forward device deletion to the CMS.
+
+    Args:
+        cms_device_id: The device's UUID on the CMS
+    """
+    import logging
+    import requests
+    from flask import current_app
+
+    logger = logging.getLogger(__name__)
+
+    hub_config = HubConfig.get_instance()
+    if not hub_config or not hub_config.is_registered:
+        logger.warning("Hub not registered, skipping CMS deletion forward")
+        return
+
+    config = current_app.config.get('HUB_CONFIG')
+    if not config or not config.cms_url:
+        logger.warning("No CMS URL configured, skipping deletion forward")
+        return
+
+    endpoint = f"{config.cms_url.rstrip('/')}/api/v1/devices/{cms_device_id}"
+    headers = {
+        'Authorization': f'Bearer {hub_config.hub_token}'
+    }
+
+    try:
+        response = requests.delete(endpoint, headers=headers, timeout=30)
+        if response.ok:
+            logger.info(f"Device {cms_device_id} deleted from CMS")
+        else:
+            logger.warning(f"CMS deletion failed: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"Failed to forward deletion to CMS: {e}")
