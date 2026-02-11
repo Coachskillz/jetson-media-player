@@ -84,6 +84,9 @@ from cms.models.audit_log import AuditLog
 from cms.models.layout import ScreenLayout, ScreenLayer, LayerContent, LayerPlaylistAssignment, DeviceLayout
 from cms.models.synced_content import SyncedContent
 from cms.models.folder import Folder
+from cms.models.heartbeat import Heartbeat
+from cms.models.playback_log import PlaybackLog
+from cms.models.alert import Alert
 
 __all__ = [
     'db',
@@ -114,6 +117,9 @@ __all__ = [
     'DeviceLayout',
     'SyncedContent',
     'Folder',
+    'Heartbeat',
+    'PlaybackLog',
+    'Alert',
 ]
 # NCMEC Alert models
 from cms.models.ncmec_alert import NCMECAlert, NCMECNotificationConfig

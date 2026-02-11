@@ -743,6 +743,21 @@ def _register_blueprints(app: Flask) -> None:
     except ImportError:
         app.logger.debug("Locations blueprint not available yet")
 
+    # Data ingest routes (heartbeat, playback, alerts from devices)
+    try:
+        from cms.routes.ingest import ingest_bp
+        app.register_blueprint(ingest_bp)
+        app.logger.info('Registered ingest blueprint at /api/v1')
+    except ImportError:
+        app.logger.debug("Ingest blueprint not available yet")
+
+    # AI Reports routes (NVIDIA-powered analytics)
+    try:
+        from cms.routes.reports import reports_bp
+        app.register_blueprint(reports_bp)
+        app.logger.info('Registered reports blueprint at /reports')
+    except ImportError:
+        app.logger.debug("Reports blueprint not available yet")
 
 
 def _register_error_handlers(app: Flask) -> None:
