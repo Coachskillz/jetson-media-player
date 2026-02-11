@@ -242,8 +242,8 @@ class SyncService:
             logger.warning("No hardware_id or screen_id configured - cannot fetch config")
             return None
 
-        # Use the /by-device/{id}/config endpoint
-        url = f"{self.hub_url}/api/v1/screens/by-device/{device_id}/config"
+        # Use the /by-device/{id}/config endpoint (no /screens prefix)
+        url = f"{self.hub_url}/api/v1/by-device/{device_id}/config"
 
         try:
             response = requests.get(url, timeout=self.REQUEST_TIMEOUT)
