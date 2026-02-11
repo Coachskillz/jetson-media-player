@@ -738,7 +738,7 @@
     transform: scale(1.05);
 }
 
-.btn-delete-all {
+.btn-delete-selected {
     background: #dc2626;
     color: white;
     border: none;
@@ -748,9 +748,14 @@
     font-size: 14px;
     font-weight: 600;
     transition: all 0.2s;
+    display: none;
 }
 
-.btn-delete-all:hover {
+.btn-delete-selected.visible {
+    display: inline-block;
+}
+
+.btn-delete-selected:hover {
     background: #b91c1c;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
@@ -760,6 +765,39 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+/* Device Selection */
+.device-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #dc2626;
+}
+
+.screen-card.selected {
+    border: 2px solid #dc2626;
+    background: #fef2f2;
+}
+
+.selection-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.select-all-label {
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.selected-count {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
 }
 
 /* Empty State */
@@ -841,11 +879,14 @@
     {% if hub_screens %}
     <div class="screens-grid">
         {% for screen in hub_screens %}
-        <div class="screen-card">
+        <div class="screen-card" data-device-id="{{ screen.id }}" data-device-name="{{ screen.device_id }}">
             <div class="screen-header">
-                <div>
-                    <div class="screen-name">{{ screen.name }}</div>
-                    <div class="screen-id">{{ screen.device_id }}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" class="device-checkbox device-select" data-id="{{ screen.id }}" data-name="{{ screen.device_id }}" onchange="updateSelection()">
+                    <div>
+                        <div class="screen-name">{{ screen.name }}</div>
+                        <div class="screen-id">{{ screen.device_id }}</div>
+                    </div>
                 </div>
                 <div class="screen-status {{ screen.status }}">
                     <span class="screen-status-dot"></span>
@@ -887,7 +928,14 @@
     <div style="display: flex; align-items: center; gap: 15px;">
         <span style="color: rgba(255,255,255,0.8); font-size: 16px; font-weight: 600;">{{ total_screen_count }} Total</span>
         {% if total_screen_count > 0 %}
-        <button class="btn-delete-all" onclick="deleteAllDevices()">Delete All Devices</button>
+        <div class="selection-controls">
+            <label class="select-all-label">
+                <input type="checkbox" id="selectAllDevices" class="device-checkbox" onchange="toggleSelectAll(this)">
+                Select All
+            </label>
+            <span class="selected-count" id="selectedCount"></span>
+            <button class="btn-delete-selected" id="deleteSelectedBtn" onclick="deleteSelectedDevices()">Delete Selected</button>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -968,11 +1016,14 @@
     </div>
     <div class="screens-grid">
         {% for device in unassigned_devices %}
-        <div class="screen-card">
+        <div class="screen-card" data-device-id="{{ device.id }}" data-device-name="{{ device.device_id }}">
             <div class="screen-header">
-                <div>
-                    <div class="screen-name">{{ device.name or device.device_id }}</div>
-                    <div class="screen-id">{{ device.device_id }}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" class="device-checkbox device-select" data-id="{{ device.id }}" data-name="{{ device.device_id }}" onchange="updateSelection()">
+                    <div>
+                        <div class="screen-name">{{ device.name or device.device_id }}</div>
+                        <div class="screen-id">{{ device.device_id }}</div>
+                    </div>
                 </div>
                 <div class="screen-status {{ device.status }}">
                     <span class="screen-status-dot"></span>
@@ -1049,11 +1100,14 @@ function openStoreDetail(storeName, city, state, screens) {
     // Build screens grid
     const grid = document.getElementById('storeScreensGrid');
     grid.innerHTML = screens.map(screen => `
-        <div class="screen-card" data-device-id="${escapeHtml(screen.id)}">
+        <div class="screen-card" data-device-id="${escapeHtml(screen.id)}" data-device-name="${escapeHtml(screen.device_id)}">
             <div class="screen-header">
-                <div>
-                    <div class="screen-name">${escapeHtml(screen.name)}</div>
-                    <div class="screen-id">${escapeHtml(screen.device_id)}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" class="device-checkbox device-select" data-id="${escapeHtml(screen.id)}" data-name="${escapeHtml(screen.device_id)}" onchange="updateSelection()">
+                    <div>
+                        <div class="screen-name">${escapeHtml(screen.name)}</div>
+                        <div class="screen-id">${escapeHtml(screen.device_id)}</div>
+                    </div>
                 </div>
                 <div class="screen-status ${screen.status}">
                     <span class="screen-status-dot"></span>
@@ -1155,26 +1209,104 @@ function deleteDeviceFromModal(deviceId, deviceName, btn) {
     .catch(err => alert('Error: ' + err));
 }
 
-// Delete all devices
-function deleteAllDevices() {
-    if (!confirm('Delete ALL devices? This removes every screen from the system.')) return;
-    if (!confirm('Are you absolutely sure? This action cannot be undone.')) return;
+// Selection management
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('.device-select:checked');
+    const count = checkboxes.length;
+    const countEl = document.getElementById('selectedCount');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const selectAllCheckbox = document.getElementById('selectAllDevices');
 
-    fetch('/api/v1/devices/all', {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(r => {
-        if (r.ok) {
-            r.json().then(data => {
-                alert('Deleted ' + data.count + ' devices');
-                location.reload();
-            });
+    if (countEl) {
+        countEl.textContent = count > 0 ? `${count} selected` : '';
+    }
+
+    if (deleteBtn) {
+        if (count > 0) {
+            deleteBtn.classList.add('visible');
         } else {
-            r.json().then(data => alert('Error: ' + (data.error || 'Failed to delete devices')));
+            deleteBtn.classList.remove('visible');
         }
-    })
-    .catch(err => alert('Error: ' + err));
+    }
+
+    // Update select all checkbox state
+    const allCheckboxes = document.querySelectorAll('.device-select');
+    if (selectAllCheckbox && allCheckboxes.length > 0) {
+        selectAllCheckbox.checked = checkboxes.length === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
+    }
+
+    // Highlight selected cards
+    document.querySelectorAll('.screen-card').forEach(card => {
+        const checkbox = card.querySelector('.device-select');
+        if (checkbox && checkbox.checked) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+}
+
+function toggleSelectAll(checkbox) {
+    const allCheckboxes = document.querySelectorAll('.device-select');
+    allCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateSelection();
+}
+
+// Delete selected devices
+async function deleteSelectedDevices() {
+    const checkboxes = document.querySelectorAll('.device-select:checked');
+    const count = checkboxes.length;
+
+    if (count === 0) {
+        alert('No devices selected');
+        return;
+    }
+
+    const deviceNames = Array.from(checkboxes).map(cb => cb.dataset.name).join(', ');
+    if (!confirm(`Delete ${count} device(s)?\n\n${deviceNames}\n\nThis cannot be undone.`)) return;
+
+    let deleted = 0;
+    let failed = 0;
+
+    for (const checkbox of checkboxes) {
+        const deviceId = checkbox.dataset.id;
+        try {
+            const response = await fetch('/api/v1/devices/' + deviceId, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            if (response.ok) {
+                deleted++;
+                const card = checkbox.closest('.screen-card');
+                if (card) {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    setTimeout(() => card.remove(), 300);
+                }
+            } else {
+                failed++;
+            }
+        } catch (err) {
+            failed++;
+        }
+    }
+
+    updateSelection();
+
+    if (failed > 0) {
+        alert(`Deleted ${deleted} device(s). ${failed} failed.`);
+    } else {
+        alert(`Deleted ${deleted} device(s).`);
+    }
+
+    if (deleted > 0) {
+        setTimeout(() => location.reload(), 500);
+    }
 }
 </script>
 {% endblock %}
