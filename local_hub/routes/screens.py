@@ -246,19 +246,29 @@ def get_screen_config(screen_id):
     }), 200
 
 
-@screens_bp.route('/<int:screen_id>/heartbeat', methods=['POST'])
+@screens_bp.route('/<screen_id>/heartbeat', methods=['POST'])
 def screen_heartbeat(screen_id):
     """
     Receive heartbeat from a screen.
 
+    Accepts both integer screen_id and hardware_id string.
+
     Args:
-        screen_id: Screen ID from registration
+        screen_id: Screen ID (integer) or hardware_id (string)
 
     Returns:
         200: Heartbeat acknowledged
         404: Screen not found
     """
-    screen = db.session.get(Screen, screen_id)
+    # Try to find screen by hardware_id first, then by integer id
+    screen = Screen.query.filter_by(hardware_id=screen_id).first()
+
+    if not screen:
+        try:
+            screen_int_id = int(screen_id)
+            screen = db.session.get(Screen, screen_int_id)
+        except (ValueError, TypeError):
+            pass
 
     if not screen:
         return jsonify({
