@@ -175,8 +175,11 @@ class SyncService:
             # Check if content update is needed
             content_updated = False
 
-            # Check playlist version
-            remote_version = remote_config.get('playlist_version', 0)
+            # Check playlist version (ensure int for comparison)
+            try:
+                remote_version = int(remote_config.get('playlist_version', 0))
+            except (ValueError, TypeError):
+                remote_version = 0
             local_version = self._config.playlist_version
 
             # Detect version change for auto-purge
