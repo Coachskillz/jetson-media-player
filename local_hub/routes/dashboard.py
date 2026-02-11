@@ -9,7 +9,7 @@ import os
 import socket
 import subprocess
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, redirect, url_for
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -111,6 +111,11 @@ def dashboard():
 
     # Get hub config
     hub_config = HubConfig.get_instance()
+
+    # If hub is not registered, redirect to pairing screen
+    if not hub_config.is_registered:
+        return redirect('/pairing')
+
     config = current_app.config.get("HUB_CONFIG", {})
 
     # Get CMS URL from config
