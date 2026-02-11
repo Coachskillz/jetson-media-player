@@ -287,7 +287,11 @@ class PlayerConfig:
     @property
     def playlist_version(self) -> int:
         """Get current playlist version number."""
-        return self._playlist.get('version', 0)
+        version = self._playlist.get('version', 0)
+        try:
+            return int(version)
+        except (ValueError, TypeError):
+            return 0
 
     @playlist_version.setter
     def playlist_version(self, value: int) -> None:
