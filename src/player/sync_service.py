@@ -15,10 +15,9 @@ from typing import Any, Callable, Dict, List, Optional
 import requests
 
 from .config import PlayerConfig, get_player_config
-from src.common.logger import setup_logger
 
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SyncService:
@@ -29,12 +28,6 @@ class SyncService:
 
     # Default sync interval in seconds (5 minutes)
     DEFAULT_SYNC_INTERVAL = 300
-
-    # Fast poll interval for sync-check (15 seconds)
-    FAST_CHECK_INTERVAL = 15
-
-    # Timeout for the lightweight sync-check request
-    FAST_CHECK_TIMEOUT = 5
 
     # Default media directory on Jetson devices
     DEFAULT_MEDIA_DIR = "/home/skillz/media"
@@ -74,11 +67,8 @@ class SyncService:
 
         # Background thread state
         self._thread: Optional[threading.Thread] = None
-        self._fast_check_thread: Optional[threading.Thread] = None
         self._running = False
         self._stop_event = threading.Event()
-        self._sync_lock = threading.Lock()  # Prevent concurrent syncs
-        self._last_known_sync_version = 0
 
         # Sync statistics
         self._last_sync_time: Optional[datetime] = None
@@ -100,31 +90,9 @@ class SyncService:
         return self._config.hub_url
 
     @property
-    def cms_url(self) -> str:
-        """Get the CMS URL from config."""
-        return self._config.cms_url
-
-    @property
-    def connection_mode(self) -> str:
-        """Get connection mode (hub or direct)."""
-        return self._config.connection_mode
-
-    @property
-    def hardware_id(self) -> str:
-        """Get the hardware ID from config."""
-        return self._config.hardware_id
-
-    @property
     def screen_id(self) -> str:
         """Get the screen ID from config."""
         return self._config.screen_id
-
-    @property
-    def base_url(self) -> str:
-        """Get the base URL for API calls based on connection mode."""
-        if self.connection_mode == "hub":
-            return self.hub_url
-        return self.cms_url
 
     def start(self) -> None:
         """Start the background sync thread."""
@@ -142,15 +110,6 @@ class SyncService:
         )
         self._thread.start()
 
-        # Start fast sync-check thread (direct mode only)
-        if self.connection_mode == "direct":
-            self._fast_check_thread = threading.Thread(
-                target=self._fast_check_loop,
-                name="SyncFastCheck",
-                daemon=True
-            )
-            self._fast_check_thread.start()
-
         logger.info("Sync service started")
 
     def stop(self) -> None:
@@ -164,9 +123,6 @@ class SyncService:
 
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
-
-        if self._fast_check_thread and self._fast_check_thread.is_alive():
-            self._fast_check_thread.join(timeout=5)
 
         logger.info("Sync service stopped")
 
@@ -188,42 +144,6 @@ class SyncService:
 
         logger.info("Sync loop ended")
 
-    def _check_sync_version(self) -> Optional[int]:
-        """Check the CMS sync version endpoint. Returns version or None."""
-        if self.connection_mode != "direct":
-            return None
-        url = f"{self.cms_url}/api/v1/devices/{self.hardware_id}/sync-check"
-        try:
-            response = requests.get(url, timeout=self.FAST_CHECK_TIMEOUT)
-            if response.status_code == 200:
-                return response.json().get('v', 0)
-        except requests.RequestException:
-            pass
-        return None
-
-    def _fast_check_loop(self) -> None:
-        """Background thread that polls sync-check every 15 seconds."""
-        logger.info("Fast sync-check loop started (interval: %ds)", self.FAST_CHECK_INTERVAL)
-
-        while self._running:
-            if self._stop_event.wait(timeout=self.FAST_CHECK_INTERVAL):
-                break
-            if not self._running:
-                break
-
-            version = self._check_sync_version()
-            if version is not None and version > self._last_known_sync_version:
-                logger.info(
-                    "Sync version changed: %d -> %d — triggering immediate sync",
-                    self._last_known_sync_version, version
-                )
-                self._last_known_sync_version = version
-                self.sync_now()
-            elif version is not None:
-                self._last_known_sync_version = version
-
-        logger.info("Fast sync-check loop ended")
-
     def sync_now(self) -> bool:
         """
         Perform a sync operation immediately.
@@ -231,17 +151,6 @@ class SyncService:
         Returns:
             True if sync was successful, False otherwise
         """
-        if not self._sync_lock.acquire(blocking=False):
-            logger.info("Sync already in progress — skipping")
-            return False
-
-        try:
-            return self._do_sync()
-        finally:
-            self._sync_lock.release()
-
-    def _do_sync(self) -> bool:
-        """Execute the sync (called while holding _sync_lock)."""
         logger.info("Starting sync...")
         self._total_syncs += 1
 
@@ -258,10 +167,16 @@ class SyncService:
             # Check if content update is needed
             content_updated = False
 
-            # Always update playlist config when CMS returns items.
-            # The file existence check in _sync_content prevents
-            # redundant downloads, so this is cheap and reliable.
-            if remote_config.get('default_playlist', {}).get('items'):
+            # Check playlist version
+            remote_version = remote_config.get('playlist_version', 0)
+            local_version = self._config.playlist_version
+
+            if remote_version > local_version:
+                logger.info(
+                    "Playlist update available: v%d -> v%d",
+                    local_version,
+                    remote_version
+                )
                 if self._update_playlist(remote_config):
                     content_updated = True
 
@@ -289,22 +204,11 @@ class SyncService:
 
     def _fetch_screen_config(self) -> Optional[Dict[str, Any]]:
         """
-        Fetch screen configuration from hub or CMS depending on connection mode.
-
-        In hub mode: GET {hub_url}/api/v1/screens/{screen_id}/config
-        In direct mode: GET {cms_url}/api/v1/devices/{hardware_id}/playlist
-                    and GET {cms_url}/api/v1/devices/{hardware_id}/layout
+        Fetch screen configuration from hub.
 
         Returns:
             Config dictionary or None if unavailable
         """
-        if self.connection_mode == "direct":
-            return self._fetch_config_direct()
-        else:
-            return self._fetch_config_hub()
-
-    def _fetch_config_hub(self) -> Optional[Dict[str, Any]]:
-        """Fetch config from local hub."""
         if not self.screen_id:
             logger.warning("No screen_id configured - cannot fetch config")
             return None
@@ -321,7 +225,7 @@ class SyncService:
                 return None
             else:
                 logger.error(
-                    "Failed to fetch config from hub - status: %d",
+                    "Failed to fetch config - status: %d",
                     response.status_code
                 )
                 return None
@@ -332,127 +236,6 @@ class SyncService:
         except requests.RequestException as e:
             logger.warning("Hub request failed: %s", e)
             return None
-
-    def _fetch_config_direct(self) -> Optional[Dict[str, Any]]:
-        """Fetch config directly from CMS using device endpoints."""
-        if not self.hardware_id:
-            logger.warning("No hardware_id configured - cannot fetch config")
-            return None
-
-        # Fetch playlist data
-        playlist_url = f"{self.cms_url}/api/v1/devices/{self.hardware_id}/playlist"
-        layout_url = f"{self.cms_url}/api/v1/devices/{self.hardware_id}/layout"
-
-        try:
-            # Fetch playlist
-            playlist_resp = requests.get(playlist_url, timeout=self.REQUEST_TIMEOUT)
-            if playlist_resp.status_code != 200:
-                logger.error(
-                    "Failed to fetch playlist from CMS - status: %d",
-                    playlist_resp.status_code
-                )
-                return None
-
-            playlist_data = playlist_resp.json()
-
-            # Fetch layout (optional - may not be assigned)
-            layout_data = None
-            try:
-                layout_resp = requests.get(layout_url, timeout=self.REQUEST_TIMEOUT)
-                if layout_resp.status_code == 200:
-                    layout_data = layout_resp.json()
-            except requests.RequestException:
-                logger.debug("No layout available from CMS")
-
-            # Convert CMS response format to the config format sync expects
-            config = self._convert_cms_to_sync_format(playlist_data, layout_data)
-            return config
-
-        except requests.Timeout:
-            logger.warning("Timeout fetching config from CMS")
-            return None
-        except requests.RequestException as e:
-            logger.warning("CMS request failed: %s", e)
-            return None
-
-    def _convert_cms_to_sync_format(
-        self,
-        playlist_data: Dict[str, Any],
-        layout_data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Convert CMS playlist/layout response to the sync config format.
-
-        The hub provides a unified config. When running direct mode,
-        we assemble the same format from CMS playlist + layout endpoints.
-
-        Falls back to layout layer items for the default playlist when
-        the playlist endpoint returns empty (e.g. no DeviceAssignment).
-        """
-        items = playlist_data.get('items', [])
-
-        # Build default playlist from CMS playlist endpoint items
-        default_items = []
-        for item in items:
-            default_items.append({
-                'content_id': item.get('content_id', ''),
-                'filename': item.get('filename', ''),
-                'duration': item.get('duration', 10),
-                'file_hash': item.get('file_hash', ''),
-                'url': item.get('url', ''),
-            })
-
-        # If playlist endpoint returned no items, extract from layout layers
-        if not default_items and layout_data and layout_data.get('layout'):
-            layout = layout_data['layout']
-            for layer in layout.get('layers', []):
-                for layer_item in layer.get('items', []):
-                    default_items.append({
-                        'content_id': layer_item.get('content_id', ''),
-                        'filename': layer_item.get('filename', ''),
-                        'duration': layer_item.get('duration', 10),
-                        'file_hash': layer_item.get('file_hash', ''),
-                        'url': layer_item.get('url', ''),
-                    })
-            if default_items:
-                logger.info(
-                    "Using %d items from layout (playlist endpoint was empty)",
-                    len(default_items)
-                )
-
-        config = {
-            'playlist_version': len(default_items),
-            'updated_at': None,
-            'default_playlist': {
-                'items': default_items,
-            },
-            'triggered_playlists': [],
-            'settings': {},
-        }
-
-        # Extract triggered playlists from layout if available
-        if layout_data and layout_data.get('layout'):
-            layout = layout_data['layout']
-            for layer in layout.get('layers', []):
-                for tp in layer.get('trigger_playlists', []):
-                    triggered = {
-                        'playlist_id': tp.get('playlist_id', ''),
-                        'rule': {
-                            'type': tp.get('trigger_type', 'default'),
-                        },
-                        'items': [],
-                    }
-                    for tp_item in tp.get('items', []):
-                        triggered['items'].append({
-                            'content_id': tp_item.get('content_id', ''),
-                            'filename': tp_item.get('filename', ''),
-                            'duration': tp_item.get('duration', 10),
-                            'file_hash': tp_item.get('file_hash', ''),
-                            'url': tp_item.get('url', ''),
-                        })
-                    config['triggered_playlists'].append(triggered)
-
-        return config
 
     def _update_playlist(self, remote_config: Dict[str, Any]) -> bool:
         """
@@ -515,20 +298,17 @@ class SyncService:
 
             local_path = self.media_dir / filename
 
-            # Skip if file already exists (and hash matches when available)
+            # Skip if file already exists with correct hash
             if local_path.exists():
                 expected_hash = content.get('file_hash')
-                if not expected_hash:
-                    # No hash provided — trust the existing file
-                    logger.debug("Content already exists (no hash to verify): %s", filename)
-                    continue
-                if self._verify_file_hash(local_path, expected_hash):
+                if expected_hash and self._verify_file_hash(local_path, expected_hash):
                     logger.debug("Content already exists: %s", filename)
                     continue
-                logger.warning(
-                    "Content hash mismatch, re-downloading: %s",
-                    filename
-                )
+                elif expected_hash:
+                    logger.warning(
+                        "Content hash mismatch, re-downloading: %s",
+                        filename
+                    )
 
             # Download the content
             if self._download_content(content_id, filename):
@@ -595,7 +375,7 @@ class SyncService:
 
         local_path = self.media_dir / filename
         temp_path = self.media_dir / f".{filename}.tmp"
-        url = f"{self.base_url}/api/v1/content/{content_id}/download"
+        url = f"{self.hub_url}/api/v1/content/{content_id}/download"
 
         try:
             logger.info("Downloading: %s", filename)
