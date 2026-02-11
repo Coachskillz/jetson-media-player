@@ -345,7 +345,7 @@ def sync_screen_playlist(screen_id):
         from config import load_config
 
         config = load_config()
-        hq_client = HQClient(config.hq_url)
+        hq_client = HQClient(config.cms_url)
         sync_service = SyncService(hq_client, config)
 
         result = sync_service.sync_playlist_for_screen(
@@ -429,7 +429,7 @@ def webhook_playlist_updated():
         from flask import current_app
 
         config = current_app.config.get('HUB_CONFIG') or load_config()
-        hq_client = HQClient(config.hq_url)
+        hq_client = HQClient(config.cms_url)
         sync_service = SyncService(hq_client, config)
 
         if device_id:
