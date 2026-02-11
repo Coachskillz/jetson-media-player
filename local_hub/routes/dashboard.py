@@ -148,7 +148,7 @@ def dashboard():
                 offline_count += 1
 
             devices.append({
-                "device_id": device.device_id or f"DEV-{device.id}",
+                "device_id": device.device_id,
                 "hardware_id": device.hardware_id,
                 "pairing_code": device.pairing_code,
                 "location": getattr(device, 'location', None) or device.name,
