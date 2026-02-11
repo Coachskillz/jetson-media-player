@@ -48,6 +48,7 @@ class Screen(db.Model):
     # Status tracking
     status = db.Column(db.String(20), default='online', nullable=False)
     last_heartbeat = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(45), nullable=True)  # IPv4 or IPv6
 
     # Feature flags
     camera_enabled = db.Column(db.Boolean, default=False, nullable=False)
