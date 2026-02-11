@@ -3,147 +3,101 @@
 {% block title %}Device Manager - Skillz Media Screens CMS{% endblock %}
 
 {% block extra_styles %}
-/* Store Folders Grid */
-.stores-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
-    padding: 20px;
+/* Locations Section */
+.locations-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
-.store-folder {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.store-folder:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    border-color: #667eea;
-}
-
-.store-folder-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-}
-
-.store-folder-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.store-folder-location {
-    font-size: 12px;
-    color: #64748b;
-    margin-bottom: 8px;
-}
-
-.store-folder-stats {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    font-size: 11px;
-    color: #64748b;
-}
-
-.store-folder-stat {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.store-folder-stat .online-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #10b981;
-}
-
-/* Store Detail Modal */
-.store-detail-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.store-detail-modal.active {
-    display: flex;
-}
-
-.store-detail-content {
-    background: white;
-    border-radius: 16px;
-    max-width: 800px;
-    width: 90%;
-    max-height: 80vh;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.store-detail-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px 24px;
+.locations-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 15px;
 }
 
-.store-detail-header h3 {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-}
-
-.store-detail-header p {
-    font-size: 13px;
-    opacity: 0.9;
-    margin: 4px 0 0 0;
-}
-
-.store-detail-close {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+.locations-section h3 {
     font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.create-location-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
 }
 
-.store-detail-close:hover {
-    background: rgba(255,255,255,0.3);
+.create-location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.store-detail-screens {
-    padding: 20px;
-    max-height: calc(80vh - 100px);
-    overflow-y: auto;
+.locations-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.store-screens-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+.location-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.location-btn.active {
+    border-color: currentColor;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.location-btn .count {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.delete-location {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.location-btn:hover .delete-location {
+    opacity: 1;
 }
 
 /* Pairing Box */
@@ -314,36 +268,6 @@
     margin-bottom: 8px;
 }
 
-.device-name a {
-    color: inherit;
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.device-name a:hover {
-    color: #667eea;
-}
-
-.device-settings-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: #667eea;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
-    margin-top: 10px;
-    padding: 8px 12px;
-    background: rgba(102, 126, 234, 0.1);
-    border-radius: 8px;
-    transition: all 0.2s;
-}
-
-.device-settings-link:hover {
-    background: rgba(102, 126, 234, 0.2);
-    transform: translateX(2px);
-}
-
 .device-meta {
     display: flex;
     flex-direction: column;
@@ -356,6 +280,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.location-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 5px;
 }
 
 .badge-online {
@@ -371,27 +304,6 @@
 .badge-pending {
     background: #fef3c7;
     color: #92400e;
-}
-
-/* Connection Mode Badges */
-.connection-mode-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.badge-hub {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-.badge-direct {
-    background: #d1fae5;
-    color: #065f46;
 }
 
 .device-playlists {
@@ -542,788 +454,473 @@
 .btn-assign:hover {
     background: #059669;
 }
-
-/* Network Section */
-.network-section {
-    margin-bottom: 24px;
-}
-
-.network-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-}
-
-.network-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.network-info h3 {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.network-info p {
-    font-size: 13px;
-    opacity: 0.9;
-}
-
-.network-stats {
-    display: flex;
-    gap: 20px;
-    text-align: center;
-}
-
-.network-stat {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 10px 16px;
-    border-radius: 10px;
-}
-
-.network-stat-value {
-    font-size: 24px;
-    font-weight: 800;
-}
-
-.network-stat-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    opacity: 0.9;
-}
-
-/* Screens Grid */
-.screens-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    padding: 20px;
-}
-
-.screen-card {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s;
-}
-
-.screen-card:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-}
-
-.screen-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.screen-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 4px;
-}
-
-.screen-id {
-    font-size: 12px;
-    color: #64748b;
-    font-family: monospace;
-}
-
-.screen-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.screen-status.active {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.screen-status.offline {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-.screen-status.pending {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.screen-status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-}
-
-.screen-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.screen-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.screen-detail-label {
-    font-size: 11px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.screen-detail-value {
-    font-size: 13px;
-    color: #1e293b;
-    font-weight: 500;
-}
-
-.screen-actions {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.screen-actions a {
-    font-size: 13px;
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.screen-actions a:hover {
-    text-decoration: underline;
-}
-
-/* Delete Buttons */
-.btn-delete {
-    background: #fee2e2;
-    color: #991b1b;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btn-delete:hover {
-    background: #fecaca;
-    transform: scale(1.05);
-}
-
-.btn-delete-text {
-    background: transparent;
-    color: #dc2626;
-    border: 1px solid #dc2626;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btn-delete-text:hover {
-    background: #dc2626;
-    color: white;
-}
-
-.btn-delete-selected {
-    background: #dc2626;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: none;
-}
-
-.btn-delete-selected.visible {
-    display: inline-block;
-}
-
-.btn-delete-selected:hover {
-    background: #b91c1c;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
-.screen-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* Device Selection */
-.device-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #dc2626;
-}
-
-.screen-card.selected {
-    border: 2px solid #dc2626;
-    background: #fef2f2;
-}
-
-.selection-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.select-all-label {
-    color: rgba(255,255,255,0.9);
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.selected-count {
-    color: rgba(255,255,255,0.8);
-    font-size: 14px;
-}
-
-/* Empty State */
-.empty-network {
-    padding: 40px;
-    text-align: center;
-    color: #64748b;
-}
-
-.empty-network-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-    opacity: 0.5;
-}
-
-.empty-network h4 {
-    font-size: 16px;
-    color: #1e293b;
-    margin-bottom: 8px;
-}
-
-.empty-network p {
-    font-size: 14px;
-}
-
-/* No Networks */
-.no-networks {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 16px;
-    padding: 60px 40px;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.no-networks-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-}
-
-.no-networks h3 {
-    font-size: 20px;
-    color: #1e293b;
-    margin-bottom: 10px;
-}
-
-.no-networks p {
-    color: #64748b;
-    margin-bottom: 20px;
-}
 {% endblock %}
 
 {% block content %}
-{% if filtered_hub %}
-<!-- Hub Filtered View -->
-<div style="margin: 20px 0 15px 0; display: flex; align-items: center; gap: 16px;">
-    <a href="/devices" style="color: white; text-decoration: none; font-size: 14px; opacity: 0.8;">&larr; All Screens</a>
-    <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">{{ filtered_hub.code }} - {{ filtered_hub.name }}</h2>
-</div>
+<h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">📱 Device Manager</h2>
 
-<div class="network-card">
-    <div class="network-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div class="network-info">
-            <h3>Hub: {{ filtered_hub.name }}</h3>
-            <p>Code: {{ filtered_hub.code }} {% if filtered_hub.network %} | Network: {{ filtered_hub.network.name }}{% endif %}</p>
-        </div>
-        <div class="network-stats">
-            <div class="network-stat">
-                <div class="network-stat-value">{{ hub_screens|length }}</div>
-                <div class="network-stat-label">Screens</div>
-            </div>
-            <div class="network-stat">
-                <div class="network-stat-value">{{ hub_screens|selectattr('status', 'equalto', 'active')|list|length }}</div>
-                <div class="network-stat-label">Online</div>
-            </div>
-        </div>
+<!-- Locations -->
+<div class="locations-section">
+    <div class="locations-header">
+        <h3>📍 Locations</h3>
+        <button class="create-location-btn" onclick="openCreateLocation()">
+            ➕ Create Location
+        </button>
     </div>
-
-    {% if hub_screens %}
-    <div class="screens-grid">
-        {% for screen in hub_screens %}
-        <div class="screen-card" data-device-id="{{ screen.id }}" data-device-name="{{ screen.device_id }}">
-            <div class="screen-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" class="device-checkbox device-select" data-id="{{ screen.id }}" data-name="{{ screen.device_id }}" onchange="updateSelection()">
-                    <div>
-                        <div class="screen-name">{{ screen.name }}</div>
-                        <div class="screen-id">{{ screen.device_id }}</div>
-                    </div>
-                </div>
-                <div class="screen-status {{ screen.status }}">
-                    <span class="screen-status-dot"></span>
-                    {{ screen.status }}
-                </div>
-            </div>
-
-            <div class="screen-details">
-                <div class="screen-detail">
-                    <span class="screen-detail-label">Layout</span>
-                    <span class="screen-detail-value">{{ screen.layout_name }}</span>
-                </div>
-                <div class="screen-detail">
-                    <span class="screen-detail-label">Playing</span>
-                    <span class="screen-detail-value">{{ screen.current_playlist }}</span>
-                </div>
-            </div>
-
-            <div class="screen-actions">
-                <a href="/devices/{{ screen.device_id }}">Manage Screen &rarr;</a>
-                <button class="btn-delete-text" onclick="deleteDevice('{{ screen.id }}', '{{ screen.device_id }}', this)" title="Delete this device">Delete</button>
-            </div>
-        </div>
+    <div class="locations-grid">
+        <button class="location-btn active" style="color: #64748b;" onclick="filterLocation(null)">
+            🌍 All Locations
+            <span class="count" id="count-all">{{ devices|length }}</span>
+        </button>
+        {% for location in locations %}
+        <button class="location-btn" style="color: {{ location.color }};" onclick="filterLocation({{ location.id }})">
+            {{ location.icon }} {{ location.name }}
+            <span class="count" id="count-{{ location.id }}">0</span>
+            <button class="delete-location" onclick="event.stopPropagation(); deleteLocation({{ location.id }}, '{{ location.name }}')">×</button>
+        </button>
         {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-network">
-        <div class="empty-network-icon">&#128247;</div>
-        <h4>No screens connected to this hub</h4>
-        <p>Pair screens to this hub from the Dashboard.</p>
-    </div>
-    {% endif %}
 </div>
 
-{% else %}
-<!-- Normal View -->
-<div style="margin: 20px 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
-    <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">Screens</h2>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <span style="color: rgba(255,255,255,0.8); font-size: 16px; font-weight: 600;">{{ total_screen_count }} Total</span>
-        {% if total_screen_count > 0 %}
-        <div class="selection-controls">
-            <label class="select-all-label">
-                <input type="checkbox" id="selectAllDevices" class="device-checkbox" onchange="toggleSelectAll(this)">
-                Select All
-            </label>
-            <span class="selected-count" id="selectedCount"></span>
-            <button class="btn-delete-selected" id="deleteSelectedBtn" onclick="deleteSelectedDevices()">Delete Selected</button>
+<!-- Pairing Box -->
+<div class="pairing-box">
+    <h3>🔗 Pair New Device</h3>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+        Enter the 6-digit code displayed on the device screen to approve pairing
+    </p>
+    <form id="pairingForm" class="pairing-form">
+        <div class="form-group">
+            <label>6-Digit Pairing Code</label>
+            <input type="text" id="pairingCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required>
         </div>
-        {% endif %}
-    </div>
+        <div class="form-group">
+            <label>Assign to Location</label>
+            <select id="locationSelect">
+                <option value="">No Location</option>
+                {% for location in locations %}
+                <option value="{{ location.id }}">{{ location.icon }} {{ location.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">✓ Approve</button>
+    </form>
+    <div id="pairingStatus"></div>
 </div>
 
-<!-- Networks and Screens Catalog -->
-<div class="network-section">
-    {% if networks %}
-        {% for network in networks %}
-        <div class="network-card">
-            <div class="network-header">
-                <div class="network-info">
-                    <h3>{{ network.name }}</h3>
-                    <p>{{ network.store_count }} stores • {{ network.description or 'No description' }}</p>
-                </div>
-                <div class="network-stats">
-                    <div class="network-stat">
-                        <div class="network-stat-value">{{ network.screen_count }}</div>
-                        <div class="network-stat-label">Screens</div>
+<!-- Devices Grid -->
+<div class="devices-section">
+    <h3 id="devicesHeader">All Devices ({{ devices|length }})</h3>
+
+    {% if devices %}
+    <div class="devices-grid">
+        {% for device in devices %}
+        <div class="device-card" data-location="{{ device.location_id or '' }}">
+            <div class="device-header">
+                <div class="device-status" id="status-{{ device.id }}"></div>
+                <div class="device-info">
+                    <div class="device-name">{{ device.name }}</div>
+                    <div class="device-meta">
+                        {% if device.location_name %}
+                        <div class="device-meta-item">
+                            <div class="location-badge" style="background: {{ device.location_color }}20; color: {{ device.location_color }};">
+                                {{ device.location_icon }} {{ device.location_name }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if device.mac_address %}
+                        <div class="device-meta-item">
+                            <strong>MAC:</strong> {{ device.mac_address }}
+                        </div>
+                        {% endif %}
+                        {% if device.last_seen %}
+                        <div class="device-meta-item">
+                            <strong>Last Seen:</strong> <span id="time-{{ device.id }}">{{ device.last_seen }}</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="network-stat">
-                        <div class="network-stat-value">{{ network.online_count }}</div>
-                        <div class="network-stat-label">Online</div>
-                    </div>
+                    <span class="badge" id="badge-{{ device.id }}"></span>
                 </div>
             </div>
 
-            {% if network.stores %}
-            <div class="stores-grid">
-                {% for store in network.stores %}
-                <div class="store-folder"
-                     data-store-name="{{ store.name }}"
-                     data-store-city="{{ store.city or '' }}"
-                     data-store-state="{{ store.state or '' }}"
-                     data-screens='{{ store.screens|tojson }}'>
-                    <div class="store-folder-icon">📁</div>
-                    <div class="store-folder-name" title="{{ store.name }}">{{ store.name }}</div>
-                    <div class="store-folder-location">{{ store.city }}{% if store.state %}, {{ store.state }}{% endif %}</div>
-                    <div class="store-folder-stats">
-                        <span class="store-folder-stat">{{ store.screen_count }} screens</span>
-                        <span class="store-folder-stat"><span class="online-dot"></span> {{ store.online_count }} online</span>
+            {% if device.paired == 1 %}
+            <div class="device-playlists">
+                <div class="section-title">📋 Assigned Playlists</div>
+                {% if device.assigned_playlists %}
+                {% for playlist in device.assigned_playlists %}
+                <div class="playlist-item">
+                    <div class="playlist-name">{{ playlist.name }}</div>
+                    <div class="playlist-trigger">
+                        Trigger: {{ playlist.trigger_type }}
+                        {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %}
                     </div>
                 </div>
                 {% endfor %}
+                {% else %}
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; color: #94a3b8; font-size: 13px;">
+                    No playlists assigned
+                </div>
+                {% endif %}
+
+                <button class="btn btn-assign" onclick="openAssignPlaylist('{{ device.id }}', '{{ device.name }}')">
+                    ➕ Assign Playlist
+                </button>
             </div>
             {% else %}
-            <div class="empty-network">
-                <div class="empty-network-icon">&#128247;</div>
-                <h4>No stores in this network</h4>
-                <p>Add screens to this network to see them here.</p>
-            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="quickPair('{{ device.pairing_code }}')">
+                ✓ Quick Pair
+            </button>
             {% endif %}
         </div>
         {% endfor %}
+    </div>
     {% else %}
-    <div class="no-networks">
-        <div class="no-networks-icon">&#127760;</div>
-        <h3>No Networks Configured</h3>
-        <p>Create a network and add screens to get started.</p>
-        <a href="/" class="btn btn-primary">Go to Dashboard</a>
+    <div class="empty-state">
+        <div class="empty-state-icon">📱</div>
+        <h3>No devices yet</h3>
+        <p>Devices will appear here when they request pairing</p>
     </div>
     {% endif %}
 </div>
 
-<!-- Individual/Unassigned Devices -->
-{% if unassigned_devices %}
-<div class="network-card" style="margin-top: 24px;">
-    <div class="network-header" style="background: linear-gradient(135deg, #64748b 0%, #475569 100%);">
-        <div class="network-info">
-            <h3>Individual Devices</h3>
-            <p>Screens not assigned to a network</p>
+<!-- Create Location Modal -->
+<div class="modal" id="createLocationModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Location</h3>
+            <button class="close-btn" onclick="closeCreateLocation()">&times;</button>
         </div>
-        <div class="network-stats">
-            <div class="network-stat">
-                <div class="network-stat-value">{{ unassigned_devices|length }}</div>
-                <div class="network-stat-label">Screens</div>
-            </div>
-        </div>
-    </div>
-    <div class="screens-grid">
-        {% for device in unassigned_devices %}
-        <div class="screen-card" data-device-id="{{ device.id }}" data-device-name="{{ device.device_id }}">
-            <div class="screen-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" class="device-checkbox device-select" data-id="{{ device.id }}" data-name="{{ device.device_id }}" onchange="updateSelection()">
-                    <div>
-                        <div class="screen-name">{{ device.name or device.device_id }}</div>
-                        <div class="screen-id">{{ device.device_id }}</div>
-                    </div>
-                </div>
-                <div class="screen-status {{ device.status }}">
-                    <span class="screen-status-dot"></span>
-                    {{ device.status }}
-                </div>
-            </div>
-            <div class="screen-details">
-                <div class="screen-detail">
-                    <span class="screen-detail-label">Mode</span>
-                    <span class="screen-detail-value">{{ device.mode or 'direct' }}</span>
-                </div>
-                <div class="screen-detail">
-                    <span class="screen-detail-label">Status</span>
-                    <span class="screen-detail-value">{{ device.status }}</span>
-                </div>
-            </div>
-            <div class="screen-actions">
-                <a href="/devices/{{ device.device_id }}">Manage Screen &rarr;</a>
-                <button class="btn-delete-text" onclick="deleteDevice('{{ device.id }}', '{{ device.device_id }}', this)" title="Delete this device">Delete</button>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
 
-<!-- Store Detail Modal -->
-<div class="store-detail-modal" id="storeDetailModal">
-    <div class="store-detail-content">
-        <div class="store-detail-header">
-            <div>
-                <h3 id="storeDetailName">Store Name</h3>
-                <p id="storeDetailLocation">Location</p>
+        <form id="createLocationForm">
+            <div class="form-group">
+                <label>Location Name</label>
+                <input type="text" id="locationName" placeholder="e.g., Store A, Headquarters" required>
             </div>
-            <button class="store-detail-close" onclick="closeStoreDetail()">&times;</button>
-        </div>
-        <div class="store-detail-screens">
-            <div class="store-screens-grid" id="storeScreensGrid">
-                <!-- Screens will be populated by JavaScript -->
+
+            <div class="form-group">
+                <label>Address (Optional)</label>
+                <input type="text" id="locationAddress" placeholder="123 Main St, City, State">
             </div>
-        </div>
+
+            <div class="form-group">
+                <label>Choose Icon</label>
+                <div class="icon-picker">
+                    <div class="icon-option selected" data-icon="📍">📍</div>
+                    <div class="icon-option" data-icon="🏢">🏢</div>
+                    <div class="icon-option" data-icon="🏪">🏪</div>
+                    <div class="icon-option" data-icon="🏬">🏬</div>
+                    <div class="icon-option" data-icon="🏭">🏭</div>
+                    <div class="icon-option" data-icon="🏛️">🏛️</div>
+                    <div class="icon-option" data-icon="🏟️">🏟️</div>
+                    <div class="icon-option" data-icon="🏨">🏨</div>
+                    <div class="icon-option" data-icon="🏦">🏦</div>
+                    <div class="icon-option" data-icon="🏥">🏥</div>
+                    <div class="icon-option" data-icon="⛪">⛪</div>
+                    <div class="icon-option" data-icon="🌆">🌆</div>
+                    <div class="icon-option" data-icon="🗺️">🗺️</div>
+                    <div class="icon-option" data-icon="🌍">🌍</div>
+                    <div class="icon-option" data-icon="🏠">🏠</div>
+                    <div class="icon-option" data-icon="🏡">🏡</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Choose Color</label>
+                <div class="color-picker">
+                    <div class="color-option selected" style="background: #667eea;" data-color="#667eea"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981"></div>
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899"></div>
+                    <div class="color-option" style="background: #14b8a6;" data-color="#14b8a6"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16"></div>
+                    <div class="color-option" style="background: #64748b;" data-color="#64748b"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Location</button>
+        </form>
     </div>
 </div>
 
-{% endif %}
+<!-- Assign Playlist Modal -->
+<div class="modal" id="assignModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="assignModalTitle">Assign Playlist</h3>
+            <button class="close-btn" onclick="closeAssignModal()">&times;</button>
+        </div>
 
+        <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+            Select a playlist to assign to this device. The device will download and cache the content for offline playback.
+        </p>
+
+        <div class="form-group">
+            <label>Select Playlist</label>
+            <select id="playlistSelect" style="width: 100%;">
+                <option value="">Choose a playlist...</option>
+                {% for playlist in playlists %}
+                <option value="{{ playlist.id }}">
+                    {{ playlist.name }} ({{ playlist.trigger_type }}
+                    {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="assignPlaylist()">Assign to Device</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// Add click handlers to all store folders
-document.querySelectorAll('.store-folder').forEach(folder => {
-    folder.addEventListener('click', function() {
-        const storeName = this.dataset.storeName;
-        const storeCity = this.dataset.storeCity;
-        const storeState = this.dataset.storeState;
-        const screens = JSON.parse(this.dataset.screens || '[]');
+    let currentDeviceId = null;
+    let selectedLocationIcon = '📍';
+    let selectedLocationColor = '#667eea';
 
-        openStoreDetail(storeName, storeCity, storeState, screens);
-    });
-});
-
-function openStoreDetail(storeName, city, state, screens) {
-    document.getElementById('storeDetailName').textContent = storeName;
-
-    // Build location string
-    let locationStr = screens.length + ' screen' + (screens.length > 1 ? 's' : '');
-    if (city) {
-        locationStr += ' • ' + city;
-        if (state) locationStr += ', ' + state;
+    // Update device statuses
+    function isOnline(lastSeenStr) {
+        if (!lastSeenStr) return false;
+        const lastSeen = new Date(lastSeenStr);
+        const now = new Date();
+        const diff = (now - lastSeen) / 1000 / 60;
+        return diff < 5;
     }
-    document.getElementById('storeDetailLocation').textContent = locationStr;
 
-    // Build screens grid
-    const grid = document.getElementById('storeScreensGrid');
-    grid.innerHTML = screens.map(screen => `
-        <div class="screen-card" data-device-id="${escapeHtml(screen.id)}" data-device-name="${escapeHtml(screen.device_id)}">
-            <div class="screen-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" class="device-checkbox device-select" data-id="${escapeHtml(screen.id)}" data-name="${escapeHtml(screen.device_id)}" onchange="updateSelection()">
-                    <div>
-                        <div class="screen-name">${escapeHtml(screen.name)}</div>
-                        <div class="screen-id">${escapeHtml(screen.device_id)}</div>
-                    </div>
-                </div>
-                <div class="screen-status ${screen.status}">
-                    <span class="screen-status-dot"></span>
-                    ${screen.status}
-                </div>
-            </div>
-            <div class="screen-details">
-                <div class="screen-detail">
-                    <span class="screen-detail-label">Location</span>
-                    <span class="screen-detail-value">${escapeHtml(screen.screen_location || 'Unknown')}</span>
-                </div>
-                <div class="screen-detail">
-                    <span class="screen-detail-label">Playing</span>
-                    <span class="screen-detail-value">${escapeHtml(screen.current_playlist)}</span>
-                </div>
-            </div>
-            <div class="screen-actions">
-                <a href="/devices/${encodeURIComponent(screen.device_id)}">Manage Screen &rarr;</a>
-                <button class="btn-delete-text" onclick="deleteDeviceFromModal('${escapeHtml(screen.id)}', '${escapeHtml(screen.device_id)}', this)" title="Delete this device">Delete</button>
-            </div>
-        </div>
-    `).join('');
+    function updateDeviceStatuses() {
+        document.querySelectorAll('.device-card').forEach(card => {
+            const statusEl = card.querySelector('[id^="status-"]');
+            const badgeEl = card.querySelector('[id^="badge-"]');
+            const timeEl = card.querySelector('[id^="time-"]');
 
-    document.getElementById('storeDetailModal').classList.add('active');
-}
+            if (!statusEl || !badgeEl) return;
 
-function closeStoreDetail() {
-    document.getElementById('storeDetailModal').classList.remove('active');
-}
+            const isPaired = !card.querySelector('.btn-primary:not(.btn-assign)');
+            const lastSeen = timeEl ? timeEl.textContent : null;
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Close modal on backdrop click
-document.getElementById('storeDetailModal')?.addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeStoreDetail();
-    }
-});
-
-// Close modal on Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeStoreDetail();
-    }
-});
-
-// Delete a single device
-function deleteDevice(deviceId, deviceName, btn) {
-    if (!confirm('Delete device ' + deviceName + '? This cannot be undone.')) return;
-
-    fetch('/api/v1/devices/' + deviceId, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(r => {
-        if (r.ok) {
-            // Remove the card from the grid
-            const card = btn.closest('.screen-card');
-            if (card) {
-                card.style.transition = 'opacity 0.3s, transform 0.3s';
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.9)';
-                setTimeout(() => card.remove(), 300);
+            if (!isPaired) {
+                statusEl.className = 'device-status pending';
+                badgeEl.className = 'badge badge-pending';
+                badgeEl.textContent = '⏳ PENDING';
+            } else if (isOnline(lastSeen)) {
+                statusEl.className = 'device-status online';
+                badgeEl.className = 'badge badge-online';
+                badgeEl.textContent = '● ONLINE';
+            } else {
+                statusEl.className = 'device-status offline';
+                badgeEl.className = 'badge badge-offline';
+                badgeEl.textContent = '○ OFFLINE';
             }
-        } else {
-            r.json().then(data => alert('Error: ' + (data.error || 'Failed to delete device')));
-        }
-    })
-    .catch(err => alert('Error: ' + err));
-}
+        });
+    }
 
-// Delete device from modal
-function deleteDeviceFromModal(deviceId, deviceName, btn) {
-    if (!confirm('Delete device ' + deviceName + '? This cannot be undone.')) return;
+    updateDeviceStatuses();
 
-    fetch('/api/v1/devices/' + deviceId, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(r => {
-        if (r.ok) {
-            // Remove the card from the modal grid
-            const card = btn.closest('.screen-card');
-            if (card) {
-                card.style.transition = 'opacity 0.3s, transform 0.3s';
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.9)';
-                setTimeout(() => card.remove(), 300);
+    // Update location counts
+    function updateLocationCounts() {
+        const cards = document.querySelectorAll('.device-card');
+        const counts = {};
+
+        cards.forEach(card => {
+            const locationId = card.dataset.location;
+            if (locationId) {
+                counts[locationId] = (counts[locationId] || 0) + 1;
             }
-        } else {
-            r.json().then(data => alert('Error: ' + (data.error || 'Failed to delete device')));
-        }
-    })
-    .catch(err => alert('Error: ' + err));
-}
+        });
 
-// Selection management
-function updateSelection() {
-    const checkboxes = document.querySelectorAll('.device-select:checked');
-    const count = checkboxes.length;
-    const countEl = document.getElementById('selectedCount');
-    const deleteBtn = document.getElementById('deleteSelectedBtn');
-    const selectAllCheckbox = document.getElementById('selectAllDevices');
+        Object.keys(counts).forEach(locationId => {
+            const el = document.getElementById(`count-${locationId}`);
+            if (el) el.textContent = counts[locationId];
+        });
 
-    if (countEl) {
-        countEl.textContent = count > 0 ? `${count} selected` : '';
+        document.getElementById('count-all').textContent = cards.length;
     }
 
-    if (deleteBtn) {
-        if (count > 0) {
-            deleteBtn.classList.add('visible');
-        } else {
-            deleteBtn.classList.remove('visible');
-        }
+    updateLocationCounts();
+
+    // Filter by location
+    function filterLocation(locationId) {
+        const cards = document.querySelectorAll('.device-card');
+        const buttons = document.querySelectorAll('.location-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.location-btn').classList.add('active');
+
+        let visibleCount = 0;
+        cards.forEach(card => {
+            if (locationId === null || card.dataset.location == locationId) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        const locationName = locationId === null ? 'All Locations' : event.target.textContent.split('\n')[0].trim();
+        document.getElementById('devicesHeader').textContent = `${locationName} (${visibleCount})`;
     }
 
-    // Update select all checkbox state
-    const allCheckboxes = document.querySelectorAll('.device-select');
-    if (selectAllCheckbox && allCheckboxes.length > 0) {
-        selectAllCheckbox.checked = checkboxes.length === allCheckboxes.length;
-        selectAllCheckbox.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
-    }
+    // Pairing
+    document.getElementById('pairingForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    // Highlight selected cards
-    document.querySelectorAll('.screen-card').forEach(card => {
-        const checkbox = card.querySelector('.device-select');
-        if (checkbox && checkbox.checked) {
-            card.classList.add('selected');
-        } else {
-            card.classList.remove('selected');
-        }
-    });
-}
+        const code = document.getElementById('pairingCode').value;
+        const locationId = document.getElementById('locationSelect').value || null;
+        const statusDiv = document.getElementById('pairingStatus');
 
-function toggleSelectAll(checkbox) {
-    const allCheckboxes = document.querySelectorAll('.device-select');
-    allCheckboxes.forEach(cb => {
-        cb.checked = checkbox.checked;
-    });
-    updateSelection();
-}
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#e0e7ff';
+        statusDiv.style.color = '#3730a3';
+        statusDiv.textContent = '⏳ Approving device...';
 
-// Delete selected devices
-async function deleteSelectedDevices() {
-    const checkboxes = document.querySelectorAll('.device-select:checked');
-    const count = checkboxes.length;
-
-    if (count === 0) {
-        alert('No devices selected');
-        return;
-    }
-
-    const deviceNames = Array.from(checkboxes).map(cb => cb.dataset.name).join(', ');
-    if (!confirm(`Delete ${count} device(s)?\n\n${deviceNames}\n\nThis cannot be undone.`)) return;
-
-    let deleted = 0;
-    let failed = 0;
-
-    for (const checkbox of checkboxes) {
-        const deviceId = checkbox.dataset.id;
         try {
-            const response = await fetch('/api/v1/devices/' + deviceId, {
-                method: 'DELETE',
-                headers: {'Content-Type': 'application/json'}
+            const response = await fetch('/api/admin/pairing/approve', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ pairing_code: code, location_id: locationId })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                statusDiv.style.background = '#d1fae5';
+                statusDiv.style.color = '#065f46';
+                statusDiv.textContent = `✅ Device paired successfully! ${data.name}`;
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                statusDiv.style.background = '#fee2e2';
+                statusDiv.style.color = '#991b1b';
+                statusDiv.textContent = `❌ Error: ${data.error || 'Invalid pairing code'}`;
+            }
+        } catch (error) {
+            statusDiv.style.background = '#fee2e2';
+            statusDiv.style.color = '#991b1b';
+            statusDiv.textContent = `❌ Failed: ${error.message}`;
+        }
+    });
+
+    function quickPair(code) {
+        document.getElementById('pairingCode').value = code;
+        document.getElementById('locationSelect').focus();
+    }
+
+    // Create Location Modal
+    function openCreateLocation() {
+        document.getElementById('createLocationModal').classList.add('active');
+    }
+
+    function closeCreateLocation() {
+        document.getElementById('createLocationModal').classList.remove('active');
+    }
+
+    // Icon & Color selection for locations
+    document.querySelectorAll('#createLocationModal .icon-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('#createLocationModal .icon-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedLocationIcon = this.dataset.icon;
+        });
+    });
+
+    document.querySelectorAll('#createLocationModal .color-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('#createLocationModal .color-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedLocationColor = this.dataset.color;
+        });
+    });
+
+    // Create location form
+    document.getElementById('createLocationForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('locationName').value;
+        const address = document.getElementById('locationAddress').value;
+
+        try {
+            const response = await fetch('/api/locations', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    address: address,
+                    icon: selectedLocationIcon,
+                    color: selectedLocationColor
+                })
             });
 
             if (response.ok) {
-                deleted++;
-                const card = checkbox.closest('.screen-card');
-                if (card) {
-                    card.style.transition = 'opacity 0.3s, transform 0.3s';
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.9)';
-                    setTimeout(() => card.remove(), 300);
-                }
+                alert('✅ Location created successfully!');
+                location.reload();
             } else {
-                failed++;
+                const data = await response.json();
+                alert('❌ Error: ' + data.error);
             }
-        } catch (err) {
-            failed++;
+        } catch (error) {
+            alert('❌ Failed to create location');
+        }
+    });
+
+    // Delete location
+    async function deleteLocation(locationId, locationName) {
+        if (!confirm(`Delete location "${locationName}"? Devices will not be deleted.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/locations/${locationId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('❌ Failed to delete location');
+            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
         }
     }
 
-    updateSelection();
-
-    if (failed > 0) {
-        alert(`Deleted ${deleted} device(s). ${failed} failed.`);
-    } else {
-        alert(`Deleted ${deleted} device(s).`);
+    // Assign Playlist Modal
+    function openAssignPlaylist(deviceId, deviceName) {
+        currentDeviceId = deviceId;
+        document.getElementById('assignModalTitle').textContent = `Assign Playlist to ${deviceName}`;
+        document.getElementById('assignModal').classList.add('active');
     }
 
-    if (deleted > 0) {
-        setTimeout(() => location.reload(), 500);
+    function closeAssignModal() {
+        document.getElementById('assignModal').classList.remove('active');
     }
-}
+
+    async function assignPlaylist() {
+        const playlistId = document.getElementById('playlistSelect').value;
+
+        if (!playlistId) {
+            alert('Please select a playlist');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/devices/${currentDeviceId}/assign-playlist`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ playlist_id: playlistId })
+            });
+
+            if (response.ok) {
+                alert('✅ Playlist assigned successfully! Device will sync content on next check-in.');
+                location.reload();
+            } else {
+                alert('❌ Failed to assign playlist');
+            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
+        }
+    }
 </script>
 {% endblock %}
