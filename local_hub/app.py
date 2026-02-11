@@ -180,8 +180,9 @@ PAIRING_SCREEN_TEMPLATE = '''
     <div class="container">
         <div class="logo">SKILLZ MEDIA</div>
         {% if status == 'paired' %}
+            <script>window.location.href = '/';</script>
             <h1>{{ hub_name or 'Hub Paired!' }}</h1>
-            <div class="status paired">Connected to CMS</div>
+            <div class="status paired">Redirecting to dashboard...</div>
         {% elif active and pairing_code %}
             <h1>Hub Pairing Required</h1>
             <div class="pairing-code">{{ pairing_code }}</div>
