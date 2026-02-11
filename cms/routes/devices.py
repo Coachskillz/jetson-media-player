@@ -1169,3 +1169,80 @@ def get_device_playlist(hardware_id):
         'hardware_id': device.hardware_id,
         'playlists': playlists
     }), 200
+
+
+@devices_bp.route('/<device_id>/assign-playlist', methods=['POST'])
+def assign_playlist_to_device(device_id):
+    """
+    Assign a playlist to a device.
+
+    This replaces any existing default playlist assignment for the device.
+
+    Args:
+        device_id: Device ID (e.g., 'SKZ-D-0002') or hardware_id
+
+    Request Body:
+        {
+            "playlist_id": "uuid-of-playlist"
+        }
+
+    Returns:
+        200: Playlist assigned successfully
+        400: Missing playlist_id
+        404: Device or playlist not found
+    """
+    data = request.get_json()
+    if not data or 'playlist_id' not in data:
+        return jsonify({'error': 'playlist_id is required'}), 400
+
+    playlist_id = data['playlist_id']
+
+    # Find device by device_id or hardware_id
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = Device.query.filter_by(hardware_id=device_id).first()
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Find playlist
+    playlist = Playlist.query.get(playlist_id)
+    if not playlist:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    # Remove existing default assignment(s) for this device
+    existing_default = DeviceAssignment.query.filter_by(
+        device_id=device.id,
+        trigger_type='default'
+    ).all()
+    for assignment in existing_default:
+        db.session.delete(assignment)
+
+    # Create new default assignment
+    new_assignment = DeviceAssignment(
+        device_id=device.id,
+        playlist_id=playlist.id,
+        trigger_type='default',
+        priority=0
+    )
+    db.session.add(new_assignment)
+    db.session.commit()
+
+    # Notify hubs about the playlist change
+    try:
+        from cms.services.hub_notifier import notify_playlist_updated
+        notify_playlist_updated(
+            device_id=device.hardware_id,
+            playlist_id=playlist_id,
+            action='assigned'
+        )
+    except ImportError:
+        pass  # Hub notifier not available
+
+    return jsonify({
+        'status': 'ok',
+        'device_id': device.device_id,
+        'hardware_id': device.hardware_id,
+        'playlist_id': playlist.id,
+        'playlist_name': playlist.name
+    }), 200
