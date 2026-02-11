@@ -195,7 +195,7 @@ class HeartbeatReporter:
             if not self.screen_id:
                 logger.warning("Cannot send heartbeat: no screen_id configured")
                 return False
-            url = f"{self.hub_url}/api/v1/screens/{self.screen_id}/heartbeat"
+            url = f"{self.hub_url}/api/v1/{self.screen_id}/heartbeat"
 
         metrics = self.collect_metrics()
 
