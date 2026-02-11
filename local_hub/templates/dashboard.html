@@ -298,7 +298,11 @@
                     <span class="ip-address">{{ device.ip_address or '?' }}</span>
                 </td>
                 <td>
-                    <span class="status-badge {{ device.status }}">{{ device.status|upper }}</span>
+                    {% if not device.device_id %}
+                        <span class="status-badge pending">PENDING</span>
+                    {% else %}
+                        <span class="status-badge {{ device.status }}">{{ device.status|upper }}</span>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
