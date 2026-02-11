@@ -204,6 +204,59 @@ PAIRING_SCREEN_TEMPLATE = '''
 '''
 
 
+def _launch_pairing_screen(port: int) -> None:
+    """
+    Auto-launch the pairing screen in a browser or kiosk mode.
+
+    On Linux (Jetson/Ubuntu), tries to launch chromium in kiosk mode.
+    On macOS, opens the default browser.
+    On Windows, opens the default browser.
+    """
+    import subprocess
+    import sys
+    import webbrowser
+
+    url = f'http://localhost:{port}/pairing'
+
+    try:
+        if sys.platform == 'linux':
+            # Try chromium in kiosk mode first (for Jetson/Ubuntu)
+            try:
+                subprocess.Popen([
+                    'chromium-browser',
+                    '--kiosk',
+                    '--noerrdialogs',
+                    '--disable-infobars',
+                    '--no-first-run',
+                    '--start-fullscreen',
+                    url
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f'  Launched pairing screen in kiosk mode')
+                return
+            except FileNotFoundError:
+                pass
+
+            # Try firefox
+            try:
+                subprocess.Popen([
+                    'firefox',
+                    '--kiosk',
+                    url
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f'  Launched pairing screen in Firefox kiosk mode')
+                return
+            except FileNotFoundError:
+                pass
+
+        # Fallback to default browser
+        webbrowser.open(url)
+        print(f'  Opened pairing screen in default browser')
+
+    except Exception as e:
+        print(f'  Could not auto-launch browser: {e}')
+        print(f'  Please open {url} manually')
+
+
 def _check_and_start_pairing(app: Flask) -> None:
     """
     Check if hub is registered and start pairing flow if not.
@@ -276,6 +329,9 @@ def _check_and_start_pairing(app: Flask) -> None:
             print(f'  Hardware ID:  {hardware_id}')
             print(f'  View at:      http://localhost:{config.port}/pairing')
             print(f'{"="*60}\n')
+
+            # Auto-launch pairing screen in browser
+            _launch_pairing_screen(config.port)
 
             # Poll for pairing completion
             def on_status(status):

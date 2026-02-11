@@ -120,6 +120,29 @@ class HubConfig(db.Model):
         db.session.commit()
         return config
 
+    @classmethod
+    def reset_registration(cls):
+        """
+        Clear hub registration to force re-pairing.
+
+        This clears the hub_id and hub_token so the hub will
+        go through the pairing flow again on next startup.
+
+        Returns:
+            HubConfig: The reset config instance
+        """
+        config = cls.get_instance()
+        config.hub_id = None
+        config.hub_token = None
+        config.hub_code = None
+        config.hub_name = None
+        config.network_id = None
+        config.store_id = None
+        config.status = 'pending'
+        config.registered_at = None
+        db.session.commit()
+        return config
+
     def __repr__(self):
         """String representation."""
         return f"<HubConfig hub_id={self.hub_id} registered={self.is_registered}>"
