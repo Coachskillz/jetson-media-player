@@ -281,7 +281,7 @@
             {% for device in devices %}
             <tr>
                 <td>
-                    {% if device.status == 'pending' %}
+                    {% if not device.device_id %}
                         <span class="pairing-code pending">{{ device.pairing_code or '------' }}</span>
                     {% else %}
                         <span class="pairing-code active">&#10003;</span>
