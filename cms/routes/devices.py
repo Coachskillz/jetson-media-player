@@ -2,302 +2,115 @@
 CMS Devices Routes
 
 Blueprint for device management API endpoints:
-- POST /register: Register a new device (direct or hub mode)
-- POST /pair: Pair device with a network
-- GET /<id>/config: Get device configuration
+- GET /<id>/playlist: Get playlist package for a device
 - GET /: List all devices
 
 All endpoints are prefixed with /api/v1/devices when registered with the app.
 """
 
+import hashlib
 from flask import Blueprint, request, jsonify
-
-from cms.models import db, Device, Hub, Network, DeviceAssignment
-from cms.services.device_id import DeviceIDGenerator
+from cms.models import db
 
 
 # Create devices blueprint
 devices_bp = Blueprint('devices', __name__)
 
 
-@devices_bp.route('/register', methods=['POST'])
-def register_device():
-    """
-    Register a new device or return existing device.
-
-    Devices call this endpoint to register with the CMS. Supports two modes:
-    - Direct mode: Device connects directly to CMS (ID format: SKZ-D-XXXX)
-    - Hub mode: Device connects through a hub (ID format: SKZ-H-{CODE}-XXXX)
-
-    If a device with the given hardware_id already exists, returns the
-    existing device without creating a duplicate.
-
-    Request Body:
-        {
-            "hardware_id": "unique-hardware-id" (required),
-            "mode": "direct" or "hub" (required),
-            "hub_id": "uuid-of-hub" (required for hub mode),
-            "name": "optional device name"
-        }
-
-    Returns:
-        201: New device created
-            {
-                "id": "uuid",
-                "device_id": "SKZ-D-0001",
-                "hardware_id": "unique-hardware-id",
-                "mode": "direct",
-                "status": "pending",
-                "created_at": "2024-01-15T10:00:00Z"
-            }
-        200: Existing device returned
-            {
-                "id": "uuid",
-                "device_id": "SKZ-D-0001",
-                ...
-            }
-        400: Missing required field or invalid data
-            {
-                "error": "error message"
-            }
-    """
-    data = request.get_json(silent=True)
-
-    if not data:
-        return jsonify({'error': 'Request body is required'}), 400
-
-    # Validate hardware_id
-    hardware_id = data.get('hardware_id')
-    if not hardware_id:
-        return jsonify({'error': 'hardware_id is required'}), 400
-
-    if not isinstance(hardware_id, str) or len(hardware_id) > 100:
-        return jsonify({
-            'error': 'hardware_id must be a string with max 100 characters'
-        }), 400
-
-    # Check if device already exists
-    existing_device = Device.query.filter_by(hardware_id=hardware_id).first()
-    if existing_device:
-        return jsonify(existing_device.to_dict()), 200
-
-    # Validate mode
-    mode = data.get('mode')
-    if not mode:
-        return jsonify({'error': 'mode is required'}), 400
-
-    if mode not in ('direct', 'hub'):
-        return jsonify({
-            'error': "mode must be 'direct' or 'hub'"
-        }), 400
-
-    # Validate name if provided
-    name = data.get('name')
-    if name and (not isinstance(name, str) or len(name) > 200):
-        return jsonify({
-            'error': 'name must be a string with max 200 characters'
-        }), 400
-
-    # Hub mode validation
-    hub = None
-    hub_id = None
-    if mode == 'hub':
-        hub_id = data.get('hub_id')
-        if not hub_id:
-            return jsonify({
-                'error': 'hub_id is required for hub mode'
-            }), 400
-
-        hub = db.session.get(Hub, hub_id)
-        if not hub:
-            return jsonify({
-                'error': f'Hub with id {hub_id} not found'
-            }), 400
-
-    # Generate device ID based on mode
-    try:
-        if mode == 'direct':
-            device_id = DeviceIDGenerator.generate_direct_id(db.session)
-        else:
-            # Hub mode - use hub's code for the device ID
-            device_id = DeviceIDGenerator.generate_hub_id_by_hub_id(
-                hub_id, hub.code, db.session
-            )
-    except Exception as e:
-        return jsonify({
-            'error': f'Failed to generate device ID: {str(e)}'
-        }), 500
-
-    # Create new device
-    device = Device(
-        hardware_id=hardware_id,
-        device_id=device_id,
-        mode=mode,
-        hub_id=hub_id,
-        network_id=hub.network_id if hub else None,
-        name=name,
-        status='pending'
+def _generate_package_hash(playlist_id, items):
+    """Generate a hash for the playlist package content."""
+    content = f"{playlist_id}:" + ",".join(
+        f"{item['content_id']}:{item.get('file_hash', '')}" for item in items
     )
-
-    try:
-        db.session.add(device)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'error': f'Failed to create device: {str(e)}'
-        }), 500
-
-    return jsonify(device.to_dict()), 201
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
-@devices_bp.route('/pair', methods=['POST'])
-def pair_device():
+@devices_bp.route('/<device_id>/playlist', methods=['GET'])
+def get_device_playlist(device_id):
     """
-    Pair a device to a network.
+    Get the playlist for a specific device.
 
-    Links a registered device to a specific network, allowing it to receive
-    content and playlists from that network.
-
-    Request Body:
-        {
-            "device_id": "SKZ-D-0001" (required),
-            "network_id": "uuid-of-network" (required)
-        }
-
-    Returns:
-        200: Device paired successfully
-            {
-                "message": "Device paired successfully",
-                "device": { device data },
-                "network": { network data }
-            }
-        400: Missing required field or invalid data
-            {
-                "error": "error message"
-            }
-        404: Device or network not found
-            {
-                "error": "error message"
-            }
-    """
-    data = request.get_json(silent=True)
-
-    if not data:
-        return jsonify({'error': 'Request body is required'}), 400
-
-    # Validate device_id
-    device_id = data.get('device_id')
-    if not device_id:
-        return jsonify({'error': 'device_id is required'}), 400
-
-    # Validate network_id
-    network_id = data.get('network_id')
-    if not network_id:
-        return jsonify({'error': 'network_id is required'}), 400
-
-    # Find device by device_id (the SKZ-X-XXXX format)
-    device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        return jsonify({'error': f'Device with id {device_id} not found'}), 404
-
-    # Find network
-    network = db.session.get(Network, network_id)
-    if not network:
-        return jsonify({'error': f'Network with id {network_id} not found'}), 404
-
-    # Pair device to network
-    device.network_id = network_id
-    device.status = 'active'
-
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'error': f'Failed to pair device: {str(e)}'
-        }), 500
-
-    return jsonify({
-        'message': 'Device paired successfully',
-        'device': device.to_dict(),
-        'network': network.to_dict()
-    }), 200
-
-
-@devices_bp.route('/<device_id>/config', methods=['GET'])
-def get_device_config(device_id):
-    """
-    Get configuration for a specific device.
-
-    Devices call this endpoint to retrieve their configuration including
-    network info, hub info, and assigned playlists.
+    Returns the playlist as a single named package.
+    The playlist content is treated as one unit.
 
     Args:
-        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+        device_id: Device ID (e.g., 'jetson-8cf96efbb864')
 
     Returns:
-        200: Device configuration
+        200: Playlist
             {
-                "device_id": "SKZ-D-0001",
-                "network": { id, name } or null,
-                "hub": { id, code, name } or null,
-                "playlists": [ ... ],
-                "config_version": 1
+                "playlist": {
+                    "name": "Morning Ads",
+                    "version": 1,
+                    "duration": 90,
+                    "loop": true
+                },
+                "content_url": "/playlists/morning-ads/content"
             }
         404: Device not found
-            {
-                "error": "Device not found"
-            }
     """
-    # Try to find device by device_id (SKZ format) first, then by UUID
-    device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        device = db.session.get(Device, device_id)
+    # 1. Check if device exists
+    device_row = db.session.execute(
+        db.text("SELECT id, name FROM devices WHERE id = :device_id"),
+        {"device_id": device_id}
+    ).fetchone()
 
-    if not device:
+    if not device_row:
         return jsonify({'error': 'Device not found'}), 404
 
-    # Get associated network
-    network_data = None
-    if device.network_id:
-        network = db.session.get(Network, device.network_id)
-        if network:
-            network_data = {
-                'id': network.id,
-                'name': network.name
-            }
+    # 2. Get playlist assignment for this device
+    playlist_assignment = db.session.execute(
+        db.text("""
+            SELECT dp.playlist_id, p.name, p.description, p.trigger_type
+            FROM device_playlists dp
+            JOIN playlists p ON dp.playlist_id = p.id
+            WHERE dp.device_id = :device_id
+            LIMIT 1
+        """),
+        {"device_id": device_id}
+    ).fetchone()
 
-    # Get associated hub
-    hub_data = None
-    if device.hub_id:
-        hub = db.session.get(Hub, device.hub_id)
-        if hub:
-            hub_data = {
-                'id': hub.id,
-                'code': hub.code,
-                'name': hub.name
-            }
+    if not playlist_assignment:
+        return jsonify({'playlist': None}), 200
 
-    # Get assigned playlists
-    playlists = []
-    assignments = DeviceAssignment.query.filter_by(device_id=device.id).all()
-    for assignment in assignments:
-        if assignment.playlist:
-            playlists.append({
-                'id': assignment.playlist.id,
-                'name': assignment.playlist.name,
-                'priority': assignment.priority,
-                'start_date': assignment.start_date.isoformat() if assignment.start_date else None,
-                'end_date': assignment.end_date.isoformat() if assignment.end_date else None
-            })
+    playlist_id = playlist_assignment[0]
+    playlist_name = playlist_assignment[1]
 
+    # 3. Calculate total duration
+    duration_row = db.session.execute(
+        db.text("""
+            SELECT COALESCE(SUM(c.duration), 0)
+            FROM playlist_items pi
+            JOIN content c ON pi.content_id = c.id
+            WHERE pi.playlist_id = :playlist_id
+        """),
+        {"playlist_id": playlist_id}
+    ).fetchone()
+
+    total_duration = int(duration_row[0]) if duration_row and duration_row[0] else 0
+
+    # 4. Generate version hash
+    items_rows = db.session.execute(
+        db.text("""
+            SELECT c.id FROM playlist_items pi
+            JOIN content c ON pi.content_id = c.id
+            WHERE pi.playlist_id = :playlist_id
+            ORDER BY pi.position ASC
+        """),
+        {"playlist_id": playlist_id}
+    ).fetchall()
+
+    version_hash = _generate_package_hash(playlist_id, [{'content_id': r[0]} for r in items_rows])
+
+    # Return clean playlist reference
     return jsonify({
-        'device_id': device.device_id,
-        'network': network_data,
-        'hub': hub_data,
-        'playlists': playlists,
-        'config_version': 1
+        'playlist': {
+            'name': playlist_name,
+            'version': version_hash,
+            'duration': total_duration,
+            'loop': True
+        },
+        'content_url': f'/playlists/{playlist_id}/content'
     }), 200
 
 
@@ -306,53 +119,160 @@ def list_devices():
     """
     List all registered devices.
 
-    Returns a list of all devices registered with the CMS,
-    with optional filtering by status, mode, or network.
-
-    Query Parameters:
-        status: Filter by status (pending, active, offline)
-        mode: Filter by mode (direct, hub)
-        network_id: Filter by network UUID
-        hub_id: Filter by hub UUID
-
     Returns:
         200: List of devices
             {
-                "devices": [ { device data }, ... ],
+                "devices": [...],
                 "count": 5
             }
     """
-    # Build query with optional filters
-    query = Device.query
+    devices_rows = db.session.execute(
+        db.text("""
+            SELECT id, name, location_id, paired, mac_address, last_seen, created_at
+            FROM devices
+            ORDER BY created_at DESC
+        """)
+    ).fetchall()
 
-    # Filter by status
-    status_filter = request.args.get('status')
-    if status_filter:
-        query = query.filter_by(status=status_filter)
-
-    # Filter by mode
-    mode_filter = request.args.get('mode')
-    if mode_filter:
-        if mode_filter not in ('direct', 'hub'):
-            return jsonify({
-                'error': "mode must be 'direct' or 'hub'"
-            }), 400
-        query = query.filter_by(mode=mode_filter)
-
-    # Filter by network
-    network_id = request.args.get('network_id')
-    if network_id:
-        query = query.filter_by(network_id=network_id)
-
-    # Filter by hub
-    hub_id = request.args.get('hub_id')
-    if hub_id:
-        query = query.filter_by(hub_id=hub_id)
-
-    # Execute query
-    devices = query.order_by(Device.created_at.desc()).all()
+    devices = []
+    for row in devices_rows:
+        devices.append({
+            'id': row[0],
+            'name': row[1],
+            'location_id': row[2],
+            'paired': bool(row[3]),
+            'mac_address': row[4],
+            'last_seen': row[5],
+            'created_at': row[6]
+        })
 
     return jsonify({
-        'devices': [device.to_dict() for device in devices],
+        'devices': devices,
         'count': len(devices)
+    }), 200
+
+
+@devices_bp.route('/<device_id>', methods=['GET'])
+def get_device(device_id):
+    """
+    Get a specific device by ID.
+
+    Args:
+        device_id: Device ID (e.g., 'jetson-8cf96efbb864')
+
+    Returns:
+        200: Device data
+        404: Device not found
+    """
+    device_row = db.session.execute(
+        db.text("""
+            SELECT id, name, location_id, paired, mac_address, last_seen, created_at
+            FROM devices
+            WHERE id = :device_id
+        """),
+        {"device_id": device_id}
+    ).fetchone()
+
+    if not device_row:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Get assigned playlists
+    playlists_rows = db.session.execute(
+        db.text("""
+            SELECT p.id, p.name, p.trigger_type
+            FROM device_playlists dp
+            JOIN playlists p ON dp.playlist_id = p.id
+            WHERE dp.device_id = :device_id
+        """),
+        {"device_id": device_id}
+    ).fetchall()
+
+    playlists = [{'id': r[0], 'name': r[1], 'trigger_type': r[2]} for r in playlists_rows]
+
+    return jsonify({
+        'id': device_row[0],
+        'name': device_row[1],
+        'location_id': device_row[2],
+        'paired': bool(device_row[3]),
+        'mac_address': device_row[4],
+        'last_seen': device_row[5],
+        'created_at': device_row[6],
+        'playlists': playlists
+    }), 200
+
+
+@devices_bp.route('/<device_id>/assign-playlist', methods=['POST'])
+def assign_playlist_to_device(device_id):
+    """
+    Assign a playlist to a device.
+
+    This replaces any existing playlist assignment for the device.
+
+    Args:
+        device_id: Device ID (e.g., 'jetson-8cf96efbb864')
+
+    Request Body:
+        {
+            "playlist_id": 1
+        }
+
+    Returns:
+        200: Playlist assigned successfully
+        400: Missing playlist_id
+        404: Device or playlist not found
+    """
+    from cms.services.hub_notifier import notify_playlist_updated
+
+    data = request.get_json()
+    if not data or 'playlist_id' not in data:
+        return jsonify({'error': 'playlist_id is required'}), 400
+
+    playlist_id = data['playlist_id']
+
+    # Verify device exists
+    device_row = db.session.execute(
+        db.text("SELECT id FROM devices WHERE id = :device_id"),
+        {"device_id": device_id}
+    ).fetchone()
+
+    if not device_row:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Verify playlist exists
+    playlist_row = db.session.execute(
+        db.text("SELECT id, name FROM playlists WHERE id = :playlist_id"),
+        {"playlist_id": playlist_id}
+    ).fetchone()
+
+    if not playlist_row:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    # Remove existing assignment(s) for this device
+    db.session.execute(
+        db.text("DELETE FROM device_playlists WHERE device_id = :device_id"),
+        {"device_id": device_id}
+    )
+
+    # Create new assignment
+    db.session.execute(
+        db.text("""
+            INSERT INTO device_playlists (device_id, playlist_id)
+            VALUES (:device_id, :playlist_id)
+        """),
+        {"device_id": device_id, "playlist_id": playlist_id}
+    )
+    db.session.commit()
+
+    # Notify hubs about the playlist change
+    notify_playlist_updated(
+        device_id=device_id,
+        playlist_id=playlist_id,
+        action='assigned'
+    )
+
+    return jsonify({
+        'status': 'ok',
+        'device_id': device_id,
+        'playlist_id': playlist_id,
+        'playlist_name': playlist_row[1]
     }), 200

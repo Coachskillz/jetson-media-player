@@ -906,7 +906,7 @@
         }
 
         try {
-            const response = await fetch(`/api/devices/${currentDeviceId}/assign-playlist`, {
+            const response = await fetch(`/api/v1/devices/${currentDeviceId}/assign-playlist`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ playlist_id: playlistId })
