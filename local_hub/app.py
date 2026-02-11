@@ -281,8 +281,10 @@ def _check_and_start_pairing(app: Flask) -> None:
             def on_status(status):
                 global _pairing_state
                 if status.get('status') == 'expired':
-                    _pairing_state['pairing_code'] = service.pairing_code
-                    app.logger.info(f'New pairing code: {service.pairing_code}')
+                    # Use new_pairing_code if provided, otherwise fall back to service.pairing_code
+                    new_code = status.get('new_pairing_code') or service.pairing_code
+                    _pairing_state['pairing_code'] = new_code
+                    app.logger.info(f'New pairing code: {new_code}')
 
             result = service.wait_for_pairing(on_status=on_status)
 
@@ -403,6 +405,21 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.info("Registered devices blueprint")
     except ImportError:
         pass
+
+    try:
+        from routes import locations_bp
+        app.register_blueprint(locations_bp, url_prefix='/api/v1')
+        app.logger.info("Registered locations blueprint")
+    except ImportError:
+        pass
+
+    try:
+        from routes import hub_pairing_ui_bp, hub_pairing_api_bp
+        app.register_blueprint(hub_pairing_ui_bp)  # UI at /hub/pairing
+        app.register_blueprint(hub_pairing_api_bp, url_prefix='/api/v1/hub')
+        app.logger.info("Registered hub pairing blueprints")
+    except ImportError as e:
+        app.logger.warning(f"Failed to register hub pairing blueprints: {e}")
 
 
 def _init_scheduler(app: Flask) -> None:

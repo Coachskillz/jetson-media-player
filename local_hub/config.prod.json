@@ -1,0 +1,12 @@
+{
+  "cms_url": "https://keen-ambition-production.up.railway.app",
+  "hub_code": "",
+  "hub_name": "Skillz Local Hub",
+  "network_id": "",
+  "sync_interval_minutes": 5,
+  "heartbeat_interval_seconds": 60,
+  "alert_retry_interval_seconds": 30,
+  "storage_path": "/var/skillz-hub",
+  "log_path": "/var/log/skillz-hub",
+  "port": 5000
+}

@@ -142,14 +142,18 @@ class Hub(db.Model):
     network = db.relationship('Network', backref=db.backref('hubs', lazy='dynamic'))
     # devices = db.relationship('Device', backref='hub', lazy='dynamic')
 
-    def to_dict(self):
+    def to_dict(self, include_token: bool = False):
         """
         Serialize the hub to a dictionary for API responses.
 
+        Args:
+            include_token: If True, include api_token in response (default: False)
+                          Only set to True when returning credentials to the hub itself.
+
         Returns:
-            Dictionary containing all hub fields
+            Dictionary containing hub fields
         """
-        return {
+        result = {
             'id': self.id,
             'code': self.code,
             'name': self.name,
@@ -165,10 +169,12 @@ class Hub(db.Model):
             'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
             'screens_connected': self.screens_connected,
             'version': self.version,
-            'api_token': self.api_token,
             'paired_at': self.paired_at.isoformat() if self.paired_at else None,
             'location': self.location
         }
+        if include_token:
+            result['api_token'] = self.api_token
+        return result
 
     def __repr__(self):
         """String representation for debugging."""

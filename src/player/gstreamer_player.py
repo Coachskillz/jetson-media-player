@@ -1,6 +1,19 @@
 """
 GStreamer player module with NVIDIA hardware acceleration.
-Uses playbin3 for gapless video playback on Jetson Orin Nano.
+Custom pipeline for Jetson Orin Nano — no playbin.
+
+Pipeline:
+  filesrc → qtdemux → { video: h264parse → nvv4l2decoder → nvvidconv → xvimagesink
+                         audio: queue → avdec_aac → audioconvert → pulsesink }
+
+Strategy:
+ 1. Pre-fetch: A position watchdog fires ~2s before EOS and asks the playlist
+    for the next URI (stored in _next_uri).
+ 2. On EOS: restart immediately via GLib.idle_add with READY state.
+    Same-video loops use seek-to-zero for seamless replay.
+
+playbin is NOT used because it inserts software videoconvert between
+nvv4l2decoder and the sink, causing 80%+ CPU on Jetson.
 """
 
 import logging
@@ -9,24 +22,19 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional
 
-# IMPORTANT: gi.require_version() MUST be called BEFORE importing from gi.repository
 import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('GstVideo', '1.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gst, GstVideo, GLib
 
-
-# Initialize GStreamer - REQUIRED before using any GStreamer elements
 Gst.init(None)
-
 
 from src.common.logger import setup_logger
 logger = setup_logger(__name__)
 
 
 class PlayerState(Enum):
-    """Represents the state of the GStreamer player."""
     STOPPED = "stopped"
     PLAYING = "playing"
     PAUSED = "paused"
@@ -36,11 +44,13 @@ class PlayerState(Enum):
 class GStreamerPlayer:
     """
     Hardware-accelerated GStreamer player for Jetson Orin Nano.
-    Uses playbin3 with nv3dsink for smooth, gapless video playback.
+    Uses a custom pipeline with nvv4l2decoder + nvvidconv for ~15% CPU
+    (vs ~85% with playbin's software path).
     """
 
-    # Default media directory on Jetson devices
     DEFAULT_MEDIA_DIR = "/home/skillz/media"
+    _WATCHDOG_INTERVAL_MS = 500
+    _PREQUEUE_SECONDS = 2.0
 
     def __init__(
         self,
@@ -49,209 +59,300 @@ class GStreamerPlayer:
         on_error: Optional[Callable[[str], None]] = None,
         on_eos: Optional[Callable[[], None]] = None
     ):
-        """
-        Initialize the GStreamer player.
-
-        Args:
-            media_dir: Directory where media files are stored
-            on_about_to_finish: Callback that returns the next URI for gapless playback.
-                                Called ~2 seconds before current video ends.
-            on_error: Callback for playback errors with error message
-            on_eos: Callback for end-of-stream (when no next URI is queued)
-        """
         self.media_dir = Path(media_dir) if media_dir else Path(self.DEFAULT_MEDIA_DIR)
         self._on_about_to_finish = on_about_to_finish
         self._on_error = on_error
         self._on_eos = on_eos
 
-        self._player: Optional[Gst.Element] = None
+        self._pipeline: Optional[Gst.Pipeline] = None
+        self._filesrc: Optional[Gst.Element] = None
+        self._videosink: Optional[Gst.Element] = None
         self._bus: Optional[Gst.Bus] = None
-        self._loop: Optional[GLib.MainLoop] = None
-        self._loop_thread: Optional[threading.Thread] = None
         self._state = PlayerState.STOPPED
-        self._current_uri: Optional[str] = None
-        self._next_uri_queued = False
         self._lock = threading.Lock()
 
-        # Track last played URI for consecutive same video handling
-        self._last_uri: Optional[str] = None
+        # --- URI tracking ---
+        self._playing_uri: Optional[str] = None
+        self._next_uri: Optional[str] = None
+        self._prefetched = False
 
         # X11 window handle for embedding video in GTK
         self._window_xid: Optional[int] = None
 
+        # Position watchdog timer ID
+        self._watchdog_id: Optional[int] = None
+
         logger.info("GStreamerPlayer initialized with media_dir: %s", self.media_dir)
 
-    def _create_player(self) -> Gst.Element:
+    # ------------------------------------------------------------------
+    # Pipeline creation
+    # ------------------------------------------------------------------
+
+    def _create_pipeline(self, filepath: str) -> Gst.Pipeline:
         """
-        Create and configure the GStreamer playbin element.
+        Build: filesrc → qtdemux → { video branch, audio branch }
 
-        Returns:
-            Configured playbin element
+        Audio is optional — if the file has no audio track, the pipeline
+        still works because qtdemux simply won't link the audio pad.
         """
-        # playbin3 hangs at PREROLLING on Jetson Orin Nano (GStreamer 1.20).
-        # playbin (v2) works reliably with nvv4l2decoder hardware decode.
-        player = Gst.ElementFactory.make('playbin', 'player')
-        if player is None:
-            raise RuntimeError("Failed to create playbin element. Is GStreamer installed?")
+        pipeline = Gst.Pipeline.new('player')
 
-        # Configure video sink — must support GstVideoOverlay for GTK embedding.
-        # nv3dsink renders to its own window and CANNOT embed in GTK.
-        # Use xvimagesink which supports XOverlay and works with nvv4l2decoder.
-        video_sink = None
-        for sink_name in ('xvimagesink', 'nveglglessink', 'autovideosink'):
-            video_sink = Gst.ElementFactory.make(sink_name, 'videosink')
-            if video_sink is not None:
-                logger.info("Using video sink: %s", sink_name)
-                break
+        # Source + demuxer
+        self._filesrc = Gst.ElementFactory.make('filesrc', 'filesrc')
+        qtdemux = Gst.ElementFactory.make('qtdemux', 'demux')
 
-        if video_sink:
-            video_sink.set_property('sync', True)
-            player.set_property('video-sink', video_sink)
+        # Video branch: h264parse → nvv4l2decoder → nvvidconv → xvimagesink
+        vqueue = Gst.ElementFactory.make('queue', 'vqueue')
+        h264parse = Gst.ElementFactory.make('h264parse', 'h264parse')
+        nvdecoder = Gst.ElementFactory.make('nvv4l2decoder', 'nvdecoder')
+        nvvidconv = Gst.ElementFactory.make('nvvidconv', 'nvvidconv')
+        self._videosink = Gst.ElementFactory.make('xvimagesink', 'videosink')
 
-        # Connect about-to-finish signal for gapless playback
-        # This signal fires from streaming thread ~2 seconds before track ends
-        player.connect('about-to-finish', self._handle_about_to_finish)
+        if not all([self._filesrc, qtdemux, vqueue, h264parse, nvdecoder, nvvidconv, self._videosink]):
+            # Fallback: try without HW decoder
+            logger.warning("Some HW elements unavailable, trying software fallback")
+            return self._create_fallback_pipeline(filepath)
 
-        return player
+        self._videosink.set_property('sync', True)
+
+        # Audio branch: queue → avdec_aac → audioconvert → audioresample → pulsesink
+        aqueue = Gst.ElementFactory.make('queue', 'aqueue')
+        aac_dec = Gst.ElementFactory.make('avdec_aac', 'aacdec')
+        audioconv = Gst.ElementFactory.make('audioconvert', 'audioconv')
+        audioresamp = Gst.ElementFactory.make('audioresample', 'audioresamp')
+        audiosink = Gst.ElementFactory.make('pulsesink', 'audiosink')
+        if not audiosink:
+            audiosink = Gst.ElementFactory.make('autoaudiosink', 'audiosink')
+
+        has_audio = all([aqueue, aac_dec, audioconv, audioresamp, audiosink])
+        if audiosink:
+            audiosink.set_property('sync', True)
+
+        # Set file location
+        self._filesrc.set_property('location', filepath)
+
+        # Add all elements to pipeline
+        for el in [self._filesrc, qtdemux, vqueue, h264parse, nvdecoder, nvvidconv, self._videosink]:
+            pipeline.add(el)
+
+        if has_audio:
+            for el in [aqueue, aac_dec, audioconv, audioresamp, audiosink]:
+                pipeline.add(el)
+
+        # Link static elements
+        self._filesrc.link(qtdemux)
+        vqueue.link(h264parse)
+        h264parse.link(nvdecoder)
+        nvdecoder.link(nvvidconv)
+        nvvidconv.link(self._videosink)
+
+        if has_audio:
+            aqueue.link(aac_dec)
+            aac_dec.link(audioconv)
+            audioconv.link(audioresamp)
+            audioresamp.link(audiosink)
+
+        # Dynamic pad linking from qtdemux
+        def on_pad_added(demux, pad):
+            pad_name = pad.get_name()
+            caps = pad.get_current_caps()
+            struct_name = caps.get_structure(0).get_name() if caps else ""
+
+            if "video" in struct_name or "video" in pad_name:
+                sink_pad = vqueue.get_static_pad('sink')
+                if not sink_pad.is_linked():
+                    pad.link(sink_pad)
+                    logger.info("Linked video pad: %s", pad_name)
+            elif "audio" in struct_name or "audio" in pad_name:
+                if has_audio:
+                    sink_pad = aqueue.get_static_pad('sink')
+                    if not sink_pad.is_linked():
+                        pad.link(sink_pad)
+                        logger.info("Linked audio pad: %s", pad_name)
+
+        qtdemux.connect('pad-added', on_pad_added)
+
+        # Apply window handle if already set
+        if self._window_xid:
+            GstVideo.VideoOverlay.set_window_handle(self._videosink, self._window_xid)
+
+        logger.info("Pipeline created: filesrc → qtdemux → nvv4l2decoder → nvvidconv → xvimagesink (HW accelerated)")
+        return pipeline
+
+    def _create_fallback_pipeline(self, filepath: str) -> Gst.Pipeline:
+        """Fallback: use playbin if HW elements are unavailable."""
+        pipeline_str = f'playbin uri=file://{filepath}'
+        pipeline = Gst.parse_launch(pipeline_str)
+        if not isinstance(pipeline, Gst.Pipeline):
+            wrapper = Gst.Pipeline.new('player')
+            wrapper.add(pipeline)
+            pipeline = wrapper
+        logger.warning("Using playbin fallback (no HW acceleration)")
+        return pipeline
 
     def _setup_bus(self) -> None:
-        """Set up the GStreamer message bus for handling events."""
-        if self._player is None:
+        if self._pipeline is None:
             return
-
-        self._bus = self._player.get_bus()
+        self._bus = self._pipeline.get_bus()
         if self._bus:
             self._bus.add_signal_watch()
             self._bus.connect('message::error', self._handle_error)
             self._bus.connect('message::eos', self._handle_eos)
             self._bus.connect('message::state-changed', self._handle_state_changed)
-
-            # Enable sync message handling for GstVideoOverlay (window embedding)
             self._bus.enable_sync_message_emission()
             self._bus.connect('sync-message::element', self._handle_sync_message)
 
-    def _start_main_loop(self) -> None:
-        """Start the GLib main loop in a separate thread."""
-        if self._loop is not None:
+    # ------------------------------------------------------------------
+    # Pre-fetch: get the next URI before EOS arrives
+    # ------------------------------------------------------------------
+
+    def _prefetch_next(self, source: str) -> None:
+        if self._prefetched:
+            return
+        self._prefetched = True
+
+        if not self._on_about_to_finish:
             return
 
-        self._loop = GLib.MainLoop()
-        self._loop_thread = threading.Thread(target=self._run_main_loop, daemon=True)
-        self._loop_thread.start()
-        logger.debug("GLib MainLoop started")
-
-    def _run_main_loop(self) -> None:
-        """Run the GLib main loop (called in thread)."""
-        try:
-            if self._loop:
-                self._loop.run()
-        except Exception as e:
-            logger.error("MainLoop error: %s", e)
-
-    def _stop_main_loop(self) -> None:
-        """Stop the GLib main loop."""
-        if self._loop:
-            self._loop.quit()
-            self._loop = None
-
-        if self._loop_thread and self._loop_thread.is_alive():
-            self._loop_thread.join(timeout=2.0)
-            self._loop_thread = None
-
-        logger.debug("GLib MainLoop stopped")
-
-    def _handle_about_to_finish(self, player: Gst.Element) -> None:
-        """
-        Handle the about-to-finish signal for gapless playback.
-        Called from streaming thread ~2 seconds before current video ends.
-
-        Args:
-            player: The playbin3 element
-        """
-        logger.debug("About to finish current video")
-
-        if self._on_about_to_finish:
-            next_uri = self._on_about_to_finish()
-            if next_uri:
-                # Handle consecutive same video by resetting pipeline state
-                # This is a known GStreamer limitation
-                if next_uri == self._current_uri:
-                    logger.debug("Same video requested, will reset state after EOS")
-                    self._next_uri_queued = False
-                    return
-
-                logger.info("Queuing next video: %s", next_uri)
-                player.set_property('uri', next_uri)
-                self._next_uri_queued = True
-                self._current_uri = next_uri
-            else:
-                self._next_uri_queued = False
+        next_uri = self._on_about_to_finish()
+        if next_uri:
+            self._next_uri = next_uri
+            name = Path(next_uri).name if next_uri.startswith('file://') else next_uri
+            logger.info("Pre-fetched next (%s): %s", source, name)
         else:
-            self._next_uri_queued = False
+            logger.info("Pre-fetch (%s): no next URI available", source)
+
+    # ------------------------------------------------------------------
+    # Position watchdog
+    # ------------------------------------------------------------------
+
+    def _start_watchdog(self) -> None:
+        self._cancel_watchdog()
+        self._watchdog_id = GLib.timeout_add(self._WATCHDOG_INTERVAL_MS, self._watchdog_tick)
+
+    def _cancel_watchdog(self) -> None:
+        if self._watchdog_id is not None:
+            GLib.source_remove(self._watchdog_id)
+            self._watchdog_id = None
+
+    def _watchdog_tick(self) -> bool:
+        if self._state != PlayerState.PLAYING or self._pipeline is None:
+            return True
+
+        if self._prefetched:
+            return True
+
+        ok_pos, position = self._pipeline.query_position(Gst.Format.TIME)
+        ok_dur, duration = self._pipeline.query_duration(Gst.Format.TIME)
+
+        if not ok_pos or not ok_dur or duration <= 0:
+            return True
+
+        remaining = (duration - position) / Gst.SECOND
+        if remaining <= self._PREQUEUE_SECONDS:
+            logger.info("Watchdog: %.1fs remaining — pre-fetching next", remaining)
+            self._prefetch_next("watchdog")
+
+        return True
+
+    # ------------------------------------------------------------------
+    # Bus message handlers
+    # ------------------------------------------------------------------
 
     def _handle_error(self, bus: Gst.Bus, message: Gst.Message) -> None:
-        """
-        Handle GStreamer error messages.
-
-        Args:
-            bus: The message bus
-            message: The error message
-        """
         error, debug_info = message.parse_error()
         error_msg = f"GStreamer error: {error.message}"
         if debug_info:
             error_msg += f" (debug: {debug_info})"
-
         logger.error(error_msg)
         self._state = PlayerState.ERROR
-
         if self._on_error:
             self._on_error(error_msg)
 
     def _handle_eos(self, bus: Gst.Bus, message: Gst.Message) -> None:
+        playing = self._playing_uri
+        logger.info("EOS reached (playing=%s)",
+                     Path(playing).name if playing and playing.startswith('file://') else playing)
+
+        next_uri = self._next_uri
+        if next_uri:
+            logger.info("EOS: using pre-fetched URI")
+        elif self._on_about_to_finish:
+            next_uri = self._on_about_to_finish()
+            if next_uri:
+                logger.info("EOS: got next URI from playlist (no pre-fetch)")
+
+        if next_uri:
+            GLib.idle_add(self._restart_with_uri, next_uri)
+        elif self._on_eos:
+            logger.warning("EOS with no next video available")
+            self._on_eos()
+
+    def _uri_to_filepath(self, uri: str) -> str:
+        """Convert file:// URI to local path."""
+        if uri.startswith('file://'):
+            return uri[7:]
+        return uri
+
+    def _restart_with_uri(self, uri: str) -> bool:
         """
-        Handle end-of-stream signal.
+        Restart pipeline with a new URI.  Called via GLib.idle_add.
 
-        Args:
-            bus: The message bus
-            message: The EOS message
+        Same video  → seek to 0 (seamless, no pipeline rebuild).
+        Different   → rebuild pipeline with new filesrc location.
+
+        Returns False (GLib: don't repeat).
         """
-        logger.debug("End of stream reached")
+        if self._pipeline is None:
+            return False
 
-        # If no next URI was queued, notify callback
-        if not self._next_uri_queued:
-            # Handle looping same video by resetting pipeline
-            if self._on_about_to_finish:
-                next_uri = self._on_about_to_finish()
-                if next_uri:
-                    logger.info("Playing next video after EOS: %s", next_uri)
-                    self.play(next_uri)
-                    return
+        with self._lock:
+            if uri == self._playing_uri:
+                # Same video — seek to start
+                self._pipeline.seek_simple(
+                    Gst.Format.TIME,
+                    Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+                    0
+                )
+                logger.info("Looping (seek): %s",
+                             Path(uri).name if uri.startswith('file://') else uri)
+            else:
+                # Different video — rebuild pipeline
+                filepath = self._uri_to_filepath(uri)
+                self._pipeline.set_state(Gst.State.NULL)
 
-            if self._on_eos:
-                self._on_eos()
+                # Clean up old bus
+                if self._bus:
+                    self._bus.remove_signal_watch()
+                    self._bus = None
+
+                self._pipeline = self._create_pipeline(filepath)
+                self._setup_bus()
+
+                ret = self._pipeline.set_state(Gst.State.PLAYING)
+                if ret == Gst.StateChangeReturn.FAILURE:
+                    logger.error("Failed to start pipeline for: %s", uri)
+                    self._state = PlayerState.ERROR
+                    return False
+                logger.info("Playing: %s",
+                             Path(uri).name if uri.startswith('file://') else uri)
+
+            self._playing_uri = uri
+            self._next_uri = None
+            self._prefetched = False
+            self._state = PlayerState.PLAYING
+
+        self._start_watchdog()
+        return False
 
     def _handle_state_changed(self, bus: Gst.Bus, message: Gst.Message) -> None:
-        """
-        Handle pipeline state change messages.
-
-        Args:
-            bus: The message bus
-            message: The state change message
-        """
-        if message.src != self._player:
+        if message.src != self._pipeline:
             return
-
         old_state, new_state, pending_state = message.parse_state_changed()
-        logger.debug(
-            "State changed: %s -> %s (pending: %s)",
-            old_state.value_nick,
-            new_state.value_nick,
-            pending_state.value_nick
-        )
+        logger.debug("State changed: %s -> %s (pending: %s)",
+                     old_state.value_nick, new_state.value_nick, pending_state.value_nick)
 
     def _handle_sync_message(self, bus: Gst.Bus, message: Gst.Message) -> None:
-        """Handle sync messages — used to set XID when pipeline requests a window."""
         if message.get_structure() is None:
             return
         if message.get_structure().get_name() == 'prepare-window-handle':
@@ -259,218 +360,143 @@ class GStreamerPlayer:
                 logger.info("Pipeline requested window — setting XID: %s", self._window_xid)
                 GstVideo.VideoOverlay.set_window_handle(message.src, self._window_xid)
 
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
     def set_window_handle(self, xid: int) -> None:
-        """
-        Set the X11 window handle for video output.
-
-        Uses GstVideo.VideoOverlay interface to embed video in a GTK DrawingArea.
-
-        Args:
-            xid: X11 window ID
-        """
         self._window_xid = xid
         logger.info("Stored window XID for video overlay: %s", xid)
-
-        # If player is already initialized, set it on the sink now
-        if self._player is not None:
-            video_sink = self._player.get_property('video-sink')
-            if video_sink:
-                GstVideo.VideoOverlay.set_window_handle(video_sink, xid)
-                logger.info("Set video overlay window handle: %s", xid)
+        if self._videosink:
+            GstVideo.VideoOverlay.set_window_handle(self._videosink, xid)
+            logger.info("Set video overlay window handle: %s", xid)
 
     def initialize(self) -> bool:
-        """
-        Initialize the GStreamer player components.
-
-        Returns:
-            True if initialization successful, False otherwise
-        """
         try:
             with self._lock:
-                if self._player is not None:
+                if self._pipeline is not None:
                     logger.warning("Player already initialized")
                     return True
-
-                self._player = self._create_player()
+                # Create a dummy pipeline — actual pipeline built on play()
+                self._pipeline = Gst.Pipeline.new('player')
                 self._setup_bus()
-                # Note: Do NOT start a separate GLib.MainLoop here.
-                # GTK's main loop already handles GStreamer bus messages
-                # via add_signal_watch(). A second loop causes X11 threading crashes.
-
             logger.info("GStreamer player initialized successfully")
             return True
-
         except Exception as e:
             logger.error("Failed to initialize player: %s", e)
             self._state = PlayerState.ERROR
             return False
 
     def play(self, uri: Optional[str] = None) -> bool:
-        """
-        Start playback of a video.
-
-        Args:
-            uri: URI of the video to play (file:// or http://).
-                 If None, resumes current video.
-
-        Returns:
-            True if playback started successfully, False otherwise
-        """
         with self._lock:
-            if self._player is None:
-                if not self.initialize():
-                    return False
-
             if uri:
-                # Store last URI for consecutive video handling
-                self._last_uri = self._current_uri
-
-                # Validate URI
                 if not uri.startswith(('file://', 'http://', 'https://')):
-                    # Assume local file path, convert to URI
                     file_path = Path(uri)
                     if not file_path.is_absolute():
                         file_path = self.media_dir / uri
                     uri = f"file://{file_path}"
 
-                # Check if file exists for local files
-                if uri.startswith('file://'):
-                    file_path = Path(uri[7:])  # Remove 'file://' prefix
-                    if not file_path.exists():
-                        logger.error("Video file not found: %s", file_path)
-                        if self._on_error:
-                            self._on_error(f"File not found: {file_path}")
-                        return False
+                filepath = self._uri_to_filepath(uri)
+                if not Path(filepath).exists():
+                    logger.error("Video file not found: %s", filepath)
+                    if self._on_error:
+                        self._on_error(f"File not found: {filepath}")
+                    return False
 
-                # Reset pipeline state for consecutive same video
-                if uri == self._last_uri:
-                    logger.debug("Same video as last, resetting pipeline state")
-                    self._player.set_state(Gst.State.NULL)
+                # Tear down old pipeline
+                if self._pipeline:
+                    self._pipeline.set_state(Gst.State.NULL)
+                if self._bus:
+                    self._bus.remove_signal_watch()
+                    self._bus = None
 
-                logger.info("Playing: %s", uri)
-                self._player.set_property('uri', uri)
-                self._current_uri = uri
-                self._next_uri_queued = False
+                # Build new pipeline for this file
+                self._pipeline = self._create_pipeline(filepath)
+                self._setup_bus()
+                self._playing_uri = uri
+                self._next_uri = None
+                self._prefetched = False
 
-            # Set state to PLAYING
-            ret = self._player.set_state(Gst.State.PLAYING)
+                logger.info("Playing: %s", Path(filepath).name)
+
+            if self._pipeline is None:
+                logger.error("No pipeline to play")
+                return False
+
+            ret = self._pipeline.set_state(Gst.State.PLAYING)
             if ret == Gst.StateChangeReturn.FAILURE:
-                logger.error("Failed to set player state to PLAYING")
+                logger.error("Failed to set pipeline to PLAYING")
                 self._state = PlayerState.ERROR
                 return False
 
             self._state = PlayerState.PLAYING
-            return True
+
+        self._start_watchdog()
+        return True
 
     def play_file(self, filename: str) -> bool:
-        """
-        Play a video file from the media directory.
-
-        Args:
-            filename: Name of the video file in the media directory
-
-        Returns:
-            True if playback started successfully, False otherwise
-        """
         file_path = self.media_dir / filename
         return self.play(str(file_path))
 
     def pause(self) -> bool:
-        """
-        Pause playback.
-
-        Returns:
-            True if pause successful, False otherwise
-        """
         with self._lock:
-            if self._player is None:
+            if self._pipeline is None:
                 return False
-
-            ret = self._player.set_state(Gst.State.PAUSED)
+            ret = self._pipeline.set_state(Gst.State.PAUSED)
             if ret == Gst.StateChangeReturn.FAILURE:
                 logger.error("Failed to pause playback")
                 return False
-
             self._state = PlayerState.PAUSED
             logger.info("Playback paused")
             return True
 
     def resume(self) -> bool:
-        """
-        Resume playback after pause.
-
-        Returns:
-            True if resume successful, False otherwise
-        """
-        return self.play()
+        with self._lock:
+            if self._pipeline is None:
+                return False
+            ret = self._pipeline.set_state(Gst.State.PLAYING)
+            if ret == Gst.StateChangeReturn.FAILURE:
+                return False
+            self._state = PlayerState.PLAYING
+        return True
 
     def stop(self) -> bool:
-        """
-        Stop playback and reset pipeline.
-
-        Returns:
-            True if stop successful, False otherwise
-        """
+        self._cancel_watchdog()
         with self._lock:
-            if self._player is None:
+            if self._pipeline is None:
                 return True
-
-            ret = self._player.set_state(Gst.State.NULL)
+            ret = self._pipeline.set_state(Gst.State.NULL)
             if ret == Gst.StateChangeReturn.FAILURE:
                 logger.error("Failed to stop playback")
                 return False
-
             self._state = PlayerState.STOPPED
-            self._current_uri = None
-            self._next_uri_queued = False
+            self._playing_uri = None
+            self._next_uri = None
+            self._prefetched = False
             logger.info("Playback stopped")
             return True
 
     def get_position(self) -> float:
-        """
-        Get current playback position in seconds.
-
-        Returns:
-            Current position in seconds, or -1.0 if unavailable
-        """
-        if self._player is None:
+        if self._pipeline is None:
             return -1.0
-
-        success, position = self._player.query_position(Gst.Format.TIME)
+        success, position = self._pipeline.query_position(Gst.Format.TIME)
         if success:
             return position / Gst.SECOND
         return -1.0
 
     def get_duration(self) -> float:
-        """
-        Get duration of current video in seconds.
-
-        Returns:
-            Duration in seconds, or -1.0 if unavailable
-        """
-        if self._player is None:
+        if self._pipeline is None:
             return -1.0
-
-        success, duration = self._player.query_duration(Gst.Format.TIME)
+        success, duration = self._pipeline.query_duration(Gst.Format.TIME)
         if success:
             return duration / Gst.SECOND
         return -1.0
 
     def seek(self, position: float) -> bool:
-        """
-        Seek to a position in the video.
-
-        Args:
-            position: Position in seconds to seek to
-
-        Returns:
-            True if seek successful, False otherwise
-        """
-        if self._player is None:
+        if self._pipeline is None:
             return False
-
         position_ns = int(position * Gst.SECOND)
-        return self._player.seek_simple(
+        return self._pipeline.seek_simple(
             Gst.Format.TIME,
             Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
             position_ns
@@ -478,52 +504,42 @@ class GStreamerPlayer:
 
     @property
     def state(self) -> PlayerState:
-        """Get current player state."""
         return self._state
 
     @property
     def current_uri(self) -> Optional[str]:
-        """Get currently playing URI."""
-        return self._current_uri
+        return self._playing_uri
 
     @property
     def is_playing(self) -> bool:
-        """Check if player is currently playing."""
         return self._state == PlayerState.PLAYING
 
     @property
     def is_initialized(self) -> bool:
-        """Check if player has been initialized."""
-        return self._player is not None
+        return self._pipeline is not None
 
     def cleanup(self) -> None:
-        """Clean up player resources."""
         logger.info("Cleaning up GStreamer player")
-
+        self._cancel_watchdog()
         self.stop()
-
         with self._lock:
             if self._bus:
                 self._bus.remove_signal_watch()
                 self._bus = None
-
-            self._stop_main_loop()
-            self._player = None
-
+            self._pipeline = None
+            self._filesrc = None
+            self._videosink = None
         logger.info("GStreamer player cleanup complete")
 
     def __enter__(self) -> 'GStreamerPlayer':
-        """Context manager entry."""
         self.initialize()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Context manager exit."""
         self.cleanup()
 
     def __repr__(self) -> str:
-        """String representation."""
-        return f"GStreamerPlayer(state={self._state.value}, uri={self._current_uri})"
+        return f"GStreamerPlayer(state={self._state.value}, uri={self._playing_uri})"
 
 
 # Global player instance
@@ -536,20 +552,7 @@ def get_gstreamer_player(
     on_error: Optional[Callable[[str], None]] = None,
     on_eos: Optional[Callable[[], None]] = None
 ) -> GStreamerPlayer:
-    """
-    Get the global GStreamer player instance.
-
-    Args:
-        media_dir: Directory where media files are stored (only used on first call)
-        on_about_to_finish: Callback for gapless playback (only used on first call)
-        on_error: Callback for errors (only used on first call)
-        on_eos: Callback for end-of-stream (only used on first call)
-
-    Returns:
-        GStreamerPlayer instance
-    """
     global _global_player
-
     if _global_player is None:
         _global_player = GStreamerPlayer(
             media_dir=media_dir,
@@ -557,5 +560,4 @@ def get_gstreamer_player(
             on_error=on_error,
             on_eos=on_eos
         )
-
     return _global_player

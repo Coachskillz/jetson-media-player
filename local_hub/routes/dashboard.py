@@ -105,135 +105,68 @@ def get_uptime():
 
 @dashboard_bp.route("/")
 def dashboard():
-    """Render the hub dashboard with store layout and connectivity."""
+    """Render the hub dashboard with pairing codes and locations."""
     from models.hub_config import HubConfig
     from models.device import Device
-    from models.content import Content
-    from models.sync_status import SyncStatus
-    
+
     # Get hub config
     hub_config = HubConfig.get_instance()
     config = current_app.config.get("HUB_CONFIG", {})
-    
+
     # Get CMS URL from config
     cms_url = getattr(config, "cms_url", "http://localhost:5002")
     hub_name = getattr(config, "hub_name", "Skillz Hub") or "Skillz Hub"
-    hub_id = getattr(config, "hub_id", "HUB-001") or hub_config.hub_id or "HUB-001"
-    hub_ip = "10.10.10.1"
+    hub_id = hub_config.hub_id if hub_config else None
+    hub_ip = getattr(config, "hub_ip", "10.10.10.1")
     hub_port = getattr(config, "port", 5000)
-    store_name = getattr(config, "store_name", "") or ""
-    store_number = getattr(config, "store_number", "") or ""
-    
-    # Check statuses
-    hub_status = True
+    store_name = hub_config.hub_name if hub_config else ""
+    network_name = "On The Wave TV" if hub_config and hub_config.network_id else "Unknown"
+
+    # Check CMS connection
     cms_connected = check_cms_connection(cms_url)
-    internet_connected = check_internet()
-    
-    # Get devices and build screen list with connectivity
-    screens = []
-    screens_online = 0
-    screens_offline = 0
-    total_latency = 0
-    latency_count = 0
-    
+
+    # Get devices
+    devices = []
+    pending_count = 0
+    online_count = 0
+    offline_count = 0
+
     try:
-        devices = Device.query.all()
-        for device in devices:
-            ip = device.ip_address or "Unknown"
-            
-            # Ping device to check connectivity
-            latency = ping_device(ip) if ip != "Unknown" else None
-            connectivity, signal_strength = get_connectivity_level(latency)
-            
-            # Determine status
-            if latency is not None:
-                status = "online"
-                screens_online += 1
-                total_latency += latency
-                latency_count += 1
+        all_devices = Device.query.all()
+        for device in all_devices:
+            # Count by status
+            if device.status == 'pending':
+                pending_count += 1
+            elif device.status in ('online', 'active'):
+                online_count += 1
             else:
-                status = "offline"
-                screens_offline += 1
-            
-            # Get location from device name or use default
-            location = device.name or "Unassigned"
-            zone_id = getattr(device, "zone_id", None) or "unassigned"
-            
-            # Create short ID from device ID
-            device_id = device.device_id or device.hardware_id or f"DEV-{device.id}"
-            short_id = device_id[-4:] if len(device_id) > 4 else device_id
-            
-            screens.append({
-                "id": device_id,
-                "short_id": short_id,
-                "name": device.name,
-                "ip": ip,
-                "location": location,
-                "zone_id": zone_id,
-                "status": status,
-                "connectivity": connectivity,
-                "signal_strength": signal_strength,
-                "latency": int(latency) if latency else "-",
-                "current_content": getattr(device, "current_content", None),
-                "last_seen": device.last_heartbeat.strftime("%H:%M:%S") if device.last_heartbeat else None
+                offline_count += 1
+
+            devices.append({
+                "device_id": device.device_id or f"DEV-{device.id}",
+                "hardware_id": device.hardware_id,
+                "pairing_code": device.pairing_code,
+                "location": getattr(device, 'location', None) or device.name,
+                "ip_address": device.ip_address,
+                "status": device.status,
             })
     except Exception as e:
         current_app.logger.error(f"Error getting devices: {e}")
-    
-    # Calculate average latency
-    avg_latency = int(total_latency / latency_count) if latency_count > 0 else 0
-    
-    # Build store zones with assigned screens
-    store_zones = []
-    for zone in STORE_ZONES:
-        zone_data = {
-            "name": zone["name"],
-            "id": zone["id"],
-            "screen": None
-        }
-        
-        # Find screen assigned to this zone
-        for screen in screens:
-            if screen.get("zone_id") == zone["id"] or screen.get("location", "").lower() == zone["name"].lower():
-                zone_data["screen"] = screen
-                break
-        
-        store_zones.append(zone_data)
-    
-    # Get content count
-    content_count = 0
-    try:
-        content_count = Content.query.filter_by(is_cached=True).count()
-    except:
-        pass
-    
-    # Get last sync time
-    last_sync = None
-    try:
-        sync_status = SyncStatus.get_content_status()
-        if sync_status and sync_status.last_sync_at:
-            last_sync = sync_status.last_sync_at.strftime("%Y-%m-%d %H:%M")
-    except:
-        pass
-    
+
+    device_count = len(devices)
+
     return render_template(
         "dashboard.html",
-        hub_name=hub_name,
         hub_id=hub_id,
         hub_ip=hub_ip,
         hub_port=hub_port,
-        hub_status=hub_status,
-        cms_connected=cms_connected,
-        internet_connected=internet_connected,
-        screens=screens,
-        screens_online=screens_online,
-        screens_offline=screens_offline,
-        store_zones=store_zones,
-        content_count=content_count,
-        last_sync=last_sync,
-        avg_latency=avg_latency,
-        uptime=get_uptime(),
         store_name=store_name,
-        store_number=store_number,
+        network_name=network_name,
+        cms_connected=cms_connected,
+        devices=devices,
+        device_count=device_count,
+        pending_count=pending_count,
+        online_count=online_count,
+        offline_count=offline_count,
         current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )

@@ -27,6 +27,7 @@ class Device(db.Model):
 
     # Status tracking
     status = db.Column(db.String(20), default='pending', nullable=False)
+    pairing_code = db.Column(db.String(10), nullable=True)
     last_heartbeat = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Camera 1 settings (demographics and loyalty recognition)
@@ -66,6 +67,7 @@ class Device(db.Model):
             'hardware_id': self.hardware_id,
             'name': self.name,
             'location': self.location,
+            'pairing_code': self.pairing_code,
             'ip_address': self.ip_address,
             'stream_port': self.stream_port,
             'stream_path': self.stream_path,
@@ -120,6 +122,12 @@ class Device(db.Model):
         return cls.query.filter_by(device_id=device_id).first()
 
     @classmethod
+    def _generate_pairing_code(cls):
+        """Generate a 6-digit pairing code."""
+        import random
+        return str(random.randint(100000, 999999))
+
+    @classmethod
     def register(cls, hardware_id, name=None, mode='hub', ip_address=None, location=None):
         """Register a new device or return existing one."""
         device = cls.get_by_hardware_id(hardware_id)
@@ -138,6 +146,7 @@ class Device(db.Model):
             mode=mode,
             ip_address=ip_address,
             location=location,
+            pairing_code=cls._generate_pairing_code(),
             status='pending',
             last_heartbeat=datetime.utcnow()
         )

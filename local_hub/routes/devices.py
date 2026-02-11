@@ -110,23 +110,31 @@ def register_device():
             'error': 'mode must be "direct" or "hub"'
         }), 400
 
-    # Register or get existing device
-    device, created = Device.register(hardware_id, name, mode)
+    ip_address = data.get('ip_address') or request.remote_addr
 
-    if created:
-        return jsonify({
-            'success': True,
-            'message': 'Device registered',
-            'device': device.to_dict(),
-            'created': True
-        }), 201
-    else:
-        return jsonify({
-            'success': True,
-            'message': 'Device already registered',
-            'device': device.to_dict(),
-            'created': False
-        }), 200
+    # Register or get existing device
+    device, created = Device.register(hardware_id, name, mode, ip_address)
+
+    # Get cached locations for the response
+    locations = _get_cached_locations()
+
+    # Get hub URL from config
+    from flask import current_app
+    config = current_app.config.get('HUB_CONFIG')
+    hub_url = f"http://{config.hub_ip if config else '10.10.10.1'}:{config.port if config else 5000}"
+
+    response_data = {
+        'success': True,
+        'created': created,
+        'message': 'Device registered' if created else 'Device already registered',
+        'device_id': device.device_id or f"pending-{device.id}",
+        'pairing_code': device.pairing_code,
+        'status': device.status,
+        'hub_url': hub_url,
+        'locations': locations
+    }
+
+    return jsonify(response_data), 201 if created else 200
 
 
 @devices_bp.route('/<int:device_id>', methods=['GET'])
@@ -384,3 +392,136 @@ def _forward_deletion_to_cms(cms_device_id):
             logger.warning(f"CMS deletion failed: {response.status_code} - {response.text}")
     except Exception as e:
         logger.error(f"Failed to forward deletion to CMS: {e}")
+
+
+def _get_cached_locations():
+    """
+    Get cached locations for the registration response.
+
+    Returns:
+        list: List of location dicts [{"id": "...", "name": "..."}]
+    """
+    import json
+    import os
+    from flask import current_app
+
+    storage_path = current_app.config.get('STORAGE_PATH', '/home/skillz/skillz-hub/storage')
+    data_path = os.path.join(os.path.dirname(storage_path), 'data')
+    cache_path = os.path.join(data_path, 'locations.json')
+
+    if not os.path.exists(cache_path):
+        return []
+
+    try:
+        with open(cache_path, 'r') as f:
+            data = json.load(f)
+            return data.get('locations', [])
+    except (json.JSONDecodeError, IOError):
+        return []
+
+
+@devices_bp.route('/by-hardware/<hardware_id>/location', methods=['PUT'])
+def update_device_location(hardware_id):
+    """
+    Update a device's screen location.
+
+    Called by the Jetson when the installer selects a location from the
+    dropdown on the pairing screen.
+
+    Args:
+        hardware_id: The device's hardware ID
+
+    Request Body:
+        {
+            "location_id": "uuid (optional)",
+            "location_name": "Fishing Counter"
+        }
+
+    Returns:
+        200: Location updated
+            {
+                "success": true,
+                "message": "Location updated",
+                "location_name": "Fishing Counter"
+            }
+        404: Device not found
+    """
+    device = Device.get_by_hardware_id(hardware_id)
+
+    if not device:
+        return jsonify({
+            'success': False,
+            'error': 'Device not found'
+        }), 404
+
+    data = request.get_json() or {}
+    location_name = data.get('location_name') or data.get('location')
+    location_id = data.get('location_id')
+
+    if not location_name:
+        return jsonify({
+            'success': False,
+            'error': 'location_name is required'
+        }), 400
+
+    # Update device location
+    device.location = location_name
+    db.session.commit()
+
+    # Forward location update to CMS
+    _forward_location_to_cms(device, location_name, location_id)
+
+    return jsonify({
+        'success': True,
+        'message': 'Location updated',
+        'location_name': location_name
+    }), 200
+
+
+def _forward_location_to_cms(device, location_name, location_id=None):
+    """
+    Forward device location update to the CMS.
+
+    Args:
+        device: Device model instance
+        location_name: Selected location name
+        location_id: Optional location UUID
+    """
+    import logging
+    import requests
+    from flask import current_app
+
+    logger = logging.getLogger(__name__)
+
+    if not device.cms_device_id:
+        logger.warning(f"Device {device.hardware_id} has no CMS ID, skipping location forward")
+        return
+
+    hub_config = HubConfig.get_instance()
+    if not hub_config or not hub_config.is_registered:
+        logger.warning("Hub not registered, skipping CMS location forward")
+        return
+
+    config = current_app.config.get('HUB_CONFIG')
+    if not config or not config.cms_url:
+        logger.warning("No CMS URL configured, skipping location forward")
+        return
+
+    endpoint = f"{config.cms_url.rstrip('/')}/api/v1/devices/{device.cms_device_id}/location"
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {hub_config.hub_token}'
+    }
+    payload = {
+        'screen_location': location_name,
+        'location_id': location_id
+    }
+
+    try:
+        response = requests.put(endpoint, json=payload, headers=headers, timeout=30)
+        if response.ok:
+            logger.info(f"Device {device.hardware_id} location forwarded to CMS: {location_name}")
+        else:
+            logger.warning(f"CMS location update failed: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"Failed to forward location to CMS: {e}")

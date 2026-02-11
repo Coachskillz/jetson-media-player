@@ -466,6 +466,9 @@ class KioskPlayer:
         if self._cms_client.check_pairing_status():
             logger.info("Pairing approved!")
 
+            # Cancel the pairing timeout watchdog
+            self._stop_pairing_check()
+
             # Update config
             self._config.set_paired(True)
 
@@ -780,11 +783,17 @@ class KioskPlayer:
         return False  # Don't repeat
 
     def _on_end_of_stream(self) -> None:
-        """Handle end of stream."""
+        """Handle end of stream — last-resort looping safety net.
+
+        This is only called if GStreamerPlayer's own EOS handler couldn't
+        find a next URI.  Reset to the start of the playlist and try again.
+        """
+        logger.warning("EOS reached with no next URI — restarting playlist from beginning")
         if self._playlist_manager and self._gst_player:
-            next_uri = self._playlist_manager.get_next_uri()
-            if next_uri:
-                self._gst_player.play(next_uri)
+            self._playlist_manager.reset_position()
+            first_uri = self._playlist_manager.get_first_uri()
+            if first_uri:
+                self._gst_player.play(first_uri)
 
     def _on_playlist_changed(self, manager: PlaylistManager) -> None:
         """Handle playlist changes."""
@@ -798,24 +807,33 @@ class KioskPlayer:
         """Handle new content downloaded.
 
         Called from the sync service background thread when new files
-        are downloaded.  If the player hasn't started yet (no GStreamer
-        pipeline), schedule initialisation + playback on the GTK main
-        thread so video actually begins once content is available.
+        are downloaded.  Reloads the playlist so the next video comes
+        from the updated list.  If the player isn't actively playing
+        (never started, stuck, or idle), force-starts playback.
         """
         if self._playlist_manager:
             self._playlist_manager.reload()
+            logger.info("Playlist reloaded — %d items",
+                        self._playlist_manager.default_playlist_length)
 
-        # If GStreamer was never initialised (no content at startup),
-        # kick off playback now that content has arrived.
+        if not self._playlist_manager or self._playlist_manager.default_playlist_length == 0:
+            return
+
+        # Case 1: GStreamer never initialised (no content at boot)
         if not self._gst_player or not self._gst_player.is_initialized:
-            if self._playlist_manager and self._playlist_manager.default_playlist_length > 0:
-                logger.info("Content arrived — initialising GStreamer and starting playback")
-                GLib.idle_add(self._late_start_playback)
-        elif self._gst_player and not self._gst_player.is_playing:
-            # GStreamer exists but was idle (e.g. playlist was empty before)
-            if self._playlist_manager and self._playlist_manager.default_playlist_length > 0:
-                logger.info("Content arrived — resuming playback")
-                GLib.idle_add(self._late_start_playback)
+            logger.info("Content arrived — initialising GStreamer and starting playback")
+            GLib.idle_add(self._late_start_playback)
+            return
+
+        # Case 2: GStreamer exists but not playing (idle or stuck)
+        if not self._gst_player.is_playing:
+            logger.info("Content arrived — player not playing, restarting playback")
+            GLib.idle_add(self._late_start_playback)
+            return
+
+        # Case 3: GStreamer is playing — playlist was reloaded, the next
+        # video after the current one finishes will come from the new list.
+        logger.info("Content updated — new playlist will take effect after current video")
 
     def _late_start_playback(self) -> bool:
         """Initialise GStreamer (if needed) and start playback on GTK main thread."""

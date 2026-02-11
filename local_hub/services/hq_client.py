@@ -484,17 +484,17 @@ class HQClient:
                 )
 
             if response.status_code == 404:
-                logger.error(f"Network not found: {network_slug}")
+                logger.error(f"Network not found: {network_id}")
                 raise HQClientError(
-                    message=f"Network not found: {network_slug}",
+                    message=f"Network not found: {network_id}",
                     status_code=404,
                     response_body=response.text,
                 )
 
             if response.status_code == 409:
-                logger.error(f"Hub already registered with this machine_id")
+                logger.error(f"Hub already registered with code '{code}'")
                 raise HQClientError(
-                    message="Hub already registered with this machine_id",
+                    message=f"Hub already registered with code '{code}'",
                     status_code=409,
                     response_body=response.text,
                 )
@@ -503,7 +503,7 @@ class HQClient:
             if not response.ok:
                 logger.error(f"Registration failed: {response.status_code}")
                 raise HQClientError(
-                    message=f"Registration failed for network {network_slug}",
+                    message=f"Registration failed for network {network_id}",
                     status_code=response.status_code,
                     response_body=response.text,
                 )
@@ -542,21 +542,21 @@ class HQClient:
             logger.error(f"Registration timeout: {e}")
             raise HQTimeoutError(
                 message="Registration request timed out",
-                details={'timeout': self.timeout, 'network_slug': network_slug},
+                details={'timeout': self.timeout, 'network_id': network_id},
             )
 
         except RequestsConnectionError as e:
             logger.error(f"Registration connection failed: {e}")
             raise HQConnectionError(
                 message="Cannot connect to HQ for registration",
-                details={'error': str(e), 'network_slug': network_slug},
+                details={'error': str(e), 'network_id': network_id},
             )
 
         except RequestException as e:
             logger.error(f"Registration request error: {e}")
             raise HQClientError(
                 message="Registration request failed",
-                details={'error': str(e), 'network_slug': network_slug},
+                details={'error': str(e), 'network_id': network_id},
             )
 
     # -------------------------------------------------------------------------

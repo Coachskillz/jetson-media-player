@@ -195,7 +195,7 @@ def register_hub():
         }
     )
 
-    return jsonify(hub.to_dict()), 201
+    return jsonify(hub.to_dict(include_token=True)), 201
 
 
 @hubs_bp.route('', methods=['GET'])

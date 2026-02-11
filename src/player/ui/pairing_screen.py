@@ -39,20 +39,27 @@ class PairingScreen(Gtk.Box):
         pairing_code: str = "------",
         cms_url: str = "",
         device_id: str = "",
+        hardware_id: str = "",
         connection_mode: str = "direct",
         hub_url: str = "",
+        locations: list = None,
         on_mode_selected: Optional[Callable[[str], None]] = None,
-        on_back: Optional[Callable[[], None]] = None
+        on_back: Optional[Callable[[], None]] = None,
+        on_location_selected: Optional[Callable[[str], None]] = None
     ):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
 
         self._pairing_code = pairing_code
         self._cms_url = cms_url
         self._device_id = device_id
+        self._hardware_id = hardware_id
         self._connection_mode = connection_mode
         self._hub_url = hub_url
+        self._locations = locations or []
         self._on_mode_selected = on_mode_selected
         self._on_back = on_back
+        self._on_location_selected = on_location_selected
+        self._selected_location = None
         self._status_text = "Waiting for approval..."
 
         self.override_background_color(Gtk.StateFlags.NORMAL, self.BG_COLOR)
@@ -342,6 +349,52 @@ class PairingScreen(Gtk.Box):
         self._hub_label.set_no_show_all(True)
         center.pack_start(self._hub_label, False, False, 4)
 
+        # Location picker section (Hub mode only)
+        self._location_section = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self._location_section.set_halign(Gtk.Align.CENTER)
+        self._location_section.set_margin_top(30)
+        self._location_section.set_no_show_all(True)
+
+        # Location picker container with background
+        loc_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        loc_container.override_background_color(
+            Gtk.StateFlags.NORMAL, Gdk.RGBA(1, 1, 1, 0.05))
+        loc_container.set_margin_start(20)
+        loc_container.set_margin_end(20)
+
+        # Label
+        loc_label = Gtk.Label(label="Where is this screen?")
+        loc_label.override_color(Gtk.StateFlags.NORMAL, self.TEXT_COLOR)
+        loc_label.modify_font(Pango.FontDescription("Sans Bold 16"))
+        loc_label.set_margin_top(15)
+        loc_container.pack_start(loc_label, False, False, 0)
+
+        # Dropdown (ComboBoxText for simplicity)
+        self._location_combo = Gtk.ComboBoxText()
+        self._location_combo.set_size_request(350, 50)
+        self._location_combo.modify_font(Pango.FontDescription("Sans 18"))
+        self._location_combo.append("", "-- Select Location --")
+        self._location_combo.set_active(0)
+
+        # Add locations
+        for loc in self._locations:
+            loc_name = loc.get('name', loc) if isinstance(loc, dict) else str(loc)
+            self._location_combo.append(loc_name, loc_name)
+
+        self._location_combo.connect('changed', self._on_location_combo_changed)
+        loc_container.pack_start(self._location_combo, False, False, 5)
+
+        # Confirmation message
+        self._location_confirmed = Gtk.Label()
+        self._location_confirmed.override_color(Gtk.StateFlags.NORMAL, self.SUCCESS_COLOR)
+        self._location_confirmed.modify_font(Pango.FontDescription("Sans 14"))
+        self._location_confirmed.set_margin_bottom(15)
+        self._location_confirmed.set_no_show_all(True)
+        loc_container.pack_start(self._location_confirmed, False, False, 0)
+
+        self._location_section.pack_start(loc_container, False, False, 0)
+        center.pack_start(self._location_section, False, False, 0)
+
         self._code_page.pack_start(center, False, False, 0)
 
         # Bottom spacer
@@ -369,15 +422,65 @@ class PairingScreen(Gtk.Box):
             color = self.DIRECT_COLOR
             self._mode_label.set_text("DIRECT TO CMS")
             self._hub_label.hide()
+            self._location_section.hide()
         else:
             color = self.HUB_COLOR
             self._mode_label.set_text("VIA LOCAL HUB")
             if self._hub_url:
                 self._hub_label.set_text(f"Hub: {self._hub_url}")
                 self._hub_label.show()
+            # Show location picker in Hub mode if we have locations
+            if self._locations:
+                self._location_section.show_all()
+                self._location_confirmed.hide()
 
         self._mode_dot.override_color(Gtk.StateFlags.NORMAL, color)
         self._mode_label.override_color(Gtk.StateFlags.NORMAL, color)
+
+    def _on_location_combo_changed(self, combo: Gtk.ComboBoxText) -> None:
+        """Handle location selection from dropdown."""
+        active_id = combo.get_active_id()
+        if active_id and active_id != "":
+            self._selected_location = active_id
+            logger.info("Location selected: %s", active_id)
+
+            # Show confirmation
+            self._location_confirmed.set_text(f"Location set: {active_id}")
+            self._location_confirmed.show()
+
+            # Call callback if set
+            if self._on_location_selected:
+                self._on_location_selected(active_id)
+
+            # Also send to Hub API in background
+            self._send_location_to_hub(active_id)
+
+    def _send_location_to_hub(self, location_name: str) -> None:
+        """Send selected location to Hub API."""
+        if not self._hub_url or not self._hardware_id:
+            logger.warning("Cannot send location: missing hub_url or hardware_id")
+            return
+
+        import threading
+        import requests
+
+        def send():
+            try:
+                url = f"{self._hub_url}/api/v1/devices/by-hardware/{self._hardware_id}/location"
+                response = requests.put(
+                    url,
+                    json={"location_name": location_name},
+                    timeout=10
+                )
+                if response.ok:
+                    logger.info("Location sent to Hub: %s", location_name)
+                else:
+                    logger.warning("Hub returned %s: %s", response.status_code, response.text)
+            except Exception as e:
+                logger.error("Failed to send location to Hub: %s", e)
+
+        thread = threading.Thread(target=send, daemon=True)
+        thread.start()
 
     # ─── Public API ───────────────────────────────────────────────────
 
@@ -415,6 +518,36 @@ class PairingScreen(Gtk.Box):
 
     def set_hub_url(self, url: str) -> None:
         self._hub_url = url
+        if hasattr(self, '_hub_label'):
+            self._hub_label.set_text(f"Hub: {url}")
+
+    def set_hardware_id(self, hardware_id: str) -> None:
+        self._hardware_id = hardware_id
+
+    def set_locations(self, locations: list) -> None:
+        """Update the locations list for the dropdown."""
+        self._locations = locations or []
+
+        if hasattr(self, '_location_combo'):
+            # Clear existing items
+            self._location_combo.remove_all()
+            self._location_combo.append("", "-- Select Location --")
+
+            # Add new locations
+            for loc in self._locations:
+                loc_name = loc.get('name', loc) if isinstance(loc, dict) else str(loc)
+                self._location_combo.append(loc_name, loc_name)
+
+            self._location_combo.set_active(0)
+
+            # Show the section if in hub mode
+            if self._connection_mode == 'hub' and self._locations:
+                self._location_section.show_all()
+                self._location_confirmed.hide()
+
+    def get_selected_location(self) -> Optional[str]:
+        """Get the currently selected location name."""
+        return self._selected_location
 
     def show_success(self) -> None:
         self._code_label.override_color(Gtk.StateFlags.NORMAL, self.SUCCESS_COLOR)

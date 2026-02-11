@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Skillz Media Player
+Comment=Bring the Skillz Media Player back to fullscreen
+Icon=multimedia-video-player
+Exec=bash -c 'DISPLAY=:0 wmctrl -a "Skillz Media Player" && DISPLAY=:0 wmctrl -r "Skillz Media Player" -b add,fullscreen,above'
+Terminal=false
+StartupNotify=false
+Categories=AudioVideo;Video;Player;

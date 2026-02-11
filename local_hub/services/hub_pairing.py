@@ -183,6 +183,9 @@ class HubPairingService:
             if status.get('status') == 'expired':
                 logger.warning('Pairing code expired, regenerating...')
                 self.announce()
+                # Notify callback with new pairing code after re-announce
+                if on_status:
+                    on_status({'status': 'expired', 'new_pairing_code': self.pairing_code})
 
             elif status.get('status') == 'error':
                 logger.error(f'Pairing error: {status.get("error")}')
