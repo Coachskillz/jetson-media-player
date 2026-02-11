@@ -127,10 +127,11 @@ def get_screen_config_by_device(screen_id):
             'error': 'Screen not found'
         }), 404
 
-    # Get cached playlist for this screen (with staging items for content download)
+    # Get playlist data from CMS (with staging items for content download)
     playlist_data = _get_playlist_for_screen(screen, include_staging=True)
 
-    # Build response - includes staging info for Jetson to download content
+    # Build response in format expected by Jetson sync_service
+    # Jetson expects: {default_playlist: {name, items: [...]}, playlist_version, ...}
     response = {
         'device_id': str(screen.id),
         'hardware_id': screen.hardware_id,
@@ -141,6 +142,30 @@ def get_screen_config_by_device(screen_id):
         'loyalty_enabled': screen.loyalty_enabled,
     }
 
+    # Build default_playlist with items in format Jetson expects
+    staging_items = playlist_data.get('staging_items', [])
+    playlist_items = []
+    for item in staging_items:
+        playlist_items.append({
+            'content_id': item.get('content_id'),
+            'filename': item.get('filename'),
+            'original_name': item.get('original_name'),
+            'duration': item.get('duration', 10),
+            'order': item.get('position', 0),
+            'content_type': item.get('content_type', 'video'),
+            'file_size': item.get('file_size', 0),
+            'url': item.get('url')  # CMS download URL for content
+        })
+
+    response['default_playlist'] = {
+        'name': playlist_data.get('name', f'Playlist for {screen.name}'),
+        'items': playlist_items
+    }
+    response['triggered_playlists'] = []
+    response['playlist_version'] = playlist_data.get('version', '1')
+    response['content_path'] = f"/playlists/{screen.hardware_id}"
+
+    # Also include the playlist summary for backward compatibility
     if playlist_data.get('name'):
         response['playlist'] = {
             'name': playlist_data.get('name'),
@@ -148,28 +173,16 @@ def get_screen_config_by_device(screen_id):
             'duration': playlist_data.get('duration', 0),
             'loop': True
         }
-        response['content_path'] = f"/playlists/{playlist_data.get('playlist_id', 'default')}"
-
-        # Include staging items for Jetson to download content
-        # The playlist is treated as a unit - these items are internal staging info
-        staging_items = playlist_data.get('staging_items', [])
-        if staging_items:
-            response['_staging'] = {
-                'items': staging_items
-            }
-    else:
-        response['playlist'] = None
-        response['content_path'] = None
 
     return jsonify(response), 200
 
 
 def _get_playlist_for_screen(screen, include_staging=False):
     """
-    Get the playlist data for a screen.
+    Get the playlist data for a screen by fetching from CMS.
 
-    Returns playlist as a named package. When include_staging is True,
-    also includes the content items needed for staging/downloading.
+    Fetches the playlist directly from CMS using the device's hardware_id.
+    Returns playlist as a named package with content items for download.
 
     Args:
         screen: Screen model instance
@@ -178,40 +191,74 @@ def _get_playlist_for_screen(screen, include_staging=False):
     Returns:
         Dictionary with playlist name, version, duration, and optionally staging items
     """
-    import json
+    import requests
+    from config import load_config
 
     try:
-        from models.playlist import Playlist
+        config = load_config()
+        cms_url = config.cms_url
 
-        # Get cached playlist for this screen
-        playlist = Playlist.query.filter_by(screen_id=screen.id).first()
+        # Fetch playlist from CMS using hardware_id
+        response = requests.get(
+            f"{cms_url}/api/v1/devices/{screen.hardware_id}/playlist",
+            timeout=10
+        )
 
-        if playlist:
-            result = {
-                'playlist_id': playlist.playlist_id,
-                'name': playlist.name,
-                'version': playlist.version or '1',
-                'duration': playlist.total_duration or 0
-            }
+        if response.status_code == 200:
+            data = response.json()
 
-            # Include staging items if requested
-            if include_staging and playlist.items_json:
-                try:
-                    items = json.loads(playlist.items_json)
-                    result['staging_items'] = items
-                except (json.JSONDecodeError, TypeError):
-                    result['staging_items'] = []
-            elif include_staging:
-                result['staging_items'] = []
+            # CMS returns playlists array with items
+            playlists = data.get('playlists', [])
+            if playlists:
+                # Get the default (first) playlist
+                playlist_data = playlists[0]
+                items = playlist_data.get('items', [])
 
-            return result
+                # Calculate total duration
+                total_duration = sum(
+                    item.get('content', {}).get('duration', 0)
+                    for item in items
+                )
+
+                result = {
+                    'playlist_id': playlist_data.get('id'),
+                    'name': playlist_data.get('name', f'Playlist for {screen.name}'),
+                    'version': str(playlist_data.get('version', '1')),
+                    'duration': total_duration
+                }
+
+                if include_staging:
+                    # Transform items to staging format for Jetson download
+                    staging_items = []
+                    for item in items:
+                        content = item.get('content', {})
+                        content_id = content.get('id')
+                        staging_items.append({
+                            'content_id': content_id,
+                            'filename': content.get('filename'),
+                            'original_name': content.get('original_name'),
+                            'duration': content.get('duration', 10),
+                            'position': item.get('position', 0),
+                            'content_type': content.get('content_type', 'video'),
+                            'file_size': content.get('file_size', 0),
+                            # Include CMS download URL for direct content download
+                            'url': f"{cms_url}/api/v1/content/{content_id}/download" if content_id else None
+                        })
+                    result['staging_items'] = staging_items
+
+                return result
+
+    except requests.Timeout:
+        pass
+    except requests.RequestException:
+        pass
     except Exception:
         pass
 
-    # No cached playlist
+    # No playlist available - return empty
     result = {
         'playlist_id': None,
-        'name': None,
+        'name': f'Playlist for {screen.name}',
         'version': None,
         'duration': 0
     }
