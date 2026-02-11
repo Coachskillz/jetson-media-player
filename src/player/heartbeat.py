@@ -192,10 +192,11 @@ class HeartbeatReporter:
                 return False
             url = f"{self.hub_url}/api/v1/devices/{self.hardware_id}/heartbeat"
         else:
-            if not self.screen_id:
-                logger.warning("Cannot send heartbeat: no screen_id configured")
+            # In hub mode, use hardware_id for consistency with by-device config endpoint
+            if not self.hardware_id:
+                logger.warning("Cannot send heartbeat: no hardware_id configured")
                 return False
-            url = f"{self.hub_url}/api/v1/{self.screen_id}/heartbeat"
+            url = f"{self.hub_url}/api/v1/{self.hardware_id}/heartbeat"
 
         metrics = self.collect_metrics()
 
