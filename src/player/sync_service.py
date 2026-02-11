@@ -77,6 +77,9 @@ class SyncService:
         self._total_syncs = 0
         self._total_failures = 0
 
+        # Playlist version tracking for auto-purge
+        self._current_playlist_version: Optional[int] = None
+
         logger.info(
             "SyncService initialized - hub_url: %s, media_dir: %s, interval: %ds",
             self._config.hub_url,
@@ -90,8 +93,13 @@ class SyncService:
         return self._config.hub_url
 
     @property
+    def hardware_id(self) -> str:
+        """Get the hardware ID from config."""
+        return self._config.hardware_id
+
+    @property
     def screen_id(self) -> str:
-        """Get the screen ID from config."""
+        """Get the screen ID from config (deprecated, use hardware_id)."""
         return self._config.screen_id
 
     def start(self) -> None:
@@ -171,7 +179,24 @@ class SyncService:
             remote_version = remote_config.get('playlist_version', 0)
             local_version = self._config.playlist_version
 
-            if remote_version > local_version:
+            # Detect version change for auto-purge
+            version_changed = (
+                self._current_playlist_version is not None and
+                remote_version != self._current_playlist_version
+            )
+
+            if version_changed:
+                logger.info(
+                    "Playlist version changed: v%d -> v%d - purging old content",
+                    self._current_playlist_version,
+                    remote_version
+                )
+                # Purge old content files
+                removed_files = self.cleanup_orphaned_files(remote_config)
+                if removed_files:
+                    logger.info("Purged %d old files: %s", len(removed_files), removed_files)
+
+            if remote_version > local_version or version_changed:
                 logger.info(
                     "Playlist update available: v%d -> v%d",
                     local_version,
@@ -179,6 +204,9 @@ class SyncService:
                 )
                 if self._update_playlist(remote_config):
                     content_updated = True
+
+            # Update current version tracking
+            self._current_playlist_version = remote_version
 
             # Download any missing content
             if self._sync_content(remote_config):
@@ -204,24 +232,28 @@ class SyncService:
 
     def _fetch_screen_config(self) -> Optional[Dict[str, Any]]:
         """
-        Fetch screen configuration from hub.
+        Fetch screen configuration from hub using hardware_id.
 
         Returns:
             Config dictionary or None if unavailable
         """
-        if not self.screen_id:
-            logger.warning("No screen_id configured - cannot fetch config")
+        device_id = self.hardware_id or self.screen_id
+        if not device_id:
+            logger.warning("No hardware_id or screen_id configured - cannot fetch config")
             return None
 
-        url = f"{self.hub_url}/api/v1/screens/{self.screen_id}/config"
+        # Use the /by-device/{id}/config endpoint
+        url = f"{self.hub_url}/api/v1/screens/by-device/{device_id}/config"
 
         try:
             response = requests.get(url, timeout=self.REQUEST_TIMEOUT)
 
             if response.status_code == 200:
-                return response.json()
+                hub_config = response.json()
+                logger.info("Fetched config for device: %s", device_id)
+                return self._convert_hub_format(hub_config)
             elif response.status_code == 404:
-                logger.error("Screen not found: %s", self.screen_id)
+                logger.error("Device not found: %s", device_id)
                 return None
             else:
                 logger.error(
@@ -236,6 +268,34 @@ class SyncService:
         except requests.RequestException as e:
             logger.warning("Hub request failed: %s", e)
             return None
+
+    def _convert_hub_format(self, hub_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert Hub config format to expected sync format.
+
+        Hub returns: {playlist_name, version, items: [{content_id, filename, duration, file_hash, order}]}
+        We need: {default_playlist: {items: [...]}, playlist_version, ...}
+        """
+        # Extract playlist data - Hub may include it directly or in default_playlist
+        playlist_data = hub_config.get('default_playlist', {})
+
+        # If Hub returns items at top level, wrap them
+        if 'items' in hub_config and 'default_playlist' not in hub_config:
+            playlist_data = {
+                'name': hub_config.get('playlist_name', 'default'),
+                'items': hub_config.get('items', [])
+            }
+
+        return {
+            'device_id': hub_config.get('device_id'),
+            'hardware_id': hub_config.get('hardware_id'),
+            'name': hub_config.get('name'),
+            'status': hub_config.get('status'),
+            'default_playlist': playlist_data,
+            'triggered_playlists': hub_config.get('triggered_playlists', []),
+            'playlist_version': hub_config.get('playlist_version', hub_config.get('version', 0)),
+            'updated_at': hub_config.get('updated_at')
+        }
 
     def _update_playlist(self, remote_config: Dict[str, Any]) -> bool:
         """
@@ -545,7 +605,9 @@ class SyncService:
             'total_failures': self._total_failures,
             'sync_interval': self.sync_interval,
             'hub_url': self.hub_url,
+            'hardware_id': self.hardware_id,
             'screen_id': self.screen_id,
+            'current_playlist_version': self._current_playlist_version,
             'media_dir': str(self.media_dir)
         }
 
@@ -606,7 +668,7 @@ class SyncService:
         """String representation."""
         return (
             f"SyncService(hub_url={self.hub_url}, "
-            f"screen_id={self.screen_id}, "
+            f"hardware_id={self.hardware_id}, "
             f"interval={self.sync_interval}s)"
         )
 
