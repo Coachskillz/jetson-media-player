@@ -1618,6 +1618,7 @@ def delete_device(device_id):
     if not device:
         return jsonify({'error': 'Device not found'}), 404
 
+    device_name = device.device_id
     try:
         db.session.delete(device)
         db.session.commit()
@@ -1625,4 +1626,41 @@ def delete_device(device_id):
         db.session.rollback()
         return jsonify({'error': f'Failed to delete device: {str(e)}'}), 500
 
+    log_action(
+        action='device.delete',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device_id,
+        resource_name=device_name,
+        details={'deleted_by': 'user'}
+    )
+
     return jsonify({'message': 'Device deleted successfully'}), 200
+
+
+@devices_bp.route('/all', methods=['DELETE'])
+@login_required
+def delete_all_devices():
+    """Delete all devices. Nuclear option for cleanup."""
+    count = Device.query.count()
+
+    if count == 0:
+        return jsonify({'message': 'No devices to delete', 'count': 0}), 200
+
+    try:
+        Device.query.delete()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete devices: {str(e)}'}), 500
+
+    log_action(
+        action='device.delete_all',
+        action_category='devices',
+        resource_type='device',
+        resource_id=None,
+        resource_name='ALL',
+        details={'deleted_count': count}
+    )
+
+    return jsonify({'message': f'{count} devices deleted', 'count': count}), 200

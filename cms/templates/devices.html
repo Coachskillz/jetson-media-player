@@ -720,6 +720,48 @@
     text-decoration: underline;
 }
 
+/* Delete Buttons */
+.btn-delete {
+    background: #fee2e2;
+    color: #991b1b;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: #fecaca;
+    transform: scale(1.05);
+}
+
+.btn-delete-all {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-delete-all:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.screen-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 /* Empty State */
 .empty-network {
     padding: 40px;
@@ -824,6 +866,7 @@
 
             <div class="screen-actions">
                 <a href="/devices/{{ screen.device_id }}">Manage Screen &rarr;</a>
+                <button class="btn-delete" onclick="deleteDevice('{{ screen.id }}', '{{ screen.device_id }}', this)" title="Delete this device">&#10005;</button>
             </div>
         </div>
         {% endfor %}
@@ -841,7 +884,12 @@
 <!-- Normal View -->
 <div style="margin: 20px 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
     <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0;">Screens</h2>
-    <span style="color: rgba(255,255,255,0.8); font-size: 16px; font-weight: 600;">{{ total_screen_count }} Total</span>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="color: rgba(255,255,255,0.8); font-size: 16px; font-weight: 600;">{{ total_screen_count }} Total</span>
+        {% if total_screen_count > 0 %}
+        <button class="btn-delete-all" onclick="deleteAllDevices()">Delete All Devices</button>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Networks and Screens Catalog -->
@@ -943,6 +991,7 @@
             </div>
             <div class="screen-actions">
                 <a href="/devices/{{ device.device_id }}">Manage Screen &rarr;</a>
+                <button class="btn-delete" onclick="deleteDevice('{{ device.id }}', '{{ device.device_id }}', this)" title="Delete this device">&#10005;</button>
             </div>
         </div>
         {% endfor %}
@@ -1000,7 +1049,7 @@ function openStoreDetail(storeName, city, state, screens) {
     // Build screens grid
     const grid = document.getElementById('storeScreensGrid');
     grid.innerHTML = screens.map(screen => `
-        <div class="screen-card">
+        <div class="screen-card" data-device-id="${escapeHtml(screen.id)}">
             <div class="screen-header">
                 <div>
                     <div class="screen-name">${escapeHtml(screen.name)}</div>
@@ -1023,6 +1072,7 @@ function openStoreDetail(storeName, city, state, screens) {
             </div>
             <div class="screen-actions">
                 <a href="/devices/${encodeURIComponent(screen.device_id)}">Manage Screen &rarr;</a>
+                <button class="btn-delete" onclick="deleteDeviceFromModal('${escapeHtml(screen.id)}', '${escapeHtml(screen.device_id)}', this)" title="Delete this device">&#10005;</button>
             </div>
         </div>
     `).join('');
@@ -1054,5 +1104,77 @@ document.addEventListener('keydown', function(e) {
         closeStoreDetail();
     }
 });
+
+// Delete a single device
+function deleteDevice(deviceId, deviceName, btn) {
+    if (!confirm('Delete device ' + deviceName + '? This cannot be undone.')) return;
+
+    fetch('/api/v1/devices/' + deviceId, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => {
+        if (r.ok) {
+            // Remove the card from the grid
+            const card = btn.closest('.screen-card');
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => card.remove(), 300);
+            }
+        } else {
+            r.json().then(data => alert('Error: ' + (data.error || 'Failed to delete device')));
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+}
+
+// Delete device from modal
+function deleteDeviceFromModal(deviceId, deviceName, btn) {
+    if (!confirm('Delete device ' + deviceName + '? This cannot be undone.')) return;
+
+    fetch('/api/v1/devices/' + deviceId, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => {
+        if (r.ok) {
+            // Remove the card from the modal grid
+            const card = btn.closest('.screen-card');
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => card.remove(), 300);
+            }
+        } else {
+            r.json().then(data => alert('Error: ' + (data.error || 'Failed to delete device')));
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+}
+
+// Delete all devices
+function deleteAllDevices() {
+    if (!confirm('Delete ALL devices? This removes every screen from the system.')) return;
+    if (!confirm('Are you absolutely sure? This action cannot be undone.')) return;
+
+    fetch('/api/v1/devices/all', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => {
+        if (r.ok) {
+            r.json().then(data => {
+                alert('Deleted ' + data.count + ' devices');
+                location.reload();
+            });
+        } else {
+            r.json().then(data => alert('Error: ' + (data.error || 'Failed to delete devices')));
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+}
 </script>
 {% endblock %}
