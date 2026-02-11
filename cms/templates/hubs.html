@@ -644,8 +644,8 @@
                         <button class="btn-secondary" onclick="toggleStatus('{{ item.hub.id }}', '{{ item.hub.status }}')">
                             {% if item.hub.status == 'active' %}⏸ Deactivate{% else %}▶ Activate{% endif %}
                         </button>
-                        <button class="btn-secondary btn-danger" onclick="deleteHub('{{ item.hub.id }}', '{{ item.hub.name }}')">
-                            🗑
+                        <button class="btn-secondary btn-danger" onclick="deleteHub('{{ item.hub.id }}', '{{ item.hub.name }}', '{{ item.hub.code }}')">
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -903,9 +903,21 @@
             }
         }
 
-        // Delete hub
-        async function deleteHub(hubId, hubName) {
-            if (!confirm(`Delete hub "${hubName}"? This will not delete connected devices, but they will become disconnected from this hub.`)) {
+        // Delete hub - requires typing "delete" to confirm
+        async function deleteHub(hubId, hubName, hubCode) {
+            const confirmation = prompt(
+                `⚠️ DELETE HUB: ${hubCode} - ${hubName}\n\n` +
+                `This will permanently remove this hub from the CMS.\n` +
+                `Connected devices will become disconnected.\n\n` +
+                `To confirm, type "delete" below:`
+            );
+
+            if (confirmation === null) {
+                return; // User cancelled
+            }
+
+            if (confirmation.toLowerCase() !== 'delete') {
+                alert('❌ Deletion cancelled. You must type "delete" to confirm.');
                 return;
             }
 
@@ -915,6 +927,7 @@
                 });
 
                 if (response.ok) {
+                    alert(`✅ Hub "${hubName}" deleted successfully.`);
                     location.reload();
                 } else {
                     const data = await response.json();
