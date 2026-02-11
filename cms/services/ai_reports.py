@@ -25,7 +25,7 @@ NVIDIA_MODEL = os.environ.get('NVIDIA_MODEL', 'meta/llama-3.1-70b-instruct')
 
 # Database schema description for the LLM
 DB_SCHEMA = """
-You have access to a PostgreSQL database with these tables:
+You have access to a SQLite database with these tables:
 
 TABLE: devices
   - id (string, UUID primary key)
@@ -105,7 +105,7 @@ SYSTEM_PROMPT = """You are a data analyst for Skillz Media, a digital signage an
 You help generate SQL queries and format reports based on the database.
 
 When asked a question:
-1. Generate a valid PostgreSQL SQL query to answer it
+1. Generate a valid SQLite SQL query to answer it
 2. Return ONLY a JSON object with this format:
 {{
   "sql": "SELECT ... FROM ...",
@@ -114,8 +114,11 @@ When asked a question:
 }}
 
 Rules:
-- Use PostgreSQL syntax (SQLite is also acceptable)
+- Use SQLite syntax ONLY (not PostgreSQL)
 - Always use lowercase table and column names
+- For current time, use: datetime('now')
+- For date arithmetic, use: datetime('now', '-5 minutes') or datetime('now', '-7 days')
+- Example: WHERE timestamp > datetime('now', '-5 minutes')
 - For "online" devices: check devices.status = 'active' or look for recent heartbeats (within last 5 minutes)
 - For "offline" devices: no heartbeat in last 5 minutes OR devices.status != 'active'
 - For uptime: count heartbeats vs expected (1 every 5 minutes = 288/day)
@@ -124,8 +127,7 @@ Rules:
 - Limit results to 100 rows max unless asked for more
 - Do NOT use DELETE, UPDATE, INSERT, DROP, ALTER, or any write operations
 - Only SELECT queries are allowed
-- Use CURRENT_TIMESTAMP or NOW() for current time comparisons
-- For date ranges, use INTERVAL syntax: timestamp > NOW() - INTERVAL '7 days'
+- Do NOT use PostgreSQL syntax like NOW(), INTERVAL, or ::type casting
 """
 
 
