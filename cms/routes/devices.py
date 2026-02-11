@@ -227,12 +227,18 @@ def request_pairing_code():
     if not hardware_id:
         return jsonify({'error': 'hardware_id is required'}), 400
 
-    # Generate 6-digit pairing code
-    pairing_code = str(random.randint(100000, 999999))
+    # Use pairing code from hub if provided, otherwise generate one
+    pairing_code = data.get('pairing_code')
+    if not pairing_code:
+        pairing_code = str(random.randint(100000, 999999))
+
+    # Get hub_id if this request is forwarded from a hub
+    hub_id = data.get('hub_id')
 
     # Store the pairing code mapping
     _active_pairing_codes[pairing_code] = {
         'hardware_id': hardware_id,
+        'hub_id': hub_id,
         'created_at': datetime.now(timezone.utc)
     }
 
@@ -240,16 +246,19 @@ def request_pairing_code():
     existing_device = Device.query.filter_by(hardware_id=hardware_id).first()
     if not existing_device:
         # Create a new device in pending status
+        # Use hub mode if hub_id provided, otherwise direct mode
+        mode = 'hub' if hub_id else 'direct'
         device_id = DeviceIDGenerator.generate_direct_id(db.session)
         ip_address = data.get('ip_address')
 
         device = Device(
             hardware_id=hardware_id,
             device_id=device_id,
-            mode='direct',
+            mode=mode,
             status='pending',
             ip_address=ip_address,
-            pairing_code=pairing_code
+            pairing_code=pairing_code,
+            hub_id=hub_id
         )
         db.session.add(device)
         db.session.commit()
