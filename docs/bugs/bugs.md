@@ -48,3 +48,19 @@
 - Different-video transitions rebuild the full pipeline via `GLib.idle_add()`
 **Result:** CPU dropped from 86% to 6.2%. Smooth, stutter-free playback.
 **Key files:** `src/player/gstreamer_player.py`
+
+## 2026-02-11 - Player crashes/stalls silently on playlist update (CRITICAL)
+**Symptom:** When a new playlist is pushed from CMS, the Jetson screen goes white. Player process may still be running but video never plays. No error in logs — pipeline just freezes.
+**Root Cause:** GStreamer pipeline can silently stall for various reasons (network glitch during playlist sync, race condition in pipeline rebuild, problematic video file). The existing position watchdog only did pre-fetch for gapless playback — it did NOT detect or recover from stalls.
+**Fix:** Added stall detection to the position watchdog in `gstreamer_player.py`:
+- Watchdog now tracks `_last_known_position` and `_last_position_change_time`
+- If position hasn't advanced by >100ms in 5 seconds while state is PLAYING, considers it a stall
+- On stall detection:
+  1. Log warning with position and time stuck
+  2. Attempt recovery by tearing down pipeline (NULL state) and rebuilding
+  3. Up to 3 recovery attempts per stall
+  4. If max attempts exceeded, notify error callback → player moves to next video
+- Added `_handle_stall()` and `_recover_from_stall()` methods
+- Added constants: `STALL_THRESHOLD_SECONDS=5`, `MAX_STALL_RECOVERY_ATTEMPTS=3`
+**Result:** Player now auto-recovers from stalls. If a video consistently fails, it skips to the next one instead of freezing the display.
+**Key files:** `src/player/gstreamer_player.py`

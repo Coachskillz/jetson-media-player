@@ -303,6 +303,7 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 class HealthRequestHandler(BaseHTTPRequestHandler):
     """HTTP request handler for health endpoints."""
     player_controller = None
+    sync_service = None
     log_dir = Path('/home/nvidia/skillz-player/logs')
 
     def log_message(self, format, *args):
@@ -405,6 +406,17 @@ class HealthRequestHandler(BaseHTTPRequestHandler):
                 daemon=True
             ).start()
 
+        elif path == '/api/command/sync' or path == '/api/sync':
+            # Trigger immediate playlist sync
+            if self.sync_service:
+                threading.Thread(
+                    target=self.sync_service.sync_now,
+                    daemon=True
+                ).start()
+                self._send_json({'message': 'Sync triggered'})
+            else:
+                self._send_json({'error': 'Sync service not available'}, 503)
+
         else:
             self._send_json({'error': 'Unknown command'}, 404)
 
@@ -463,6 +475,10 @@ class HealthServer:
     def set_player_controller(self, controller):
         """Set the player controller for remote commands."""
         HealthRequestHandler.player_controller = controller
+
+    def set_sync_service(self, sync_service):
+        """Set the sync service for remote sync triggers."""
+        HealthRequestHandler.sync_service = sync_service
 
 
 if __name__ == '__main__':

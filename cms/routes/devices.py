@@ -367,17 +367,17 @@ def verify_pairing_code():
     if not network_id:
         return jsonify({'error': 'network_id is required'}), 400
 
-    # Look up the pairing code
+    # Look up the pairing code - first check in-memory, then database
     pairing_info = _active_pairing_codes.get(pairing_code)
-    if not pairing_info:
-        return jsonify({'error': 'Invalid or expired pairing code'}), 400
+    if pairing_info:
+        hardware_id = pairing_info['hardware_id']
+        device = Device.query.filter_by(hardware_id=hardware_id).first()
+    else:
+        # Fallback: check database for device with this pairing code
+        device = Device.query.filter_by(pairing_code=pairing_code).first()
 
-    hardware_id = pairing_info['hardware_id']
-
-    # Find the device
-    device = Device.query.filter_by(hardware_id=hardware_id).first()
     if not device:
-        return jsonify({'error': 'Device not found'}), 404
+        return jsonify({'error': 'Invalid or expired pairing code'}), 400
 
     # Find the network
     network = db.session.get(Network, network_id)
@@ -395,8 +395,9 @@ def verify_pairing_code():
         db.session.rollback()
         return jsonify({'error': f'Failed to pair device: {str(e)}'}), 500
 
-    # Remove the used pairing code
-    del _active_pairing_codes[pairing_code]
+    # Remove the used pairing code from memory if it was there
+    if pairing_code in _active_pairing_codes:
+        del _active_pairing_codes[pairing_code]
 
     # Log the pairing action
     log_action(

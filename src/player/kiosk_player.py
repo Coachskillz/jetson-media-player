@@ -572,6 +572,9 @@ class KioskPlayer:
         try:
             self._health_server = HealthServer(port=8080, player_controller=self)
             self._health_server.start()
+            # Allow remote sync triggers
+            if self._sync_service:
+                self._health_server.set_sync_service(self._sync_service)
         except Exception as e:
             logger.error("Failed to start health server: %s", e)
 
