@@ -355,6 +355,7 @@ class SyncService:
         for content in content_files:
             content_id = content.get('content_id', '')
             filename = content.get('filename', '')
+            download_url = content.get('url', '')  # Full URL if provided
 
             if not filename:
                 continue
@@ -372,9 +373,13 @@ class SyncService:
                         "Content hash mismatch, re-downloading: %s",
                         filename
                     )
+                elif not expected_hash:
+                    # No hash provided, trust existing file
+                    logger.debug("Content exists (no hash to verify): %s", filename)
+                    continue
 
             # Download the content
-            if self._download_content(content_id, filename):
+            if self._download_content(content_id, filename, download_url):
                 downloaded_any = True
 
         return downloaded_any
@@ -403,7 +408,8 @@ class SyncService:
                 content_list.append({
                     'content_id': item.get('content_id', ''),
                     'filename': filename,
-                    'file_hash': item.get('file_hash')
+                    'file_hash': item.get('file_hash'),
+                    'url': item.get('url', '')  # Full download URL if provided
                 })
                 seen_files.add(filename)
 
@@ -415,30 +421,34 @@ class SyncService:
                     content_list.append({
                         'content_id': item.get('content_id', ''),
                         'filename': filename,
-                        'file_hash': item.get('file_hash')
+                        'file_hash': item.get('file_hash'),
+                        'url': item.get('url', '')  # Full download URL if provided
                     })
                     seen_files.add(filename)
 
         return content_list
 
-    def _download_content(self, content_id: str, filename: str) -> bool:
+    def _download_content(self, content_id: str, filename: str, download_url: str = '') -> bool:
         """
-        Download a content file from hub.
+        Download a content file from hub or direct URL.
 
         Args:
-            content_id: Content ID for download URL
+            content_id: Content ID for fallback URL construction
             filename: Local filename to save as
+            download_url: Full download URL (preferred if provided)
 
         Returns:
             True if download successful
         """
-        if not content_id:
-            logger.warning("No content_id for file: %s", filename)
+        if not content_id and not download_url:
+            logger.warning("No content_id or URL for file: %s", filename)
             return False
 
         local_path = self.media_dir / filename
         temp_path = self.media_dir / f".{filename}.tmp"
-        url = f"{self.hub_url}/api/v1/content/{content_id}/download"
+
+        # Use provided URL or construct from hub_url
+        url = download_url if download_url else f"{self.hub_url}/api/v1/content/{content_id}/download"
 
         try:
             logger.info("Downloading: %s", filename)
