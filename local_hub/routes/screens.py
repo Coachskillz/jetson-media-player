@@ -399,60 +399,54 @@ def webhook_playlist_updated():
     Webhook endpoint for CMS to notify Hub of playlist updates.
 
     CMS calls this endpoint immediately when a playlist is changed,
-    triggering the Hub to sync the updated playlist right away.
+    triggering the Hub to notify Jetsons to sync right away.
 
     Request Body:
         {
-            "device_id": "jetson-xxx" (optional - sync specific device),
+            "device_id": "jetson-xxx" (optional - notify specific device),
             "playlist_id": 1 (optional - which playlist changed),
             "action": "updated" | "deleted" (optional)
         }
 
-    If no device_id is provided, syncs all registered screens.
+    If no device_id is provided, notifies all registered screens.
 
     Returns:
-        200: Sync triggered successfully
-        500: Sync failed
+        200: Notifications sent successfully
+        207: Partial success (some notifications failed)
     """
+    import requests as http_requests
+
     data = request.get_json() or {}
     device_id = data.get('device_id')
-    playlist_id = data.get('playlist_id')
-    action = data.get('action', 'updated')
 
-    results = []
+    push_results = []
     errors = []
 
     try:
-        from services.sync_service import SyncService
-        from services.hq_client import HQClient
-        from config import load_config
-        from flask import current_app
-
-        config = current_app.config.get('HUB_CONFIG') or load_config()
-        hq_client = HQClient(config.cms_url)
-        sync_service = SyncService(hq_client, config)
-
         if device_id:
-            # Sync specific device
+            # Notify specific device
             screen = Screen.query.filter_by(hardware_id=device_id).first()
             if screen:
-                try:
-                    result = sync_service.sync_playlist_for_screen(
-                        screen_id=screen.id,
-                        hardware_id=screen.hardware_id
-                    )
-                    results.append({
-                        'screen_id': screen.id,
-                        'hardware_id': screen.hardware_id,
-                        'success': True,
-                        'playlist_name': result.get('playlist_name'),
-                        'playlist_version': result.get('playlist_version')
-                    })
-                except Exception as e:
+                if screen.ip_address:
+                    try:
+                        push_url = f"http://{screen.ip_address}:8080/api/command/sync"
+                        resp = http_requests.post(push_url, timeout=5)
+                        push_results.append({
+                            'hardware_id': screen.hardware_id,
+                            'ip': screen.ip_address,
+                            'notified': resp.status_code == 200
+                        })
+                    except Exception as push_err:
+                        push_results.append({
+                            'hardware_id': screen.hardware_id,
+                            'ip': screen.ip_address,
+                            'notified': False,
+                            'error': str(push_err)
+                        })
+                else:
                     errors.append({
-                        'screen_id': screen.id,
                         'hardware_id': screen.hardware_id,
-                        'error': str(e)
+                        'error': 'No IP address recorded for device'
                     })
             else:
                 errors.append({
@@ -460,58 +454,32 @@ def webhook_playlist_updated():
                     'error': 'Device not registered on this hub'
                 })
         else:
-            # Sync all registered screens
-            screens = Screen.query.all()
+            # Notify all registered screens with known IP addresses
+            screens = Screen.query.filter(Screen.ip_address.isnot(None)).all()
             for screen in screens:
                 try:
-                    result = sync_service.sync_playlist_for_screen(
-                        screen_id=screen.id,
-                        hardware_id=screen.hardware_id
-                    )
-                    results.append({
-                        'screen_id': screen.id,
-                        'hardware_id': screen.hardware_id,
-                        'success': True,
-                        'playlist_name': result.get('playlist_name'),
-                        'playlist_version': result.get('playlist_version')
-                    })
-                except Exception as e:
-                    errors.append({
-                        'screen_id': screen.id,
-                        'hardware_id': screen.hardware_id,
-                        'error': str(e)
-                    })
-
-        # Push sync trigger to Jetson devices
-        import requests
-        push_results = []
-        for result in results:
-            screen = Screen.query.filter_by(hardware_id=result.get('hardware_id')).first()
-            if screen and screen.ip_address:
-                try:
-                    # Notify Jetson to sync immediately
                     push_url = f"http://{screen.ip_address}:8080/api/command/sync"
-                    resp = requests.post(push_url, timeout=5)
+                    resp = http_requests.post(push_url, timeout=5)
                     push_results.append({
-                        'hardware_id': result.get('hardware_id'),
+                        'hardware_id': screen.hardware_id,
                         'ip': screen.ip_address,
                         'notified': resp.status_code == 200
                     })
                 except Exception as push_err:
                     push_results.append({
-                        'hardware_id': result.get('hardware_id'),
+                        'hardware_id': screen.hardware_id,
                         'ip': screen.ip_address,
                         'notified': False,
                         'error': str(push_err)
                     })
 
+        all_notified = all(r.get('notified', False) for r in push_results)
         return jsonify({
-            'success': len(errors) == 0,
-            'message': f'Synced {len(results)} screens' if results else 'No screens to sync',
-            'synced': results,
+            'success': len(errors) == 0 and all_notified,
+            'message': f'Notified {len(push_results)} devices',
             'pushed': push_results,
             'errors': errors
-        }), 200 if len(errors) == 0 else 207  # 207 = Multi-Status
+        }), 200 if (len(errors) == 0 and all_notified) else 207
 
     except Exception as e:
         return jsonify({
