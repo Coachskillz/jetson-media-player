@@ -138,6 +138,16 @@ class Device(db.Model):
             'store_phone': self.store_phone
         }
 
+    @property
+    def paired(self):
+        """
+        Check if device is paired (active status with network assigned).
+
+        Returns:
+            int: 1 if paired, 0 if not (for template compatibility)
+        """
+        return 1 if (self.status == 'active' and self.network_id is not None) else 0
+
     def is_pairing_complete(self):
         """
         Check if all required pairing fields are filled.
