@@ -6,6 +6,24 @@
 HUB_URL="http://localhost:5000"
 CHECK_INTERVAL=5
 
+# Set up display environment for Wayland/X11
+setup_display() {
+    export DISPLAY=:0
+
+    # Find Xauthority for Wayland (mutter) or X11
+    if [ -z "$XAUTHORITY" ]; then
+        # Try Wayland XWayland auth
+        local wayland_auth=$(find /run/user/$(id -u) -name '.mutter-Xwaylandauth.*' 2>/dev/null | head -1)
+        if [ -n "$wayland_auth" ]; then
+            export XAUTHORITY="$wayland_auth"
+        elif [ -f "$HOME/.Xauthority" ]; then
+            export XAUTHORITY="$HOME/.Xauthority"
+        fi
+    fi
+
+    echo "Display: $DISPLAY, Xauthority: $XAUTHORITY"
+}
+
 # Wait for the Hub service to be ready
 wait_for_hub() {
     echo "Waiting for Hub service..."
@@ -37,9 +55,11 @@ launch_kiosk() {
     pkill -f "chromium.*--kiosk" 2>/dev/null
     pkill -f "firefox.*--kiosk" 2>/dev/null
 
+    sleep 1
+
     # Try chromium first, then firefox
     if command -v chromium-browser &> /dev/null; then
-        chromium-browser \
+        nohup chromium-browser \
             --kiosk \
             --noerrdialogs \
             --disable-infobars \
@@ -47,17 +67,23 @@ launch_kiosk() {
             --start-fullscreen \
             --disable-session-crashed-bubble \
             --disable-translate \
-            "$url" &
+            "$url" > /tmp/kiosk-browser.log 2>&1 &
     elif command -v firefox &> /dev/null; then
-        firefox --kiosk "$url" &
+        nohup firefox --kiosk "$url" > /tmp/kiosk-browser.log 2>&1 &
     else
         echo "No suitable browser found"
         return 1
     fi
+
+    sleep 2
+    echo "Browser launched for $url"
 }
 
 # Main logic
 main() {
+    # Set up display environment
+    setup_display
+
     # Wait for Hub service
     if ! wait_for_hub; then
         exit 1
