@@ -1482,7 +1482,7 @@ def delete_device(device_id):
         DeviceAssignment.query.filter_by(device_id=device.id).delete()
 
         # Delete device layouts
-        from models import DeviceLayout
+        from cms.models import DeviceLayout
         DeviceLayout.query.filter_by(device_id=device.id).delete()
 
         # Delete the device
@@ -1491,11 +1491,12 @@ def delete_device(device_id):
 
         # Audit log
         log_action(
-            action_type='device.deleted',
+            action='device.deleted',
+            action_category='devices',
             resource_type='device',
             resource_id=device_id,
+            resource_name=device_name,
             details={
-                'name': device_name,
                 'hardware_id': hardware_id,
             }
         )
