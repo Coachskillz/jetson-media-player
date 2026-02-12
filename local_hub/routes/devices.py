@@ -727,3 +727,118 @@ def _sync_devices_from_cms(config, hub_config):
             logger.warning(f"Failed to sync devices from CMS: {response.status_code}")
     except Exception as e:
         logger.error(f"Error syncing devices from CMS: {e}")
+
+
+# ============================================================================
+# CMS Push endpoints - Called by CMS to push updates to Hub
+# ============================================================================
+
+@devices_bp.route('/update-from-cms', methods=['POST'])
+def update_from_cms():
+    """
+    Receive device update from CMS.
+
+    Called by CMS when admin updates a device's screen_location or name.
+    The Hub updates its local record and optionally pushes to the Jetson.
+
+    Request Body:
+        {
+            "device_id": "uuid-from-cms",
+            "hardware_id": "jetson-hardware-id" (alternative lookup),
+            "screen_location": "Entrance",
+            "name": "Front Door Screen"
+        }
+
+    Returns:
+        200: Update received
+        404: Device not found
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    data = request.get_json() or {}
+    device_id = data.get('device_id')
+    hardware_id = data.get('hardware_id')
+    screen_location = data.get('screen_location')
+    name = data.get('name')
+
+    if not device_id and not hardware_id:
+        return jsonify({
+            'success': False,
+            'error': 'device_id or hardware_id is required'
+        }), 400
+
+    # Find device by CMS device_id first, then hardware_id
+    device = None
+    if device_id:
+        device = Device.query.filter_by(cms_device_id=device_id).first()
+    if not device and hardware_id:
+        device = Device.get_by_hardware_id(hardware_id)
+
+    if not device:
+        return jsonify({
+            'success': False,
+            'error': 'Device not found'
+        }), 404
+
+    # Update device fields
+    if screen_location is not None:
+        device.location = screen_location
+        logger.info(f"Updated device {device.hardware_id} location to: {screen_location}")
+
+    if name is not None:
+        device.name = name
+        logger.info(f"Updated device {device.hardware_id} name to: {name}")
+
+    device.synced_at = datetime.utcnow()
+    db.session.commit()
+
+    # Push update to Jetson device if it's online
+    if device.ip_address and device.status == 'online':
+        _push_update_to_device(device, data)
+
+    return jsonify({
+        'success': True,
+        'message': 'Device updated',
+        'device': device.to_dict()
+    }), 200
+
+
+def _push_update_to_device(device, update_data):
+    """
+    Push update to the Jetson device.
+
+    Args:
+        device: Device model instance
+        update_data: Dict with fields to push
+    """
+    import logging
+    import requests
+
+    logger = logging.getLogger(__name__)
+
+    if not device.ip_address:
+        logger.warning(f"Device {device.hardware_id} has no IP address, skipping push")
+        return
+
+    # Jetson player listens on port 5000
+    jetson_url = f"http://{device.ip_address}:5000"
+
+    try:
+        response = requests.post(
+            f"{jetson_url}/api/v1/config/update",
+            json={
+                'screen_location': update_data.get('screen_location'),
+                'name': update_data.get('name'),
+            },
+            timeout=5
+        )
+
+        if response.ok:
+            logger.info(f"Pushed update to device {device.hardware_id}")
+        else:
+            logger.warning(f"Device {device.hardware_id} returned {response.status_code}")
+    except requests.Timeout:
+        logger.warning(f"Timeout pushing to device {device.hardware_id}")
+    except requests.RequestException as e:
+        logger.error(f"Failed to push to device {device.hardware_id}: {e}")

@@ -43,6 +43,10 @@ class Device(db.Model):
     cms_device_id = db.Column(db.String(36), nullable=True)
     synced_at = db.Column(db.DateTime, nullable=True)
 
+    # Layout configuration (pushed from CMS)
+    layout_json = db.Column(db.Text, nullable=True)  # Full layout JSON
+    layout_updated_at = db.Column(db.DateTime, nullable=True)
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -84,6 +88,7 @@ class Device(db.Model):
             'stream_url': self.stream_url,
             'cms_device_id': self.cms_device_id,
             'synced_at': self.synced_at.isoformat() if self.synced_at else None,
+            'layout_updated_at': self.layout_updated_at.isoformat() if self.layout_updated_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

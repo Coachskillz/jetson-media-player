@@ -22,6 +22,9 @@ devices_bp = Blueprint('devices', __name__, url_prefix='/devices')
 # Locations blueprint
 locations_bp = Blueprint('locations', __name__, url_prefix='/locations')
 
+# Layouts blueprint (for receiving layouts from CMS)
+from routes.layouts import layouts_bp
+
 # Cameras blueprint
 from routes.cameras import cameras_bp
 
@@ -44,5 +47,6 @@ from routes.locations import locations_bp  # noqa: F401, E402
 # Export all blueprints
 __all__ = [
     'screens_bp', 'content_bp', 'databases_bp', 'alerts_bp', 'devices_bp',
-    'locations_bp', 'cameras_bp', 'pairing_bp', 'hub_pairing_ui_bp', 'hub_pairing_api_bp'
+    'locations_bp', 'cameras_bp', 'pairing_bp', 'hub_pairing_ui_bp', 'hub_pairing_api_bp',
+    'layouts_bp'
 ]

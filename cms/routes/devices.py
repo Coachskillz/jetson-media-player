@@ -1408,7 +1408,7 @@ def register_from_hub():
             'error': f'Failed to generate device ID: {str(e)}'
         }), 500
 
-    # Create device
+    # Create device - auto-populate store info from Hub
     device = Device(
         hardware_id=hardware_id,
         device_id=device_id,
@@ -1417,7 +1417,16 @@ def register_from_hub():
         network_id=hub.network_id,
         name=data.get('name'),
         pairing_code=pairing_code,
-        status='pending'
+        status='active',  # Hub devices are pre-verified, no approval needed
+        # Auto-populate from Hub's store info
+        store_name=hub.name,
+        store_address=hub.store_address,
+        store_city=hub.store_city,
+        store_state=hub.store_state,
+        store_zipcode=hub.store_zipcode,
+        manager_name=hub.manager_name,
+        store_phone=hub.store_phone,
+        # screen_location left blank - admin sets in CMS
     )
 
     try:

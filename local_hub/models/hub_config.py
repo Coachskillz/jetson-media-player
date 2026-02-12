@@ -44,6 +44,14 @@ class HubConfig(db.Model):
     registered_at = db.Column(db.DateTime, nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Store information (populated during pairing)
+    store_address = db.Column(db.String(300), nullable=True)
+    store_city = db.Column(db.String(100), nullable=True)
+    store_state = db.Column(db.String(50), nullable=True)
+    store_zipcode = db.Column(db.String(20), nullable=True)
+    manager_name = db.Column(db.String(200), nullable=True)
+    store_phone = db.Column(db.String(30), nullable=True)
+
     def to_dict(self):
         """
         Serialize model to dictionary for JSON responses.
@@ -62,7 +70,14 @@ class HubConfig(db.Model):
             'store_id': self.store_id,
             'status': self.status,
             'registered_at': self.registered_at.isoformat() if self.registered_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            # Store info
+            'store_address': self.store_address,
+            'store_city': self.store_city,
+            'store_state': self.store_state,
+            'store_zipcode': self.store_zipcode,
+            'manager_name': self.manager_name,
+            'store_phone': self.store_phone,
         }
 
     @property
@@ -92,7 +107,9 @@ class HubConfig(db.Model):
 
     @classmethod
     def update_registration(cls, hub_id, hub_token, hub_code=None, hub_name=None,
-                            network_id=None, store_id=None, status='pending'):
+                            network_id=None, store_id=None, status='pending',
+                            store_address=None, store_city=None, store_state=None,
+                            store_zipcode=None, manager_name=None, store_phone=None):
         """
         Update hub registration data from CMS response.
 
@@ -104,6 +121,12 @@ class HubConfig(db.Model):
             network_id: Network identifier
             store_id: Optional store identifier
             status: Hub status (pending, active, inactive)
+            store_address: Store street address
+            store_city: Store city
+            store_state: Store state
+            store_zipcode: Store ZIP code
+            manager_name: Store manager name
+            store_phone: Store phone number
 
         Returns:
             HubConfig: Updated config instance
@@ -117,6 +140,13 @@ class HubConfig(db.Model):
         config.store_id = store_id
         config.status = status
         config.registered_at = datetime.utcnow()
+        # Store info
+        config.store_address = store_address
+        config.store_city = store_city
+        config.store_state = store_state
+        config.store_zipcode = store_zipcode
+        config.manager_name = manager_name
+        config.store_phone = store_phone
         db.session.commit()
         return config
 
@@ -140,6 +170,13 @@ class HubConfig(db.Model):
         config.store_id = None
         config.status = 'pending'
         config.registered_at = None
+        # Clear store info
+        config.store_address = None
+        config.store_city = None
+        config.store_state = None
+        config.store_zipcode = None
+        config.manager_name = None
+        config.store_phone = None
         db.session.commit()
         return config
 

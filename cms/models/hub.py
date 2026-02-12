@@ -138,6 +138,14 @@ class Hub(db.Model):
     paired_at = db.Column(DateTimeUTC(), nullable=True)
     location = db.Column(db.String(500), nullable=True)  # Physical address
 
+    # Store information (set during Hub pairing)
+    store_address = db.Column(db.String(300), nullable=True)
+    store_city = db.Column(db.String(100), nullable=True)
+    store_state = db.Column(db.String(50), nullable=True)
+    store_zipcode = db.Column(db.String(20), nullable=True)
+    manager_name = db.Column(db.String(200), nullable=True)
+    store_phone = db.Column(db.String(30), nullable=True)
+
     # Relationships
     network = db.relationship('Network', backref=db.backref('hubs', lazy='dynamic'))
     # devices = db.relationship('Device', backref='hub', lazy='dynamic')
@@ -170,7 +178,13 @@ class Hub(db.Model):
             'screens_connected': self.screens_connected,
             'version': self.version,
             'paired_at': self.paired_at.isoformat() if self.paired_at else None,
-            'location': self.location
+            'location': self.location,
+            'store_address': self.store_address,
+            'store_city': self.store_city,
+            'store_state': self.store_state,
+            'store_zipcode': self.store_zipcode,
+            'manager_name': self.manager_name,
+            'store_phone': self.store_phone,
         }
         if include_token:
             result['api_token'] = self.api_token

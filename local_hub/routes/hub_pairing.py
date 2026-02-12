@@ -204,6 +204,12 @@ def start_pairing():
                     hub_name=result.get('store_name'),
                     network_id=result.get('network_id'),
                     status='active',
+                    store_address=result.get('store_address'),
+                    store_city=result.get('store_city'),
+                    store_state=result.get('store_state'),
+                    store_zipcode=result.get('store_zipcode'),
+                    manager_name=result.get('manager_name'),
+                    store_phone=result.get('store_phone'),
                 )
                 update_pairing_state(
                     active=False,
@@ -292,17 +298,7 @@ def reset_hub():
     Returns:
         200: Hub reset successfully
     """
-    from models import db
-
-    hub_config = HubConfig.get_instance()
-    hub_config.hub_id = None
-    hub_config.hub_token = None
-    hub_config.hub_code = None
-    hub_config.hub_name = None
-    hub_config.network_id = None
-    hub_config.status = 'pending'
-    hub_config.registered_at = None
-    db.session.commit()
+    HubConfig.reset_registration()
 
     update_pairing_state(
         active=False,
@@ -319,6 +315,68 @@ def reset_hub():
     return jsonify({
         'success': True,
         'message': 'Hub registration cleared. Ready for re-pairing.'
+    })
+
+
+@hub_pairing_api_bp.route('/update-store-info', methods=['POST'])
+def update_store_info():
+    """
+    Receive store info update from CMS.
+
+    Called by CMS when admin updates Hub's store information.
+
+    Request Body:
+        {
+            "store_name": "Store Name",
+            "store_address": "123 Main St",
+            "store_city": "Tampa",
+            "store_state": "FL",
+            "store_zipcode": "33601",
+            "manager_name": "John Doe",
+            "store_phone": "813-555-1234"
+        }
+
+    Returns:
+        200: Store info updated
+        400: Hub not registered
+    """
+    from flask import request
+    from models import db
+
+    hub_config = HubConfig.get_instance()
+
+    if not hub_config.is_registered:
+        return jsonify({
+            'success': False,
+            'error': 'Hub not registered'
+        }), 400
+
+    data = request.get_json() or {}
+
+    # Update store info fields
+    if 'store_name' in data:
+        hub_config.hub_name = data['store_name']
+    if 'store_address' in data:
+        hub_config.store_address = data['store_address']
+    if 'store_city' in data:
+        hub_config.store_city = data['store_city']
+    if 'store_state' in data:
+        hub_config.store_state = data['store_state']
+    if 'store_zipcode' in data:
+        hub_config.store_zipcode = data['store_zipcode']
+    if 'manager_name' in data:
+        hub_config.manager_name = data['manager_name']
+    if 'store_phone' in data:
+        hub_config.store_phone = data['store_phone']
+
+    db.session.commit()
+
+    current_app.logger.info(f"Store info updated: {hub_config.hub_name}")
+
+    return jsonify({
+        'success': True,
+        'message': 'Store info updated',
+        'hub': hub_config.to_dict()
     })
 
 

@@ -15,6 +15,7 @@ All endpoints are prefixed with /api/v1/hubs when registered with the app.
 
 import re
 import secrets
+import requests
 from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, request, jsonify
@@ -323,7 +324,13 @@ def update_hub(hub_id):
         {
             "status": "online" | "offline" | "maintenance",
             "name": "New Name" (optional),
-            "location": "New Address" (optional)
+            "location": "New Address" (optional),
+            "store_address": "123 Main St" (optional),
+            "store_city": "Tampa" (optional),
+            "store_state": "FL" (optional),
+            "store_zipcode": "33601" (optional),
+            "manager_name": "John Doe" (optional),
+            "store_phone": "813-555-1234" (optional)
         }
 
     Returns:
@@ -339,6 +346,7 @@ def update_hub(hub_id):
 
     data = request.get_json(silent=True) or {}
 
+    # Basic fields
     if 'status' in data:
         hub.status = data['status']
     if 'name' in data:
@@ -346,13 +354,65 @@ def update_hub(hub_id):
     if 'location' in data:
         hub.location = data['location']
 
+    # Store info fields
+    store_info_changed = False
+    store_fields = ['store_address', 'store_city', 'store_state', 'store_zipcode',
+                    'manager_name', 'store_phone']
+    for field in store_fields:
+        if field in data:
+            setattr(hub, field, data[field])
+            store_info_changed = True
+
     try:
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to update hub: {str(e)}'}), 500
 
+    # Push store info update to Hub if it has an IP and store info changed
+    if store_info_changed and hub.ip_address:
+        _push_store_info_to_hub(hub, data)
+
     return jsonify(hub.to_dict()), 200
+
+
+def _push_store_info_to_hub(hub, data):
+    """
+    Push store info update to the Hub.
+
+    Args:
+        hub: Hub model instance
+        data: Dict with store fields
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    hub_url = f"http://{hub.ip_address}:5000"
+
+    payload = {
+        'store_name': hub.name,
+        'store_address': hub.store_address,
+        'store_city': hub.store_city,
+        'store_state': hub.store_state,
+        'store_zipcode': hub.store_zipcode,
+        'manager_name': hub.manager_name,
+        'store_phone': hub.store_phone,
+    }
+
+    try:
+        response = requests.post(
+            f"{hub_url}/api/v1/hub/update-store-info",
+            json=payload,
+            timeout=10
+        )
+        if response.ok:
+            logger.info(f"Pushed store info update to hub {hub.code}")
+        else:
+            logger.warning(f"Hub {hub.code} returned {response.status_code} for store info update")
+    except requests.Timeout:
+        logger.warning(f"Timeout pushing store info to hub {hub.code}")
+    except requests.RequestException as e:
+        logger.error(f"Failed to push store info to hub {hub.code}: {e}")
 
 
 @hubs_bp.route('/<hub_id>/content-manifest', methods=['GET'])
@@ -795,7 +855,14 @@ def pairing_status():
             'hub_code': hub.code,
             'api_token': hub.api_token,
             'store_name': hub.name,
-            'network_id': hub.network_id
+            'network_id': hub.network_id,
+            # Store info for Hub to cache
+            'store_address': hub.store_address,
+            'store_city': hub.store_city,
+            'store_state': hub.store_state,
+            'store_zipcode': hub.store_zipcode,
+            'manager_name': hub.manager_name,
+            'store_phone': hub.store_phone,
         })
 
     # Check if pending
@@ -903,6 +970,19 @@ def pair_hub():
         hub.status = 'online'
         hub.last_heartbeat = datetime.now(timezone.utc)
         hub.paired_at = datetime.now(timezone.utc)
+        # Update store info if provided
+        if data.get('store_address'):
+            hub.store_address = data.get('store_address')
+        if data.get('store_city'):
+            hub.store_city = data.get('store_city')
+        if data.get('store_state'):
+            hub.store_state = data.get('store_state')
+        if data.get('store_zipcode'):
+            hub.store_zipcode = data.get('store_zipcode')
+        if data.get('manager_name'):
+            hub.manager_name = data.get('manager_name')
+        if data.get('store_phone'):
+            hub.store_phone = data.get('store_phone')
     else:
         # Create new hub
         # Generate hub code based on network and store name
@@ -933,7 +1013,14 @@ def pair_hub():
             status='online',
             last_heartbeat=datetime.now(timezone.utc),
             paired_at=datetime.now(timezone.utc),
-            location=data.get('location')
+            location=data.get('location'),
+            # Store info from pairing request
+            store_address=data.get('store_address'),
+            store_city=data.get('store_city'),
+            store_state=data.get('store_state'),
+            store_zipcode=data.get('store_zipcode'),
+            manager_name=data.get('manager_name'),
+            store_phone=data.get('store_phone'),
         )
         db.session.add(hub)
 
@@ -967,6 +1054,13 @@ def pair_hub():
         'hub_code': hub.code,
         'store_name': hub.name,
         'api_token': hub.api_token,
+        'network_id': hub.network_id,
+        'store_address': hub.store_address,
+        'store_city': hub.store_city,
+        'store_state': hub.store_state,
+        'store_zipcode': hub.store_zipcode,
+        'manager_name': hub.manager_name,
+        'store_phone': hub.store_phone,
         'message': f'Hub paired successfully as {hub.name}'
     })
 
@@ -1085,3 +1179,219 @@ def list_pending_hubs():
         'pending_hubs': [hub.to_dict() for hub in pending_hubs],
         'count': len(pending_hubs)
     })
+
+
+@hubs_bp.route('/<hub_id>/push-device-update', methods=['POST'])
+@login_required
+def push_device_update(hub_id):
+    """
+    Push device update (screen_location, name, etc.) to Hub.
+
+    Called when admin updates a device in CMS. The Hub needs to know
+    about device changes to display on its dashboard.
+
+    Args:
+        hub_id: Hub UUID
+
+    Request Body:
+        {
+            "device_id": "uuid-of-device",
+            "screen_location": "Entrance",
+            "name": "Front Door Screen"
+        }
+
+    Returns:
+        200: Update pushed successfully
+        404: Hub not found
+        400: Hub IP not available
+    """
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    device_id = data.get('device_id')
+
+    if not device_id:
+        return jsonify({'error': 'device_id is required'}), 400
+
+    # Get Hub's URL from IP address
+    if not hub.ip_address:
+        return jsonify({'error': 'Hub IP not available'}), 400
+
+    hub_url = f"http://{hub.ip_address}:5000"
+
+    # Push update to Hub
+    try:
+        response = requests.post(
+            f"{hub_url}/api/v1/devices/update-from-cms",
+            json={
+                'device_id': device_id,
+                'screen_location': data.get('screen_location'),
+                'name': data.get('name'),
+            },
+            timeout=10
+        )
+
+        if response.ok:
+            return jsonify({'success': True, 'message': 'Update pushed to hub'})
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Hub returned {response.status_code}'
+            }), response.status_code
+
+    except requests.Timeout:
+        return jsonify({'error': 'Hub request timed out'}), 504
+    except requests.RequestException as e:
+        return jsonify({'error': f'Failed to reach hub: {str(e)}'}), 502
+
+
+@hubs_bp.route('/<hub_id>/push-layout', methods=['POST'])
+@login_required
+def push_layout(hub_id):
+    """
+    Push a layout with playlist/content to a Hub for a specific device.
+
+    This endpoint builds the full layout payload including:
+    - Layout canvas settings
+    - Layers with their positions and configurations
+    - Playlist items with content download URLs
+    - Content metadata (filename, duration, file_size, etc.)
+
+    The Hub receives this and caches the content, then pushes to the device.
+
+    Args:
+        hub_id: Hub UUID
+
+    Request Body:
+        {
+            "device_id": "uuid-of-device",
+            "layout_id": "uuid-of-layout"
+        }
+
+    Returns:
+        200: Layout pushed successfully
+        404: Hub, device, or layout not found
+        400: Missing required fields or Hub IP not available
+    """
+    from cms.models.layout import ScreenLayout, ScreenLayer
+
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    device_id = data.get('device_id')
+    layout_id = data.get('layout_id')
+
+    if not device_id:
+        return jsonify({'error': 'device_id is required'}), 400
+
+    if not layout_id:
+        return jsonify({'error': 'layout_id is required'}), 400
+
+    # Get device
+    device = Device.query.filter_by(id=device_id).first()
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    # Get layout with layers
+    layout = db.session.get(ScreenLayout, layout_id)
+    if not layout:
+        return jsonify({'error': 'Layout not found'}), 404
+
+    # Get Hub's URL
+    if not hub.ip_address:
+        return jsonify({'error': 'Hub IP not available'}), 400
+
+    hub_url = f"http://{hub.ip_address}:5000"
+
+    # Build layout payload
+    layers_data = []
+    content_items = []
+
+    for layer in layout.layers.order_by(ScreenLayer.z_index).all():
+        layer_data = layer.to_dict()
+
+        # If layer has a playlist, include playlist items with content
+        if layer.playlist_id and layer.playlist:
+            playlist = layer.playlist
+            playlist_items = []
+
+            for item in playlist.items:
+                item_data = {
+                    'id': item.id,
+                    'order': item.order,
+                    'duration': item.duration,
+                }
+
+                # Get content details
+                if item.content:
+                    content = item.content
+                    content_data = {
+                        'id': content.id,
+                        'filename': content.filename,
+                        'file_type': content.file_type,
+                        'duration': content.duration,
+                        'file_size': content.file_size,
+                        'download_url': f'/api/v1/content/{content.id}/download',
+                    }
+                    item_data['content'] = content_data
+
+                    # Track content for manifest
+                    if content.id not in [c['id'] for c in content_items]:
+                        content_items.append(content_data)
+
+                playlist_items.append(item_data)
+
+            layer_data['playlist'] = {
+                'id': playlist.id,
+                'name': playlist.name,
+                'items': playlist_items
+            }
+
+        layers_data.append(layer_data)
+
+    # Build full layout payload
+    layout_payload = {
+        'device_id': device_id,
+        'device_hardware_id': device.hardware_id,
+        'layout': {
+            'id': layout.id,
+            'name': layout.name,
+            'canvas_width': layout.canvas_width,
+            'canvas_height': layout.canvas_height,
+            'orientation': layout.orientation,
+            'background_type': layout.background_type,
+            'background_color': layout.background_color,
+            'layers': layers_data
+        },
+        'content_manifest': content_items
+    }
+
+    # Push to Hub
+    try:
+        response = requests.post(
+            f"{hub_url}/api/v1/layouts/receive",
+            json=layout_payload,
+            timeout=30  # Longer timeout for layout push
+        )
+
+        if response.ok:
+            return jsonify({
+                'success': True,
+                'message': 'Layout pushed to hub',
+                'content_count': len(content_items)
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Hub returned {response.status_code}',
+                'details': response.text
+            }), response.status_code
+
+    except requests.Timeout:
+        return jsonify({'error': 'Hub request timed out'}), 504
+    except requests.RequestException as e:
+        return jsonify({'error': f'Failed to reach hub: {str(e)}'}), 502

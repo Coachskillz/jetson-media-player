@@ -301,7 +301,7 @@ def _check_and_start_pairing(app: Flask) -> None:
             result = service.announce()
 
             if result.get('status') == 'already_paired':
-                # Store credentials
+                # Store credentials and store info
                 HubConfig.update_registration(
                     hub_id=result.get('hub_id'),
                     hub_token=result.get('api_token'),
@@ -309,6 +309,12 @@ def _check_and_start_pairing(app: Flask) -> None:
                     hub_name=result.get('store_name'),
                     network_id=result.get('network_id'),
                     status='active',
+                    store_address=result.get('store_address'),
+                    store_city=result.get('store_city'),
+                    store_state=result.get('store_state'),
+                    store_zipcode=result.get('store_zipcode'),
+                    manager_name=result.get('manager_name'),
+                    store_phone=result.get('store_phone'),
                 )
                 _pairing_state['status'] = 'paired'
                 _pairing_state['hub_name'] = result.get('store_name')
@@ -353,6 +359,12 @@ def _check_and_start_pairing(app: Flask) -> None:
                     hub_name=result.get('store_name'),
                     network_id=result.get('network_id'),
                     status='active',
+                    store_address=result.get('store_address'),
+                    store_city=result.get('store_city'),
+                    store_state=result.get('store_state'),
+                    store_zipcode=result.get('store_zipcode'),
+                    manager_name=result.get('manager_name'),
+                    store_phone=result.get('store_phone'),
                 )
                 _pairing_state['status'] = 'paired'
                 _pairing_state['hub_name'] = result.get('store_name')
@@ -477,6 +489,13 @@ def _register_blueprints(app: Flask) -> None:
         app.logger.info("Registered hub pairing blueprints")
     except ImportError as e:
         app.logger.warning(f"Failed to register hub pairing blueprints: {e}")
+
+    try:
+        from routes import layouts_bp
+        app.register_blueprint(layouts_bp, url_prefix='/api/v1')
+        app.logger.info("Registered layouts blueprint")
+    except ImportError as e:
+        app.logger.warning(f"Failed to register layouts blueprint: {e}")
 
 
 def _init_scheduler(app: Flask) -> None:

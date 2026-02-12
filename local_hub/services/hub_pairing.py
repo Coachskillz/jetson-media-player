@@ -268,7 +268,7 @@ def check_and_pair_hub(app) -> Optional[Dict[str, Any]]:
         result = service.start_pairing(on_status=status_callback)
 
         if result.get('status') == 'paired':
-            # Store credentials
+            # Store credentials and store info
             HubConfig.update_registration(
                 hub_id=result.get('hub_id'),
                 hub_token=result.get('api_token'),
@@ -276,6 +276,13 @@ def check_and_pair_hub(app) -> Optional[Dict[str, Any]]:
                 hub_name=result.get('store_name'),
                 network_id=result.get('network_id'),
                 status='active',
+                # Store info from CMS
+                store_address=result.get('store_address'),
+                store_city=result.get('store_city'),
+                store_state=result.get('store_state'),
+                store_zipcode=result.get('store_zipcode'),
+                manager_name=result.get('manager_name'),
+                store_phone=result.get('store_phone'),
             )
             logger.info(f'Hub paired and credentials stored')
 
