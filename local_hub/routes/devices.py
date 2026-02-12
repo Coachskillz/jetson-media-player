@@ -518,10 +518,14 @@ def update_device_location(hardware_id):
     location_name = data.get('location_name') or data.get('location')
     location_id = data.get('location_id')
 
+    # If only location_id provided, look up the name
+    if not location_name and location_id:
+        location_name = _get_location_name_by_id(location_id)
+
     if not location_name:
         return jsonify({
             'success': False,
-            'error': 'location_name is required'
+            'error': 'location_name or location_id is required'
         }), 400
 
     # Update device location
@@ -585,3 +589,141 @@ def _forward_location_to_cms(device, location_name, location_id=None):
             logger.warning(f"CMS location update failed: {response.status_code} - {response.text}")
     except Exception as e:
         logger.error(f"Failed to forward location to CMS: {e}")
+
+
+def _get_location_name_by_id(location_id):
+    """Look up location name by ID from cached locations or defaults."""
+    import json
+    import os
+    from flask import current_app
+
+    # Default store zones
+    default_zones = [
+        {"id": "entrance", "name": "Entrance"},
+        {"id": "checkout1", "name": "Checkout 1"},
+        {"id": "checkout2", "name": "Checkout 2"},
+        {"id": "checkout3", "name": "Checkout 3"},
+        {"id": "register1", "name": "Register 1"},
+        {"id": "register2", "name": "Register 2"},
+        {"id": "register3", "name": "Register 3"},
+        {"id": "aisle1", "name": "Aisle 1"},
+        {"id": "aisle2", "name": "Aisle 2"},
+        {"id": "cooler", "name": "Cooler"},
+        {"id": "backwall", "name": "Back Wall"},
+    ]
+
+    # Try to load from cached locations
+    storage_path = current_app.config.get('STORAGE_PATH', '/home/skillz/skillz-hub/storage')
+    data_path = os.path.join(os.path.dirname(storage_path), 'data')
+    cache_path = os.path.join(data_path, 'locations.json')
+
+    locations = default_zones
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'r') as f:
+                data = json.load(f)
+                locations = data.get('locations', default_zones)
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    # Find location by ID
+    for loc in locations:
+        if loc.get('id') == location_id:
+            return loc.get('name')
+
+    # If ID not found, return the ID itself as the name
+    return location_id
+
+
+# ============================================================================
+# Sync endpoints
+# ============================================================================
+
+@devices_bp.route('/sync/trigger', methods=['POST'])
+def trigger_sync():
+    """
+    Trigger a sync with the CMS.
+
+    Initiates content and device sync from CMS to Hub.
+
+    Returns:
+        200: Sync triggered successfully
+        500: Sync failed
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    hub_config = HubConfig.get_instance()
+    if not hub_config or not hub_config.is_registered:
+        return jsonify({
+            'success': False,
+            'error': 'Hub not registered with CMS'
+        }), 503
+
+    try:
+        # Try to trigger the sync service
+        from flask import current_app
+        sync_service = current_app.config.get('SYNC_SERVICE')
+
+        if sync_service and hasattr(sync_service, 'sync_now'):
+            sync_service.sync_now()
+            return jsonify({
+                'success': True,
+                'message': 'Sync triggered successfully'
+            }), 200
+
+        # Fallback: manual sync
+        config = current_app.config.get('HUB_CONFIG')
+        if not config or not config.cms_url:
+            return jsonify({
+                'success': False,
+                'error': 'No CMS URL configured'
+            }), 500
+
+        # Sync devices from CMS
+        _sync_devices_from_cms(config, hub_config)
+
+        return jsonify({
+            'success': True,
+            'message': 'Manual sync completed'
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Sync failed: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+def _sync_devices_from_cms(config, hub_config):
+    """Sync device data from CMS."""
+    import logging
+    import requests
+
+    logger = logging.getLogger(__name__)
+
+    cms_url = config.cms_url.rstrip('/')
+    endpoint = f"{cms_url}/api/v1/devices"
+    headers = {
+        'Authorization': f'Bearer {hub_config.hub_token}' if hub_config.hub_token else ''
+    }
+    params = {'hub_id': hub_config.hub_id}
+
+    try:
+        response = requests.get(endpoint, headers=headers, params=params, timeout=30)
+        if response.ok:
+            data = response.json()
+            devices = data.get('devices', [])
+
+            # Update local devices with CMS data
+            for cms_device in devices:
+                hardware_id = cms_device.get('hardware_id')
+                if hardware_id:
+                    Device.update_from_cms(hardware_id, cms_device)
+
+            logger.info(f"Synced {len(devices)} devices from CMS")
+        else:
+            logger.warning(f"Failed to sync devices from CMS: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Error syncing devices from CMS: {e}")

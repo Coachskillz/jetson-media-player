@@ -143,6 +143,21 @@ class KioskWindow(Gtk.Window):
         self.connect('key-press-event', self._on_key_press)
         self.connect('button-press-event', self._on_button_press)
 
+        # Grab keyboard focus periodically (GStreamer video steals focus)
+        GLib.timeout_add(500, self._grab_focus)
+
+    def _grab_focus(self) -> bool:
+        """Periodically grab keyboard focus back from GStreamer window."""
+        try:
+            self.present()
+            self.grab_focus()
+            window = self.get_window()
+            if window:
+                window.focus(Gdk.CURRENT_TIME)
+        except Exception:
+            pass
+        return True  # Keep running
+
     def _on_realize(self, widget: Gtk.Widget) -> None:
         """Called when window is realized."""
         # Hide cursor after short delay to ensure window is fully visible
@@ -200,7 +215,7 @@ class KioskWindow(Gtk.Window):
     def _on_button_press(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
         """
         Handle mouse/touch press events.
-        Triple-tap anywhere minimizes/restores. Corner taps toggle menu.
+        Right-click or double-click toggles menu. 10-tap minimizes/restores.
 
         Args:
             widget: The widget
@@ -209,9 +224,23 @@ class KioskWindow(Gtk.Window):
         Returns:
             True if event was handled, False otherwise
         """
+        # Right-click or middle-click toggles menu
+        if event.button == 3 or event.button == 2:
+            logger.info("Right/middle click - toggling menu")
+            if self._on_menu_toggle:
+                self._on_menu_toggle()
+            return True
+
+        # Double-click toggles menu
+        if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS:
+            logger.info("Double-click - toggling menu")
+            if self._on_menu_toggle:
+                self._on_menu_toggle()
+            return True
+
         now = GLib.get_monotonic_time() // 1000  # microseconds to ms
 
-        # Track tap for triple-tap detection
+        # Track tap for multi-tap detection
         self._tap_timestamps.append(now)
         self._tap_timestamps = [
             t for t in self._tap_timestamps

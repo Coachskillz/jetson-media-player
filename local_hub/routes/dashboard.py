@@ -16,17 +16,20 @@ dashboard_bp = Blueprint("dashboard", __name__)
 # Store zone definitions - customize for each store
 STORE_ZONES = [
     {"id": "entrance", "name": "Entrance", "position": 0},
-    {"id": "checkout1", "name": "Checkout 1", "position": 1},
-    {"id": "checkout2", "name": "Checkout 2", "position": 2},
-    {"id": "checkout3", "name": "Checkout 3", "position": 3},
-    {"id": "aisle1", "name": "Aisle 1", "position": 4},
-    {"id": "aisle2", "name": "Aisle 2", "position": 5},
-    {"id": "aisle3", "name": "Aisle 3", "position": 6},
-    {"id": "endcap1", "name": "Endcap 1", "position": 7},
-    {"id": "cooler", "name": "Cooler", "position": 8},
-    {"id": "backwall", "name": "Back Wall", "position": 9},
-    {"id": "office", "name": "Office", "position": 10},
-    {"id": "storage", "name": "Storage", "position": 11},
+    {"id": "register1", "name": "Register 1", "position": 1},
+    {"id": "register2", "name": "Register 2", "position": 2},
+    {"id": "register3", "name": "Register 3", "position": 3},
+    {"id": "register4", "name": "Register 4", "position": 4},
+    {"id": "checkout1", "name": "Checkout 1", "position": 5},
+    {"id": "checkout2", "name": "Checkout 2", "position": 6},
+    {"id": "aisle1", "name": "Aisle 1", "position": 7},
+    {"id": "aisle2", "name": "Aisle 2", "position": 8},
+    {"id": "aisle3", "name": "Aisle 3", "position": 9},
+    {"id": "endcap1", "name": "Endcap 1", "position": 10},
+    {"id": "endcap2", "name": "Endcap 2", "position": 11},
+    {"id": "cooler", "name": "Cooler", "position": 12},
+    {"id": "backwall", "name": "Back Wall", "position": 13},
+    {"id": "office", "name": "Office", "position": 14},
 ]
 
 
@@ -130,7 +133,10 @@ def dashboard():
     # Check CMS connection
     cms_connected = check_cms_connection(cms_url)
 
-    # Get devices
+    # Get locations (from cache or defaults)
+    locations = _get_locations()
+
+    # Get devices with playlist info
     devices = []
     pending_count = 0
     online_count = 0
@@ -147,6 +153,9 @@ def dashboard():
             else:
                 offline_count += 1
 
+            # Get playlist name if available
+            playlist_name = _get_device_playlist_name(device)
+
             devices.append({
                 "device_id": device.device_id,
                 "hardware_id": device.hardware_id,
@@ -154,6 +163,7 @@ def dashboard():
                 "location": getattr(device, 'location', None) or device.name,
                 "ip_address": device.ip_address,
                 "status": device.status,
+                "playlist_name": playlist_name,
             })
     except Exception as e:
         current_app.logger.error(f"Error getting devices: {e}")
@@ -173,5 +183,48 @@ def dashboard():
         pending_count=pending_count,
         online_count=online_count,
         offline_count=offline_count,
+        locations=locations,
         current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     )
+
+
+def _get_locations():
+    """Get locations from cache or return defaults."""
+    import json
+    import os
+
+    # Try to load from cached locations file
+    storage_path = current_app.config.get('STORAGE_PATH', '/home/skillz/skillz-hub/storage')
+    data_path = os.path.join(os.path.dirname(storage_path), 'data')
+    cache_path = os.path.join(data_path, 'locations.json')
+
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'r') as f:
+                data = json.load(f)
+                return data.get('locations', STORE_ZONES)
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    # Return default store zones
+    return STORE_ZONES
+
+
+def _get_device_playlist_name(device):
+    """Get the playlist name for a device from its layout."""
+    try:
+        # Check if device has layout_json with playlist info
+        if hasattr(device, 'layout_json') and device.layout_json:
+            import json
+            layout = json.loads(device.layout_json) if isinstance(device.layout_json, str) else device.layout_json
+            # Look for playlist name in layout
+            if layout.get('playlist_name'):
+                return layout['playlist_name']
+            # Or check layers for content
+            layers = layout.get('layers', [])
+            for layer in layers:
+                if layer.get('type') == 'content' and layer.get('playlist_name'):
+                    return layer['playlist_name']
+    except Exception:
+        pass
+    return None

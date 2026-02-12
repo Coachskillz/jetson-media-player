@@ -190,14 +190,14 @@ class SyncService:
 
             if version_changed:
                 logger.info(
-                    "Playlist version changed: v%d -> v%d - purging old content",
+                    "Playlist version changed: v%d -> v%d - PURGING ALL media files",
                     self._current_playlist_version,
                     remote_version
                 )
-                # Purge old content files
-                removed_files = self.cleanup_orphaned_files(remote_config)
+                # Purge ALL content files - fresh download for new playlist
+                removed_files = self.purge_all_media()
                 if removed_files:
-                    logger.info("Purged %d old files: %s", len(removed_files), removed_files)
+                    logger.info("Purged %d files for new playlist", len(removed_files))
 
             if remote_version > local_version or version_changed:
                 logger.info(
@@ -211,8 +211,8 @@ class SyncService:
             # Update current version tracking
             self._current_playlist_version = remote_version
 
-            # Download any missing content
-            if self._sync_content(remote_config):
+            # Download any missing content (force_download=True if version changed)
+            if self._sync_content(remote_config, force_download=version_changed):
                 content_updated = True
 
             # Update settings if changed
@@ -333,12 +333,13 @@ class SyncService:
             logger.error("Failed to update playlist: %s", e)
             return False
 
-    def _sync_content(self, remote_config: Dict[str, Any]) -> bool:
+    def _sync_content(self, remote_config: Dict[str, Any], force_download: bool = False) -> bool:
         """
-        Download any missing content files.
+        Download content files from Hub.
 
         Args:
             remote_config: Configuration from hub
+            force_download: If True, download all files even if they exist
 
         Returns:
             True if any new content was downloaded
@@ -355,31 +356,26 @@ class SyncService:
         for content in content_files:
             content_id = content.get('content_id', '')
             filename = content.get('filename', '')
-            download_url = content.get('url', '')  # Full URL if provided
 
             if not filename:
                 continue
 
             local_path = self.media_dir / filename
 
-            # Skip if file already exists with correct hash
+            # Force download mode - always download (used when playlist changes)
+            if force_download:
+                logger.info("Force downloading: %s", filename)
+                if self._download_content(content_id, filename):
+                    downloaded_any = True
+                continue
+
+            # Normal mode - skip if file already exists
             if local_path.exists():
-                expected_hash = content.get('file_hash')
-                if expected_hash and self._verify_file_hash(local_path, expected_hash):
-                    logger.debug("Content already exists: %s", filename)
-                    continue
-                elif expected_hash:
-                    logger.warning(
-                        "Content hash mismatch, re-downloading: %s",
-                        filename
-                    )
-                elif not expected_hash:
-                    # No hash provided, trust existing file
-                    logger.debug("Content exists (no hash to verify): %s", filename)
-                    continue
+                logger.debug("Content already exists: %s", filename)
+                continue
 
             # Download the content
-            if self._download_content(content_id, filename, download_url):
+            if self._download_content(content_id, filename):
                 downloaded_any = True
 
         return downloaded_any
@@ -430,25 +426,27 @@ class SyncService:
 
     def _download_content(self, content_id: str, filename: str, download_url: str = '') -> bool:
         """
-        Download a content file from hub or direct URL.
+        Download a content file from Hub ONLY (never from internet/CMS).
 
         Args:
-            content_id: Content ID for fallback URL construction
+            content_id: Content ID for URL construction
             filename: Local filename to save as
-            download_url: Full download URL (preferred if provided)
+            download_url: Ignored - always use Hub URL for security
 
         Returns:
             True if download successful
         """
-        if not content_id and not download_url:
-            logger.warning("No content_id or URL for file: %s", filename)
+        if not content_id:
+            logger.warning("No content_id for file: %s", filename)
             return False
 
         local_path = self.media_dir / filename
         temp_path = self.media_dir / f".{filename}.tmp"
 
-        # Use provided URL or construct from hub_url
-        url = download_url if download_url else f"{self.hub_url}/api/v1/content/{content_id}/download"
+        # ALWAYS download from Hub - never use external URLs
+        # This ensures player only connects to local Hub, never to internet
+        url = f"{self.hub_url}/api/v1/content/{content_id}/download"
+        logger.debug("Downloading from Hub: %s", url)
 
         try:
             logger.info("Downloading: %s", filename)
@@ -674,6 +672,34 @@ class SyncService:
 
         except Exception as e:
             logger.error("Error during cleanup: %s", e)
+
+        return removed
+
+    def purge_all_media(self) -> List[str]:
+        """
+        Remove ALL media files in preparation for a new playlist.
+        Called when playlist changes to ensure fresh download.
+
+        Returns:
+            List of removed filenames
+        """
+        removed = []
+
+        try:
+            for file_path in self.media_dir.glob('*'):
+                if file_path.is_file():
+                    # Skip hidden and temp files
+                    if file_path.name.startswith('.'):
+                        continue
+
+                    logger.info("Purging media file: %s", file_path.name)
+                    file_path.unlink()
+                    removed.append(file_path.name)
+
+            logger.info("Purged %d media files", len(removed))
+
+        except Exception as e:
+            logger.error("Error during purge: %s", e)
 
         return removed
 

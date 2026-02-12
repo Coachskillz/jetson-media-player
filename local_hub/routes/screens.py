@@ -179,10 +179,10 @@ def get_screen_config_by_device(screen_id):
 
 def _get_playlist_for_screen(screen, include_staging=False):
     """
-    Get the playlist data for a screen by fetching from CMS.
+    Get the playlist data for a screen from local Device cache.
 
-    Fetches the playlist directly from CMS using the device's hardware_id.
-    Returns playlist as a named package with content items for download.
+    First tries to get playlist from Device model's layout_json (cached from CMS).
+    Falls back to direct CMS query if layout_json is not available.
 
     Args:
         screen: Screen model instance
@@ -191,14 +191,70 @@ def _get_playlist_for_screen(screen, include_staging=False):
     Returns:
         Dictionary with playlist name, version, duration, and optionally staging items
     """
+    import json
+    import hashlib
+    import logging
     import requests
     from config import load_config
 
-    try:
-        config = load_config()
-        cms_url = config.cms_url
+    config = load_config()
+    cms_url = config.cms_url
+    logger = logging.getLogger(__name__)
 
-        # Fetch playlist from CMS using hardware_id
+    # First, try to get playlist from Device model's layout_json
+    try:
+        from models.device import Device
+        device = Device.query.filter_by(hardware_id=screen.hardware_id).first()
+
+        if device and hasattr(device, 'layout_json') and device.layout_json:
+            layout = json.loads(device.layout_json) if isinstance(device.layout_json, str) else device.layout_json
+
+            # Find the content layer with playlist
+            for layer in layout.get('layers', []):
+                if layer.get('content_source') == 'playlist' and layer.get('items'):
+                    playlist_info = layer.get('playlist', {})
+                    items = layer.get('items', [])
+
+                    # Calculate total duration
+                    total_duration = sum(item.get('duration', 0) for item in items)
+
+                    # Generate version from content hash
+                    content_hash = hashlib.md5(json.dumps(items, sort_keys=True).encode()).hexdigest()[:8]
+
+                    result = {
+                        'playlist_id': playlist_info.get('id'),
+                        'name': playlist_info.get('name', f'Playlist for {screen.name}'),
+                        'version': content_hash,
+                        'duration': total_duration
+                    }
+
+                    if include_staging:
+                        staging_items = []
+                        for item in items:
+                            content_id = item.get('content_id')
+                            # Use CMS URL for download
+                            download_url = f"{cms_url}{item.get('url')}" if item.get('url', '').startswith('/') else item.get('url')
+                            if not download_url and content_id:
+                                download_url = f"{cms_url}/api/v1/content/{content_id}/download"
+
+                            staging_items.append({
+                                'content_id': content_id,
+                                'filename': item.get('filename'),
+                                'original_name': item.get('filename'),  # Use filename as original_name
+                                'duration': item.get('duration', 10),
+                                'position': item.get('order', 0),
+                                'content_type': item.get('content_type', 'video').replace('video/mp4', 'video'),
+                                'file_size': item.get('file_size', 0),
+                                'url': download_url
+                            })
+                        result['staging_items'] = staging_items
+
+                    return result
+    except Exception as e:
+        logger.warning(f"Failed to get playlist from Device cache: {e}")
+
+    # Fallback: fetch from CMS directly
+    try:
         response = requests.get(
             f"{cms_url}/api/v1/devices/{screen.hardware_id}/playlist",
             timeout=10

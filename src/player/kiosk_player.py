@@ -385,6 +385,7 @@ class KioskPlayer:
             # Register device with selected mode
             device_data = self._pairing_client.register_device(mode=mode)
             code = None
+            locations = []
 
             if device_data:
                 logger.info("Device registered: %s", device_data.get('device_id'))
@@ -394,13 +395,18 @@ class KioskPlayer:
                     code = device_data.get('pairing_code')
                     logger.info("Got pairing code from Hub register: %s", code)
 
+                # Hub also returns locations for the dropdown
+                if mode == "hub" and device_data.get('locations'):
+                    locations = device_data.get('locations', [])
+                    logger.info("Got %d locations from Hub", len(locations))
+
             # For direct CMS mode, request pairing code separately
             if not code and mode != "hub":
                 code = self._pairing_client.request_pairing()
 
             # Update UI on the main thread
             if code:
-                GLib.idle_add(self._on_pairing_code_received, code)
+                GLib.idle_add(self._on_pairing_code_received, code, locations)
             else:
                 GLib.idle_add(self._on_pairing_code_failed)
 
@@ -408,11 +414,16 @@ class KioskPlayer:
             logger.error("Registration/pairing failed: %s", e)
             GLib.idle_add(self._on_pairing_code_failed)
 
-    def _on_pairing_code_received(self, code: str) -> bool:
+    def _on_pairing_code_received(self, code: str, locations: list = None) -> bool:
         """Handle successful pairing code receipt (called on main thread)."""
         self._config.pairing_code = code
         self._config.save_device()
         self._pairing_screen.set_pairing_code(code)
+
+        # Set locations for the dropdown (Hub mode)
+        if locations:
+            self._pairing_screen.set_locations(locations)
+            logger.info("Updated pairing screen with %d locations", len(locations))
 
         # Show appropriate status message based on mode
         if self._config.connection_mode == "hub" and self._config.hub_url:

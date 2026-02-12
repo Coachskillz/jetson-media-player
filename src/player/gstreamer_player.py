@@ -51,6 +51,8 @@ class GStreamerPlayer:
     DEFAULT_MEDIA_DIR = "/home/skillz/media"
     _WATCHDOG_INTERVAL_MS = 500
     _PREQUEUE_SECONDS = 2.0
+    _STALL_THRESHOLD_SECONDS = 5.0
+    _MAX_STALL_RECOVERY_ATTEMPTS = 3
 
     def __init__(
         self,
@@ -82,6 +84,11 @@ class GStreamerPlayer:
         # Position watchdog timer ID
         self._watchdog_id: Optional[int] = None
 
+        # Stall detection
+        self._last_known_position: int = 0
+        self._last_position_change_time: float = 0.0
+        self._stall_recovery_attempts: int = 0
+
         logger.info("GStreamerPlayer initialized with media_dir: %s", self.media_dir)
 
     # ------------------------------------------------------------------
@@ -90,10 +97,9 @@ class GStreamerPlayer:
 
     def _create_pipeline(self, filepath: str) -> Gst.Pipeline:
         """
-        Build: filesrc → qtdemux → { video branch, audio branch }
+        Build: filesrc → qtdemux → h264parse → nvv4l2decoder → nvvidconv → xvimagesink
 
-        Audio is optional — if the file has no audio track, the pipeline
-        still works because qtdemux simply won't link the audio pad.
+        Video only - no audio playback.
         """
         pipeline = Gst.Pipeline.new('player')
 
@@ -106,7 +112,10 @@ class GStreamerPlayer:
         h264parse = Gst.ElementFactory.make('h264parse', 'h264parse')
         nvdecoder = Gst.ElementFactory.make('nvv4l2decoder', 'nvdecoder')
         nvvidconv = Gst.ElementFactory.make('nvvidconv', 'nvvidconv')
-        self._videosink = Gst.ElementFactory.make('xvimagesink', 'videosink')
+        # Try nveglglessink first (NVIDIA native), fall back to xvimagesink
+        self._videosink = Gst.ElementFactory.make('nveglglessink', 'videosink')
+        if not self._videosink:
+            self._videosink = Gst.ElementFactory.make('xvimagesink', 'videosink')
 
         if not all([self._filesrc, qtdemux, vqueue, h264parse, nvdecoder, nvvidconv, self._videosink]):
             # Fallback: try without HW decoder
@@ -114,45 +123,25 @@ class GStreamerPlayer:
             return self._create_fallback_pipeline(filepath)
 
         self._videosink.set_property('sync', True)
-
-        # Audio branch: queue → avdec_aac → audioconvert → audioresample → pulsesink
-        aqueue = Gst.ElementFactory.make('queue', 'aqueue')
-        aac_dec = Gst.ElementFactory.make('avdec_aac', 'aacdec')
-        audioconv = Gst.ElementFactory.make('audioconvert', 'audioconv')
-        audioresamp = Gst.ElementFactory.make('audioresample', 'audioresamp')
-        audiosink = Gst.ElementFactory.make('pulsesink', 'audiosink')
-        if not audiosink:
-            audiosink = Gst.ElementFactory.make('autoaudiosink', 'audiosink')
-
-        has_audio = all([aqueue, aac_dec, audioconv, audioresamp, audiosink])
-        if audiosink:
-            audiosink.set_property('sync', True)
+        # Disable event handling so keyboard/mouse events go to GTK window
+        if self._videosink.get_factory().get_name() == 'xvimagesink':
+            self._videosink.set_property('handle-events', False)
 
         # Set file location
         self._filesrc.set_property('location', filepath)
 
-        # Add all elements to pipeline
+        # Add video elements to pipeline
         for el in [self._filesrc, qtdemux, vqueue, h264parse, nvdecoder, nvvidconv, self._videosink]:
             pipeline.add(el)
 
-        if has_audio:
-            for el in [aqueue, aac_dec, audioconv, audioresamp, audiosink]:
-                pipeline.add(el)
-
-        # Link static elements
+        # Link static video elements
         self._filesrc.link(qtdemux)
         vqueue.link(h264parse)
         h264parse.link(nvdecoder)
         nvdecoder.link(nvvidconv)
         nvvidconv.link(self._videosink)
 
-        if has_audio:
-            aqueue.link(aac_dec)
-            aac_dec.link(audioconv)
-            audioconv.link(audioresamp)
-            audioresamp.link(audiosink)
-
-        # Dynamic pad linking from qtdemux
+        # Dynamic pad linking from qtdemux (video only)
         def on_pad_added(demux, pad):
             pad_name = pad.get_name()
             caps = pad.get_current_caps()
@@ -163,12 +152,7 @@ class GStreamerPlayer:
                 if not sink_pad.is_linked():
                     pad.link(sink_pad)
                     logger.info("Linked video pad: %s", pad_name)
-            elif "audio" in struct_name or "audio" in pad_name:
-                if has_audio:
-                    sink_pad = aqueue.get_static_pad('sink')
-                    if not sink_pad.is_linked():
-                        pad.link(sink_pad)
-                        logger.info("Linked audio pad: %s", pad_name)
+            # Audio pads are ignored - video only playback
 
         qtdemux.connect('pad-added', on_pad_added)
 
@@ -236,10 +220,8 @@ class GStreamerPlayer:
             self._watchdog_id = None
 
     def _watchdog_tick(self) -> bool:
+        import time
         if self._state != PlayerState.PLAYING or self._pipeline is None:
-            return True
-
-        if self._prefetched:
             return True
 
         ok_pos, position = self._pipeline.query_position(Gst.Format.TIME)
@@ -248,12 +230,67 @@ class GStreamerPlayer:
         if not ok_pos or not ok_dur or duration <= 0:
             return True
 
-        remaining = (duration - position) / Gst.SECOND
-        if remaining <= self._PREQUEUE_SECONDS:
-            logger.info("Watchdog: %.1fs remaining — pre-fetching next", remaining)
-            self._prefetch_next("watchdog")
+        current_time = time.time()
+
+        # Stall detection: check if position has advanced
+        if position != self._last_known_position:
+            self._last_known_position = position
+            self._last_position_change_time = current_time
+            self._stall_recovery_attempts = 0
+        else:
+            # Position unchanged - check if stalled
+            time_stuck = current_time - self._last_position_change_time
+            if self._last_position_change_time > 0 and time_stuck > self._STALL_THRESHOLD_SECONDS:
+                logger.warning("STALL DETECTED: position stuck at %.1fs for %.1f seconds",
+                              position / Gst.SECOND, time_stuck)
+                self._handle_stall()
+                return True
+
+        # Pre-fetch logic
+        if not self._prefetched:
+            remaining = (duration - position) / Gst.SECOND
+            if remaining <= self._PREQUEUE_SECONDS:
+                logger.info("Watchdog: %.1fs remaining — pre-fetching next", remaining)
+                self._prefetch_next("watchdog")
 
         return True
+
+    def _handle_stall(self) -> None:
+        """Handle a detected stall by attempting recovery or skipping to next video."""
+        self._stall_recovery_attempts += 1
+
+        if self._stall_recovery_attempts > self._MAX_STALL_RECOVERY_ATTEMPTS:
+            logger.error("Max stall recovery attempts reached - skipping to next video")
+            self._stall_recovery_attempts = 0
+            self._last_position_change_time = 0.0
+            # Trigger error callback to skip to next video
+            if self._on_error:
+                self._on_error("Stall recovery failed - skipping video")
+            return
+
+        logger.info("Attempting stall recovery (attempt %d/%d)",
+                   self._stall_recovery_attempts, self._MAX_STALL_RECOVERY_ATTEMPTS)
+
+        # Try to recover by restarting playback of the same video
+        current_uri = self._playing_uri
+        if current_uri:
+            GLib.idle_add(self._recover_from_stall, current_uri)
+
+    def _recover_from_stall(self, uri: str) -> bool:
+        """Restart playback of the current video after a stall."""
+        import time as time_module
+        try:
+            self.stop()
+            time_module.sleep(0.1)
+            self._last_position_change_time = time_module.time()
+            self.play(uri)
+            logger.info("Stall recovery: restarted playback of %s",
+                       Path(uri).name if uri.startswith("file://") else uri)
+        except Exception as e:
+            logger.error("Stall recovery failed: %s", e)
+            if self._on_error:
+                self._on_error(f"Stall recovery failed: {e}")
+        return False  # Don't repeat
 
     # ------------------------------------------------------------------
     # Bus message handlers

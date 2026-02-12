@@ -272,3 +272,127 @@ def approve_pairing(hardware_id):
         'device_id': device_id,
         'screen_id': screen.id
     }), 200
+
+
+@pairing_bp.route('/approve-by-code', methods=['POST'])
+def approve_pairing_by_code():
+    """
+    Approve a device pairing by entering the 6-digit code shown on screen.
+
+    This is the primary pairing method for the Hub dashboard. The installer
+    enters the code displayed on the Jetson screen along with the screen's
+    location in the store.
+
+    Request Body:
+        {
+            "pairing_code": "123456",
+            "location": "Checkout 1" (optional)
+        }
+
+    Returns:
+        200: Pairing approved
+        400: Invalid code
+        404: Device with code not found
+    """
+    from models import Screen
+
+    data = request.get_json() or {}
+    pairing_code = data.get('pairing_code')
+    location = data.get('location')
+
+    if not pairing_code:
+        return jsonify({
+            'success': False,
+            'error': 'pairing_code is required'
+        }), 400
+
+    # Find device by pairing code
+    device = Device.query.filter_by(pairing_code=pairing_code).first()
+
+    if not device:
+        return jsonify({
+            'success': False,
+            'error': f'No device found with pairing code {pairing_code}'
+        }), 404
+
+    # Generate device ID if not set
+    if not device.device_id:
+        device.device_id = f"DEV-{device.id:04d}"
+
+    device.status = 'online'
+    device.synced_at = datetime.utcnow()
+
+    # Set location if provided
+    if location:
+        device.location = location
+
+    # Create/update Screen record for config endpoints
+    screen = Screen.get_by_hardware_id(device.hardware_id)
+    if not screen:
+        screen = Screen(
+            hardware_id=device.hardware_id,
+            name=device.name or f"Screen-{device.id}",
+            status='online',
+            ip_address=device.ip_address,
+            last_heartbeat=datetime.utcnow()
+        )
+        db.session.add(screen)
+    else:
+        screen.status = 'online'
+        screen.last_heartbeat = datetime.utcnow()
+
+    if location:
+        screen.location = location
+
+    db.session.commit()
+
+    # Forward approval to CMS so device appears as approved there too
+    _forward_approval_to_cms(device)
+
+    return jsonify({
+        'success': True,
+        'message': 'Device paired successfully',
+        'device_id': device.device_id,
+        'hardware_id': device.hardware_id,
+        'location': device.location,
+        'screen_id': screen.id
+    }), 200
+
+
+def _forward_approval_to_cms(device):
+    """Forward device approval to CMS."""
+    import logging
+    import requests
+
+    logger = logging.getLogger(__name__)
+
+    hub_config = HubConfig.get_instance()
+    if not hub_config or not hub_config.is_registered:
+        logger.warning("Hub not registered, skipping CMS approval forward")
+        return
+
+    config = get_config()
+    if not config or not config.cms_url:
+        logger.warning("No CMS URL configured, skipping approval forward")
+        return
+
+    # If device has a CMS ID, update its status
+    if device.cms_device_id:
+        endpoint = f"{config.cms_url.rstrip('/')}/api/v1/devices/{device.cms_device_id}/status"
+        payload = {
+            'status': 'active',
+            'location': device.location
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {hub_config.hub_token}' if hub_config.hub_token else ''
+        }
+
+        try:
+            response = requests.put(endpoint, json=payload, headers=headers, timeout=10)
+            if response.ok:
+                logger.info(f"Device {device.hardware_id} approval forwarded to CMS")
+            else:
+                logger.warning(f"CMS approval forward failed: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to forward approval to CMS: {e}")
