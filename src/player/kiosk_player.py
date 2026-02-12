@@ -541,13 +541,23 @@ class KioskPlayer:
         # Always switch UI to playback view first
         self._stack.set_visible_child_name("playback")
 
-        # Initialize playback components (may fail if no content yet)
+        # Initialize playback components
         try:
-            if not self._gst_player:
-                self._initialize_playback_components()
-            self._start_playback()
+            self._initialize_playback_components()
         except Exception as e:
-            logger.error("Failed to initialize playback: %s", e)
+            logger.error("Failed to initialize playback components: %s", e)
+
+        # Initialize GStreamer and start playback if there's content
+        if self._playlist_manager and self._playlist_manager.default_playlist_length > 0:
+            try:
+                self._initialize_gstreamer()
+                self._start_playback()
+            except Exception as e:
+                logger.error("Failed to start playback: %s", e)
+        else:
+            # Show SKILLZ MEDIA logo while waiting for content
+            logger.info("No content available - showing idle screen")
+            self._idle_label.show()
 
         # Start background services (sync will download content)
         try:
