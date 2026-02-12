@@ -1246,3 +1246,59 @@ def assign_playlist_to_device(device_id):
         'playlist_id': playlist.id,
         'playlist_name': playlist.name
     }), 200
+
+
+@devices_bp.route('/<device_id>', methods=['DELETE'])
+@login_required
+def delete_device(device_id):
+    """
+    Delete a device from the CMS.
+
+    Args:
+        device_id: Device ID (can be UUID or SKZ-X-XXXX format)
+
+    Returns:
+        200: Device deleted
+        404: Device not found
+    """
+    # Try to find device by device_id (SKZ format) first, then by UUID
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    device_name = device.name
+    hardware_id = device.hardware_id
+
+    try:
+        # Delete associated assignments first
+        DeviceAssignment.query.filter_by(device_id=device.id).delete()
+
+        # Delete device layouts
+        from models import DeviceLayout
+        DeviceLayout.query.filter_by(device_id=device.id).delete()
+
+        # Delete the device
+        db.session.delete(device)
+        db.session.commit()
+
+        # Audit log
+        log_action(
+            action_type='device.deleted',
+            resource_type='device',
+            resource_id=device_id,
+            details={
+                'name': device_name,
+                'hardware_id': hardware_id,
+            }
+        )
+
+        return jsonify({
+            'message': f'Device "{device_name}" deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

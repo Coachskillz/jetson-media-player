@@ -100,6 +100,29 @@
     opacity: 1;
 }
 
+.delete-device {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.device-card:hover .delete-device {
+    opacity: 1;
+}
+
+.device-card {
+    position: relative;
+}
+
 /* Pairing Box */
 .pairing-box {
     background: rgba(255, 255, 255, 0.95);
@@ -515,6 +538,7 @@
     <div class="devices-grid">
         {% for device in devices %}
         <div class="device-card" data-location="{{ device.location_id or '' }}">
+            <button class="delete-device" onclick="event.stopPropagation(); deleteDevice('{{ device.id }}', '{{ device.name }}')" title="Delete device">🗑️</button>
             <div class="device-header">
                 <div class="device-status" id="status-{{ device.id }}"></div>
                 <div class="device-info">
@@ -880,6 +904,29 @@
                 location.reload();
             } else {
                 alert('❌ Failed to delete location');
+            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
+        }
+    }
+
+    // Delete device
+    async function deleteDevice(deviceId, deviceName) {
+        if (!confirm(`Delete device "${deviceName}"?\n\nThis will remove the device from the CMS. The device will need to re-pair.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/devices/${deviceId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert('✅ Device deleted');
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert('❌ Failed to delete device: ' + (data.error || 'Unknown error'));
             }
         } catch (error) {
             alert('❌ Error: ' + error.message);
