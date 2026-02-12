@@ -1248,6 +1248,211 @@ def assign_playlist_to_device(device_id):
     }), 200
 
 
+@devices_bp.route('/<device_id>/location', methods=['PUT'])
+def update_device_location(device_id):
+    """
+    Update device location (screen_location field).
+
+    Called by Hub when a device selects its location during installation.
+
+    Args:
+        device_id: Device UUID or SKZ-X-XXXX format
+
+    Request Body:
+        {
+            "screen_location": "Fishing Counter",
+            "location_id": "uuid (optional)"
+        }
+
+    Returns:
+        200: Location updated
+        404: Device not found
+    """
+    # Find device by UUID first, then by device_id format
+    device = db.session.get(Device, device_id)
+    if not device:
+        device = Device.query.filter_by(device_id=device_id).first()
+
+    if not device:
+        return jsonify({
+            'success': False,
+            'error': 'Device not found'
+        }), 404
+
+    data = request.get_json(silent=True) or {}
+    screen_location = data.get('screen_location') or data.get('location_name')
+
+    if not screen_location:
+        return jsonify({
+            'success': False,
+            'error': 'screen_location is required'
+        }), 400
+
+    # Update device location
+    device.screen_location = screen_location
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to update location: {str(e)}'
+        }), 500
+
+    # Log the location update
+    log_action(
+        action='device.update_location',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        user_email='hub',
+        details={
+            'screen_location': screen_location,
+        }
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Location updated',
+        'screen_location': screen_location
+    }), 200
+
+
+@devices_bp.route('/register-from-hub', methods=['POST'])
+def register_from_hub():
+    """
+    Register a device forwarded from a Hub.
+
+    Hubs call this endpoint when a device registers with them. This creates
+    the device in the CMS database so admins can approve it. The device
+    remains in 'pending' status until approved.
+
+    Request Body:
+        {
+            "hardware_id": "unique-hardware-id" (required),
+            "name": "device name" (optional),
+            "pairing_code": "123456" (required),
+            "ip_address": "10.10.10.100" (optional),
+            "hub_id": "uuid-of-hub" (required),
+            "hub_code": "ABC" (optional, for device ID generation),
+            "mode": "hub" (required)
+        }
+
+    Returns:
+        201: New device created
+            {
+                "success": true,
+                "device_id": "uuid",
+                "device_code": "SKZ-H-ABC-0001",
+                "message": "Device registered"
+            }
+        200: Existing device returned
+            {
+                "success": true,
+                "device_id": "uuid",
+                "device_code": "SKZ-H-ABC-0001",
+                "message": "Device already exists"
+            }
+        400: Missing required field
+        404: Hub not found
+    """
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({'success': False, 'error': 'Request body is required'}), 400
+
+    # Validate required fields
+    hardware_id = data.get('hardware_id')
+    if not hardware_id:
+        return jsonify({'success': False, 'error': 'hardware_id is required'}), 400
+
+    pairing_code = data.get('pairing_code')
+    if not pairing_code:
+        return jsonify({'success': False, 'error': 'pairing_code is required'}), 400
+
+    hub_id = data.get('hub_id')
+    if not hub_id:
+        return jsonify({'success': False, 'error': 'hub_id is required'}), 400
+
+    # Check if device already exists
+    existing_device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if existing_device:
+        return jsonify({
+            'success': True,
+            'device_id': existing_device.id,
+            'device_code': existing_device.device_id,
+            'message': 'Device already exists'
+        }), 200
+
+    # Validate hub exists
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        return jsonify({
+            'success': False,
+            'error': f'Hub with id {hub_id} not found'
+        }), 404
+
+    # Get hub code for device ID generation
+    hub_code = data.get('hub_code') or hub.code
+
+    # Generate device ID
+    try:
+        device_id = DeviceIDGenerator.generate_hub_id_by_hub_id(
+            hub_id, hub_code, db.session
+        )
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to generate device ID: {str(e)}'
+        }), 500
+
+    # Create device
+    device = Device(
+        hardware_id=hardware_id,
+        device_id=device_id,
+        mode='hub',
+        hub_id=hub_id,
+        network_id=hub.network_id,
+        name=data.get('name'),
+        pairing_code=pairing_code,
+        status='pending'
+    )
+
+    try:
+        db.session.add(device)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to create device: {str(e)}'
+        }), 500
+
+    # Log device registration
+    log_action(
+        action='device.register_from_hub',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        user_email='hub',
+        details={
+            'hardware_id': hardware_id,
+            'hub_id': hub_id,
+            'pairing_code': pairing_code,
+        }
+    )
+
+    return jsonify({
+        'success': True,
+        'device_id': device.id,
+        'device_code': device.device_id,
+        'message': 'Device registered'
+    }), 201
+
+
 @devices_bp.route('/<device_id>', methods=['DELETE'])
 @login_required
 def delete_device(device_id):

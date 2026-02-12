@@ -216,6 +216,9 @@ def approve_pairing(hardware_id):
     In production, pairing is approved via the CMS. This endpoint
     allows local approval for testing purposes.
 
+    When a device is approved, a corresponding Screen record is also
+    created so the device can be found by the config/sync endpoints.
+
     Args:
         hardware_id: Device hardware ID
 
@@ -228,6 +231,8 @@ def approve_pairing(hardware_id):
         200: Pairing approved
         404: Device not found
     """
+    from models import Screen
+
     device = Device.get_by_hardware_id(hardware_id)
 
     if not device:
@@ -246,10 +251,24 @@ def approve_pairing(hardware_id):
     device.device_id = device_id
     device.status = 'online'
     device.synced_at = datetime.utcnow()
+
+    # Also create/update a Screen record so config endpoints can find this device
+    screen = Screen.get_by_hardware_id(hardware_id)
+    if not screen:
+        screen = Screen(
+            hardware_id=hardware_id,
+            name=device.name,
+            status='online',
+            ip_address=device.ip_address,
+            last_heartbeat=datetime.utcnow()
+        )
+        db.session.add(screen)
+
     db.session.commit()
 
     return jsonify({
         'success': True,
         'message': 'Device pairing approved',
-        'device_id': device_id
+        'device_id': device_id,
+        'screen_id': screen.id
     }), 200

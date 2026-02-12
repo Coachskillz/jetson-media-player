@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 import os
+import subprocess
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -92,6 +94,7 @@ class KioskPlayer:
         self._config: Optional[PlayerConfig] = None
         self._state_machine: Optional[PlayerStateMachine] = None
         self._cms_client: Optional[CMSClient] = None
+        self._pairing_client: Optional[CMSClient] = None  # Client for pairing (hub or cms)
         self._device_info: dict = {}
 
         # GTK components
@@ -350,7 +353,13 @@ class KioskPlayer:
         self._config.save_device()
 
         self._pairing_started_at = time.time()
-        self._pairing_screen.set_status("Connecting to CMS...")
+
+        # Set status message based on mode
+        if mode == "hub" and self._config.hub_url:
+            hub_ip = self._config.hub_url.replace("http://", "").replace(":5000", "")
+            self._pairing_screen.set_status(f"Connecting to Hub ({hub_ip})...")
+        else:
+            self._pairing_screen.set_status("Connecting to CMS...")
 
         # Run registration + code request off the main thread
         threading.Thread(
@@ -363,13 +372,31 @@ class KioskPlayer:
     def _register_and_request_code(self, mode: str) -> None:
         """Register device and request pairing code (runs in background thread)."""
         try:
+            # Use the correct URL based on mode
+            if mode == "hub" and self._config.hub_url:
+                # Hub mode: use local Hub for pairing
+                self._pairing_client = CMSClient(cms_url=self._config.hub_url, is_hub=True)
+                logger.info("Using Hub URL for pairing: %s", self._config.hub_url)
+            else:
+                # Direct mode: use CMS
+                self._pairing_client = self._cms_client
+                logger.info("Using CMS URL for pairing: %s", self._config.cms_url)
+
             # Register device with selected mode
-            device_data = self._cms_client.register_device(mode=mode)
+            device_data = self._pairing_client.register_device(mode=mode)
+            code = None
+
             if device_data:
                 logger.info("Device registered: %s", device_data.get('device_id'))
 
-            # Request pairing code
-            code = self._cms_client.request_pairing()
+                # Hub returns pairing_code directly in register response
+                if mode == "hub" and device_data.get('pairing_code'):
+                    code = device_data.get('pairing_code')
+                    logger.info("Got pairing code from Hub register: %s", code)
+
+            # For direct CMS mode, request pairing code separately
+            if not code and mode != "hub":
+                code = self._pairing_client.request_pairing()
 
             # Update UI on the main thread
             if code:
@@ -386,7 +413,13 @@ class KioskPlayer:
         self._config.pairing_code = code
         self._config.save_device()
         self._pairing_screen.set_pairing_code(code)
-        self._pairing_screen.set_status("Waiting for approval...")
+
+        # Show appropriate status message based on mode
+        if self._config.connection_mode == "hub" and self._config.hub_url:
+            hub_ip = self._config.hub_url.replace("http://", "").replace(":5000", "")
+            self._pairing_screen.set_status(f"Connected to Hub ({hub_ip}) - Waiting for approval")
+        else:
+            self._pairing_screen.set_status("Waiting for CMS approval...")
 
         # Start polling for approval
         self._start_pairing_check()
@@ -401,7 +434,13 @@ class KioskPlayer:
     def _on_pairing_code_failed(self) -> bool:
         """Handle failed pairing code request (called on main thread)."""
         logger.error("Failed to get pairing code")
-        self._pairing_screen.show_error("Could not connect to CMS")
+
+        # Show appropriate error message based on mode
+        if self._config.connection_mode == "hub" and self._config.hub_url:
+            hub_ip = self._config.hub_url.replace("http://", "").replace(":5000", "")
+            self._pairing_screen.show_error(f"Could not connect to Hub ({hub_ip})")
+        else:
+            self._pairing_screen.show_error("Could not connect to CMS")
 
         # Retry pairing after 30 seconds
         GLib.timeout_add_seconds(30, self._retry_pairing)
@@ -463,7 +502,7 @@ class KioskPlayer:
         if not self._running:
             return False
 
-        if self._cms_client.check_pairing_status():
+        if self._pairing_client and self._pairing_client.check_pairing_status():
             logger.info("Pairing approved!")
 
             # Cancel the pairing timeout watchdog
@@ -651,6 +690,7 @@ class KioskPlayer:
         """Update UI for the given mode."""
         if mode == PlayerMode.PAIRING:
             self._stack.set_visible_child_name("pairing")
+            self._window._show_cursor()  # Show cursor for pairing interaction
             if self._gst_player:
                 self._gst_player.pause()
 
@@ -683,16 +723,73 @@ class KioskPlayer:
         )
 
     # -------------------------------------------------------------------------
+    # Global Keyboard Listener
+    # -------------------------------------------------------------------------
+
+    def _start_global_keyboard_listener(self) -> None:
+        """Start a global keyboard listener to capture F1/Escape regardless of focus."""
+        self._keyboard_listener_running = True
+        self._keyboard_thread = threading.Thread(
+            target=self._keyboard_listener_loop,
+            name="global-keyboard",
+            daemon=True
+        )
+        self._keyboard_thread.start()
+        logger.info("Global keyboard listener started")
+
+    def _keyboard_listener_loop(self) -> None:
+        """Monitor keyboard input using xinput."""
+        try:
+            # Use xinput test-xi2 to capture all keyboard events
+            env = {**os.environ, "DISPLAY": ":0"}
+            proc = subprocess.Popen(
+                ["xinput", "test-xi2", "--root"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                env=env
+            )
+
+            while self._keyboard_listener_running and proc.poll() is None:
+                line = proc.stdout.readline().decode("utf-8", errors="ignore")
+                # F1 = keycode 67, Escape = keycode 9
+                if "RawKeyPress" in line or "KeyPress" in line:
+                    # Read next few lines to get keycode
+                    for _ in range(5):
+                        detail_line = proc.stdout.readline().decode("utf-8", errors="ignore")
+                        if "detail:" in detail_line:
+                            # Extract keycode number
+                            match = re.search(r"detail:\s*(\d+)", detail_line)
+                            if match:
+                                keycode = int(match.group(1))
+                                if keycode == 67:  # F1
+                                    logger.info("Global F1 detected - toggling menu")
+                                    GLib.idle_add(self._toggle_menu)
+                                elif keycode == 9:  # Escape
+                                    logger.info("Global Escape detected - toggling menu")
+                                    GLib.idle_add(self._toggle_menu)
+                            break
+
+            proc.terminate()
+        except Exception as e:
+            logger.warning("Global keyboard listener error: %s", e)
+
+    # -------------------------------------------------------------------------
     # Menu Actions
     # -------------------------------------------------------------------------
 
     def _toggle_menu(self) -> None:
         """Toggle menu overlay visibility."""
-        if self._state_machine.mode == PlayerMode.PAIRING:
-            return  # No menu in pairing mode
-
+        logger.info("Menu toggle called")
         try:
-            self._state_machine.toggle_menu()
+            # Show/hide menu overlay directly (works in any mode)
+            if self._menu_overlay.get_visible():
+                logger.info("Hiding menu")
+                self._menu_overlay.hide()
+            else:
+                logger.info("Showing menu")
+                self._update_menu_info()
+                self._menu_overlay.show()
+                self._window._show_cursor()
         except Exception as e:
             logger.warning("Could not toggle menu: %s", e)
 
@@ -910,6 +1007,9 @@ class KioskPlayer:
         # Show window first (must be realized before GStreamer touches X11)
         self._window.show_all()
         self._menu_overlay.hide()  # Ensure menu starts hidden
+
+        # Start global keyboard listener (F1/Escape for menu)
+        self._start_global_keyboard_listener()
 
         # Start appropriate flow based on pairing status
         if self._config.paired:

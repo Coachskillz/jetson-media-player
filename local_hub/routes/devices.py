@@ -115,6 +115,10 @@ def register_device():
     # Register or get existing device
     device, created = Device.register(hardware_id, name, mode, ip_address)
 
+    # Forward registration to CMS so device appears there for approval
+    if created and not device.cms_device_id:
+        _forward_registration_to_cms(device)
+
     # Get cached locations for the response
     locations = _get_cached_locations()
 
@@ -135,6 +139,62 @@ def register_device():
     }
 
     return jsonify(response_data), 201 if created else 200
+
+
+def _forward_registration_to_cms(device):
+    """
+    Forward device registration to CMS so it appears there for approval.
+
+    The CMS is the central authority - admins approve devices there,
+    not on individual Hubs.
+    """
+    import logging
+    import requests
+    from flask import current_app
+
+    logger = logging.getLogger(__name__)
+
+    hub_config = HubConfig.get_instance()
+    if not hub_config or not hub_config.is_registered:
+        logger.warning("Hub not registered with CMS, skipping device forward")
+        return
+
+    config = current_app.config.get('HUB_CONFIG')
+    if not config or not config.cms_url:
+        logger.warning("No CMS URL configured, skipping device forward")
+        return
+
+    cms_url = config.cms_url.rstrip('/')
+    endpoint = f"{cms_url}/api/v1/devices/register-from-hub"
+
+    payload = {
+        'hardware_id': device.hardware_id,
+        'name': device.name,
+        'pairing_code': device.pairing_code,
+        'ip_address': device.ip_address,
+        'hub_id': hub_config.hub_id,
+        'hub_code': hub_config.hub_code,
+        'mode': 'hub'
+    }
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {hub_config.hub_token}' if hub_config.hub_token else ''
+    }
+
+    try:
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+        if response.ok:
+            data = response.json()
+            # Store the CMS device ID for future reference
+            if data.get('device_id'):
+                device.cms_device_id = data['device_id']
+                db.session.commit()
+            logger.info(f"Device {device.hardware_id} forwarded to CMS: {data.get('device_id')}")
+        else:
+            logger.warning(f"CMS device forward failed: {response.status_code} - {response.text[:200]}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to forward device to CMS: {e}")
 
 
 @devices_bp.route('/<int:device_id>', methods=['GET'])

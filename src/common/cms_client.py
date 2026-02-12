@@ -81,13 +81,14 @@ def generate_pairing_code():
 
 
 class CMSClient:
-    """Client for communicating with the CMS."""
+    """Client for communicating with the CMS or Hub."""
 
     def __init__(
         self,
         cms_url: str = "https://keen-ambition-production.up.railway.app",
         max_retries: int = DEFAULT_MAX_RETRIES,
         timeout: int = DEFAULT_TIMEOUT,
+        is_hub: bool = False,
     ):
         self.cms_url = cms_url
         self.device_info = get_device_info()
@@ -95,6 +96,7 @@ class CMSClient:
         self.pairing_code = None
         self.max_retries = max_retries
         self.timeout = timeout
+        self.is_hub = is_hub  # True if connecting to local Hub, False for CMS
 
     def _get_hardware_id(self) -> str:
         """Get the hardware_id for API requests (uses device_id from device_info)."""
@@ -150,17 +152,23 @@ class CMSClient:
         """Check if device has been paired.
 
         Uses exponential backoff retry logic for connection errors.
+        Uses different endpoints for Hub vs CMS:
+        - Hub: /api/v1/pairing/status/{hardware_id}
+        - CMS: /api/v1/devices/pairing/status/{hardware_id}
 
         Returns:
             True if device is paired, False otherwise.
         """
         hardware_id = self._get_hardware_id()
 
+        # Hub uses /api/v1/pairing/status, CMS uses /api/v1/devices/pairing/status
+        if self.is_hub:
+            endpoint = f"{self.cms_url}/api/v1/pairing/status/{hardware_id}"
+        else:
+            endpoint = f"{self.cms_url}/api/v1/devices/pairing/status/{hardware_id}"
+
         def make_request():
-            return requests.get(
-                f"{self.cms_url}/api/v1/devices/pairing/status/{hardware_id}",
-                timeout=self.timeout
-            )
+            return requests.get(endpoint, timeout=self.timeout)
 
         try:
             response = retry_with_backoff(make_request, max_retries=self.max_retries)
