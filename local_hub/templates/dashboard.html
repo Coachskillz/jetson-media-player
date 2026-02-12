@@ -460,30 +460,6 @@
         </div>
     </div>
 
-    <!-- Pairing Section -->
-    <div class="pairing-section">
-        <h2>📱 Pair New Screen</h2>
-        <p style="color: #888; margin-bottom: 15px;">Enter the 6-digit code shown on the Jetson screen to pair it with this Hub</p>
-        <form class="pairing-form" onsubmit="pairDevice(event)">
-            <div class="form-group">
-                <label>Pairing Code</label>
-                <input type="text" id="pairing-code" class="pairing-code-input"
-                       placeholder="000000" maxlength="6" pattern="[0-9]{6}" required
-                       autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label>Screen Location</label>
-                <select id="screen-location" required>
-                    <option value="">Select location...</option>
-                    {% for loc in locations %}
-                    <option value="{{ loc.id }}">{{ loc.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success">Pair Screen</button>
-        </form>
-    </div>
-
     <!-- Devices Section -->
     <div class="section-header">
         <span>Registered Screens ({{ device_count or 0 }})</span>
@@ -533,7 +509,7 @@
                 {% if device.device_id %}
                 <button class="btn btn-secondary" onclick="viewDevice('{{ device.hardware_id }}')">Details</button>
                 {% else %}
-                <button class="btn btn-primary" onclick="approveDevice('{{ device.hardware_id }}')">Approve</button>
+                <button class="btn btn-success" onclick="pairDevice('{{ device.hardware_id }}', '{{ device.pairing_code }}')">Pair</button>
                 {% endif %}
             </div>
         </div>
@@ -564,13 +540,13 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        async function pairDevice(event) {
-            event.preventDefault();
-            const code = document.getElementById('pairing-code').value;
-            const location = document.getElementById('screen-location').value;
+        async function pairDevice(hardwareId, pairingCode) {
+            // Get location from the device card's dropdown
+            const dropdown = document.querySelector(`select[onchange*="${hardwareId}"]`);
+            const locationId = dropdown ? dropdown.value : '';
 
-            if (!code || code.length !== 6) {
-                showToast('Please enter a 6-digit pairing code', 'error');
+            if (!locationId) {
+                showToast('Please select a location first', 'error');
                 return;
             }
 
@@ -579,38 +555,18 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        pairing_code: code,
-                        location: location
+                        pairing_code: pairingCode,
+                        location: locationId
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showToast(`Screen paired successfully!`);
+                    showToast('Screen paired successfully!');
                     setTimeout(() => location.reload(), 1000);
                 } else {
                     showToast(data.error || 'Pairing failed', 'error');
-                }
-            } catch (error) {
-                showToast('Connection error', 'error');
-            }
-        }
-
-        async function approveDevice(hardwareId) {
-            try {
-                const response = await fetch(`/api/v1/pairing/approve/${hardwareId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast('Device approved!');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showToast(data.error || 'Approval failed', 'error');
                 }
             } catch (error) {
                 showToast('Connection error', 'error');
@@ -666,10 +622,6 @@
             location.reload();
         }
 
-        // Format pairing code input
-        document.getElementById('pairing-code').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
-        });
     </script>
 </body>
 </html>

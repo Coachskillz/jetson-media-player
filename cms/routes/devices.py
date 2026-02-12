@@ -1453,6 +1453,62 @@ def register_from_hub():
     }), 201
 
 
+@devices_bp.route('/<device_id>/status', methods=['PUT'])
+def update_device_status(device_id):
+    """
+    Update device status (called by Hub when device is approved).
+
+    Args:
+        device_id: Device UUID
+
+    Request Body:
+        {
+            "status": "active",
+            "location": "Register 1" (optional)
+        }
+
+    Returns:
+        200: Status updated
+        404: Device not found
+    """
+    device = db.session.get(Device, device_id)
+    if not device:
+        device = Device.query.filter_by(device_id=device_id).first()
+
+    if not device:
+        return jsonify({'success': False, 'error': 'Device not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if 'status' in data:
+        device.status = data['status']
+
+    if 'location' in data:
+        device.screen_location = data['location']
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    log_action(
+        action='device.status_updated',
+        action_category='devices',
+        resource_type='device',
+        resource_id=device.id,
+        resource_name=device.device_id,
+        user_email='hub',
+        details={'status': device.status, 'location': device.screen_location}
+    )
+
+    return jsonify({
+        'success': True,
+        'status': device.status,
+        'screen_location': device.screen_location
+    }), 200
+
+
 @devices_bp.route('/<device_id>', methods=['DELETE'])
 @login_required
 def delete_device(device_id):

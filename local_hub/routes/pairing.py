@@ -101,24 +101,31 @@ def request_pairing():
     cms_url = config.cms_url
     try:
         response = requests.post(
-            f"{cms_url}/api/v1/pairing/request",
+            f"{cms_url}/api/v1/devices/register-from-hub",
             json={
                 "hardware_id": hardware_id,
                 "pairing_code": pairing_code,
                 "name": name,
                 "hub_id": hub_config.hub_id,
-                "ip_address": ip_address
+                "ip_address": ip_address,
+                "mode": "hub"
             },
             timeout=10
         )
 
-        if response.status_code == 200:
-            current_app.logger.info(f"Pairing request forwarded to CMS for {hardware_id}")
+        if response.status_code in (200, 201):
+            cms_data = response.json()
+            # Store CMS device ID for future sync
+            if cms_data.get('device_id'):
+                device.cms_device_id = cms_data['device_id']
+                db.session.commit()
+            current_app.logger.info(f"Device registered with CMS: {cms_data.get('device_id')}")
             return jsonify({
                 'success': True,
-                'message': 'Pairing request sent to CMS',
+                'message': 'Device registered with CMS',
                 'pairing_code': pairing_code,
-                'device_id': device.id
+                'device_id': device.id,
+                'cms_device_id': cms_data.get('device_id')
             }), 200
         else:
             current_app.logger.error(f"CMS pairing request failed: {response.status_code}")
