@@ -1022,13 +1022,6 @@ def global_heartbeat():
     hub.last_heartbeat = datetime.now(timezone.utc)
     hub.status = data.get('hub_status', 'online')
 
-    # Capture Hub's IP address from request for webhook notifications
-    hub_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    if hub_ip and ',' in hub_ip:
-        hub_ip = hub_ip.split(',')[0].strip()
-    if hub_ip and hub_ip not in ('127.0.0.1', '::1'):
-        hub.ip_address = hub_ip
-
     if data.get('screens_connected') is not None:
         hub.screens_connected = data.get('screens_connected')
 

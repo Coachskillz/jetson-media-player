@@ -24,10 +24,7 @@ def notify_playlist_updated(
     action: str = 'updated'
 ) -> None:
     """
-    Notify relevant Hubs that a playlist has been updated.
-
-    If device_id is provided, only notifies the Hub for that device.
-    Otherwise notifies all active Hubs.
+    Notify all registered Hubs that a playlist has been updated.
 
     This triggers immediate sync on the Hub instead of waiting for
     the polling interval (typically 5 minutes).
@@ -37,46 +34,28 @@ def notify_playlist_updated(
         playlist_id: Optional playlist ID that was changed
         action: Action type ('updated', 'deleted', 'assigned')
     """
-    from cms.models import Hub, Device
+    from cms.models import Hub
 
-    hubs_to_notify = []
+    # Get all active hubs with webhook URLs
+    hubs = Hub.query.filter(
+        Hub.status == 'active',
+        Hub.webhook_url.isnot(None)
+    ).all()
 
-    # If device_id provided, find the specific Hub for that device
-    if device_id:
-        device = Device.query.filter_by(hardware_id=device_id).first()
-        if not device:
-            device = Device.query.filter_by(device_id=device_id).first()
-
-        if device and device.hub_id:
-            from cms.models import db
-            hub = db.session.get(Hub, device.hub_id)
-            if hub and hub.status == 'active':
-                hubs_to_notify.append(hub)
-        elif device:
-            logger.debug(f"Device {device_id} is in direct mode, no Hub to notify")
-            return
-    else:
-        # Notify all active hubs
-        hubs_to_notify = Hub.query.filter(Hub.status == 'active').all()
-
-    if not hubs_to_notify:
-        logger.debug("No active hubs to notify")
+    if not hubs:
+        logger.debug("No active hubs with webhook URLs to notify")
         return
 
     # Send notifications asynchronously to avoid blocking the request
-    for hub in hubs_to_notify:
-        webhook_url = _get_hub_webhook_url(hub)
-        if webhook_url:
-            _executor.submit(
-                _send_notification,
-                webhook_url,
-                device_id,
-                playlist_id,
-                action,
-                hub.code
-            )
-        else:
-            logger.warning(f"No webhook URL available for Hub {hub.code}")
+    for hub in hubs:
+        _executor.submit(
+            _send_notification,
+            hub.webhook_url,
+            device_id,
+            playlist_id,
+            action,
+            hub.code
+        )
 
 
 def notify_specific_hubs(
@@ -103,36 +82,6 @@ def notify_specific_hubs(
             action,
             'direct'
         )
-
-
-def _get_hub_webhook_url(hub) -> Optional[str]:
-    """
-    Get the webhook URL for a Hub.
-
-    Tries in order:
-    1. Explicit webhook_url field
-    2. Construct from ip_address
-    3. Construct from last_ip (from heartbeat)
-
-    Args:
-        hub: Hub model instance
-
-    Returns:
-        Webhook URL or None if not available
-    """
-    # Try explicit webhook URL first
-    if hasattr(hub, 'webhook_url') and hub.webhook_url:
-        return hub.webhook_url
-
-    # Try to construct from IP address
-    if hasattr(hub, 'ip_address') and hub.ip_address:
-        return f"http://{hub.ip_address}:5000/api/v1/screens/webhook/playlist-updated"
-
-    # Try last known IP from heartbeat
-    if hasattr(hub, 'last_ip') and hub.last_ip:
-        return f"http://{hub.last_ip}:5000/api/v1/screens/webhook/playlist-updated"
-
-    return None
 
 
 def _send_notification(

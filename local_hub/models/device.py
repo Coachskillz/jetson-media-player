@@ -43,12 +43,6 @@ class Device(db.Model):
     cms_device_id = db.Column(db.String(36), nullable=True)
     synced_at = db.Column(db.DateTime, nullable=True)
 
-    # Cached layout/playlist from CMS (JSON string)
-    # Each device has its own playlist assignment
-    layout_json = db.Column(db.Text, nullable=True)
-    layout_version = db.Column(db.String(50), nullable=True)
-    layout_synced_at = db.Column(db.DateTime, nullable=True)
-
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -90,8 +84,6 @@ class Device(db.Model):
             'stream_url': self.stream_url,
             'cms_device_id': self.cms_device_id,
             'synced_at': self.synced_at.isoformat() if self.synced_at else None,
-            'layout_version': self.layout_version,
-            'layout_synced_at': self.layout_synced_at.isoformat() if self.layout_synced_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -219,43 +211,6 @@ class Device(db.Model):
             device.status = 'offline'
             db.session.commit()
         return device
-
-    def update_layout(self, layout_data, version=None):
-        """
-        Update cached layout/playlist from CMS.
-
-        Args:
-            layout_data: Dict containing layout/playlist data from CMS
-            version: Optional version string for change detection
-        """
-        import json
-        self.layout_json = json.dumps(layout_data) if layout_data else None
-        self.layout_version = version
-        self.layout_synced_at = datetime.utcnow()
-        db.session.commit()
-
-    def get_layout(self):
-        """
-        Get cached layout/playlist as dict.
-
-        Returns:
-            Dict containing layout data, or None if not cached
-        """
-        import json
-        if self.layout_json:
-            try:
-                return json.loads(self.layout_json)
-            except json.JSONDecodeError:
-                return None
-        return None
-
-    @classmethod
-    def get_all_for_layout_sync(cls):
-        """Get all devices that need layout sync (have cms_device_id)."""
-        return cls.query.filter(
-            cls.cms_device_id.isnot(None),
-            cls.status.in_(['online', 'pending'])
-        ).all()
 
     def __repr__(self):
         return f"<Device id={self.id} hardware_id={self.hardware_id} status={self.status}>"

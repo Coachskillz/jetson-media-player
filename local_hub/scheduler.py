@@ -353,44 +353,10 @@ def is_scheduler_running(scheduler: Optional[BackgroundScheduler] = None) -> boo
 # Job interval constants (in seconds)
 CONTENT_SYNC_INTERVAL_MINUTES = 5
 PLAYLIST_SYNC_INTERVAL_MINUTES = 5
-DEVICE_LAYOUT_SYNC_INTERVAL_MINUTES = 2  # Device-specific playlist sync
 ALERT_FORWARD_INTERVAL_SECONDS = 30
 SCREEN_MONITOR_INTERVAL_SECONDS = 30
 HQ_HEARTBEAT_INTERVAL_SECONDS = 60
 HEARTBEAT_BATCH_INTERVAL_SECONDS = 60
-
-
-def _transform_playlist_items(cms_data: dict, cms_url: str) -> list:
-    """
-    Transform CMS playlist response into format expected by Hub layout cache.
-
-    Args:
-        cms_data: Response from CMS /api/v1/devices/{hardware_id}/playlist
-        cms_url: Base URL of CMS for constructing download URLs
-
-    Returns:
-        List of playlist items with content info
-    """
-    items = []
-    playlists = cms_data.get('playlists', [])
-
-    if playlists:
-        # Get items from first (default) playlist
-        for item in playlists[0].get('items', []):
-            content = item.get('content', {})
-            content_id = content.get('id')
-
-            items.append({
-                'content_id': content_id,
-                'filename': content.get('filename'),
-                'duration': content.get('duration', 10),
-                'order': item.get('position', 0),
-                'content_type': content.get('content_type', 'video'),
-                'file_size': content.get('file_size', 0),
-                'url': f"{cms_url}/api/v1/content/{content_id}/download" if content_id else None
-            })
-
-    return items
 
 
 def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
@@ -400,16 +366,10 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
     This function registers the following jobs:
     - content_sync: Syncs content manifest from HQ (every 5 minutes)
     - playlist_sync: Syncs playlist data from HQ (every 5 minutes)
-    - device_layout_sync: Syncs device-specific playlists from CMS (every 2 minutes)
     - alert_forward: Forwards pending alerts to HQ (every 30 seconds)
     - screen_monitor: Checks screen heartbeats for offline detection (every 30 seconds)
     - hq_heartbeat: Reports hub status to HQ (every 60 seconds)
     - heartbeat_batch: Forwards queued device heartbeats to HQ (every 60 seconds)
-
-    Each device (screen) connected to this Hub is treated independently:
-    - Each has its own Device record with unique hardware_id
-    - Each can have its own playlist assignment in CMS
-    - device_layout_sync fetches each device's specific playlist from CMS
 
     All jobs run within the Flask application context to ensure proper
     database access through Flask-SQLAlchemy.
@@ -587,97 +547,6 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
             except Exception as e:
                 logger.error(f"Heartbeat batch processing failed: {e}")
 
-    # Job: Device Layout Sync (every 2 minutes)
-    def job_device_layout_sync() -> None:
-        """
-        Background job to sync device-specific playlists from CMS.
-
-        Each device (screen) can have a different playlist assigned in CMS.
-        This job fetches each device's playlist and caches it locally
-        so screens can get their content even when CMS is unreachable.
-        """
-        import requests
-        import hashlib
-        import json
-
-        with app.app_context():
-            try:
-                config = app.config['HUB_CONFIG']
-                hub_config = HubConfig.get_instance()
-
-                if hub_config is None or not hub_config.is_registered:
-                    logger.debug("Hub not registered, skipping device layout sync")
-                    return
-
-                from models.device import Device
-
-                # Get all devices that have been synced with CMS
-                devices = Device.get_all_for_layout_sync()
-
-                if not devices:
-                    logger.debug("No devices to sync layouts for")
-                    return
-
-                synced = 0
-                errors = 0
-
-                for device in devices:
-                    try:
-                        # Fetch playlist from CMS for this specific device
-                        response = requests.get(
-                            f"{config.cms_url}/api/v1/devices/{device.hardware_id}/playlist",
-                            timeout=10
-                        )
-
-                        if response.status_code == 200:
-                            data = response.json()
-
-                            # Generate version hash from content
-                            version = hashlib.md5(
-                                json.dumps(data, sort_keys=True).encode()
-                            ).hexdigest()[:8]
-
-                            # Only update if content changed
-                            if version != device.layout_version:
-                                # Build layout structure with playlist
-                                layout_data = {
-                                    'layers': [{
-                                        'content_source': 'playlist',
-                                        'playlist': {
-                                            'id': data.get('playlists', [{}])[0].get('id') if data.get('playlists') else None,
-                                            'name': data.get('playlists', [{}])[0].get('name') if data.get('playlists') else None
-                                        },
-                                        'items': _transform_playlist_items(data, config.cms_url)
-                                    }]
-                                }
-
-                                device.update_layout(layout_data, version)
-                                logger.info(
-                                    f"Updated layout for device {device.hardware_id}: "
-                                    f"version {version}"
-                                )
-
-                            synced += 1
-                        else:
-                            logger.warning(
-                                f"Failed to fetch playlist for {device.hardware_id}: "
-                                f"HTTP {response.status_code}"
-                            )
-                            errors += 1
-
-                    except requests.exceptions.RequestException as e:
-                        logger.warning(
-                            f"Network error syncing layout for {device.hardware_id}: {e}"
-                        )
-                        errors += 1
-
-                logger.info(
-                    f"Device layout sync completed: {synced} synced, {errors} errors"
-                )
-
-            except Exception as e:
-                logger.error(f"Device layout sync failed: {e}")
-
     # Register all jobs with the scheduler
     add_job(
         scheduler,
@@ -727,19 +596,10 @@ def register_jobs(scheduler: BackgroundScheduler, app: Any) -> None:
         seconds=HEARTBEAT_BATCH_INTERVAL_SECONDS,
     )
 
-    add_job(
-        scheduler,
-        job_device_layout_sync,
-        job_id='device_layout_sync',
-        trigger='interval',
-        minutes=DEVICE_LAYOUT_SYNC_INTERVAL_MINUTES,
-    )
-
     logger.info(
-        f"Registered 7 background jobs: "
+        f"Registered 6 background jobs: "
         f"content_sync ({CONTENT_SYNC_INTERVAL_MINUTES}min), "
         f"playlist_sync ({PLAYLIST_SYNC_INTERVAL_MINUTES}min), "
-        f"device_layout_sync ({DEVICE_LAYOUT_SYNC_INTERVAL_MINUTES}min), "
         f"alert_forward ({ALERT_FORWARD_INTERVAL_SECONDS}s), "
         f"screen_monitor ({SCREEN_MONITOR_INTERVAL_SECONDS}s), "
         f"hq_heartbeat ({HQ_HEARTBEAT_INTERVAL_SECONDS}s), "

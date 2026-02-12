@@ -530,43 +530,6 @@
     <div id="pairingStatus"></div>
 </div>
 
-<!-- Pending Devices from Hubs -->
-{% if pending_devices and pending_devices|length > 0 %}
-<div class="devices-section" style="border: 2px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(255, 255, 255, 0.95));">
-    <h3 style="color: #b45309;">⏳ Pending Devices from Hubs ({{ pending_devices|length }})</h3>
-    <p style="color: #92400e; font-size: 13px; margin-bottom: 20px;">
-        These devices registered through a Hub and are waiting for approval. Click "Approve" to activate them.
-    </p>
-    <div class="devices-grid">
-        {% for device in pending_devices %}
-        <div class="device-card" style="border-color: #f59e0b;">
-            <div class="device-header">
-                <div class="device-status" style="background: #f59e0b; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);"></div>
-                <div class="device-info">
-                    <div class="device-name">{{ device.name }}</div>
-                    <div class="device-id" style="color: #64748b; font-size: 12px;">{{ device.device_id }}</div>
-                </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: #475569;">
-                    <span><strong>Code:</strong> <code style="background: #fef3c7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{{ device.pairing_code }}</code></span>
-                    <span><strong>Hub:</strong> {{ device.hub_name }}</span>
-                </div>
-                <div style="font-size: 12px; color: #64748b; margin-top: 8px;">
-                    Hardware: {{ device.hardware_id[:20] }}...
-                </div>
-            </div>
-            <button onclick="approvePendingDevice('{{ device.id }}')"
-                    class="btn btn-primary"
-                    style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                ✓ Approve Device
-            </button>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
 <!-- Devices Grid -->
 <div class="devices-section">
     <h3 id="devicesHeader">All Devices ({{ devices|length }})</h3>
@@ -780,37 +743,6 @@
     }
 
     updateDeviceStatuses();
-
-    // Approve pending device from Hub
-    async function approvePendingDevice(deviceId) {
-        if (!confirm('Approve this device? It will become active and visible in the device list.')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/v1/devices/${deviceId}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    status: 'active'
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert('Device approved successfully!');
-                window.location.reload();
-            } else {
-                alert('Failed to approve device: ' + (data.error || 'Unknown error'));
-            }
-        } catch (error) {
-            console.error('Error approving device:', error);
-            alert('Failed to approve device: ' + error.message);
-        }
-    }
 
     // Update location counts
     function updateLocationCounts() {

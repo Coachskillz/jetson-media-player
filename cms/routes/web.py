@@ -263,23 +263,6 @@ def devices_page():
         locations = []
     total_screen_count = len(devices)
 
-    # Get pending devices (from Hub pairing flow)
-    pending_devices = Device.query.filter_by(status='pending').order_by(Device.created_at.desc()).all()
-    pending_devices_list = []
-    for device in pending_devices:
-        hub = Hub.query.get(device.hub_id) if device.hub_id else None
-        pending_devices_list.append({
-            'id': device.id,
-            'device_id': device.device_id,
-            'hardware_id': device.hardware_id,
-            'name': device.name or device.device_id,
-            'pairing_code': device.pairing_code,
-            'hub_name': hub.name if hub else 'Direct',
-            'hub_id': device.hub_id,
-            'network_id': device.network_id,
-            'created_at': device.created_at
-        })
-
     # If filtering by hub, only show devices for that hub
     if filtered_hub:
         hub_devices = Device.query.filter_by(hub_id=filtered_hub.id).filter(Device.status != 'pending').all()
@@ -318,8 +301,7 @@ def devices_page():
             hub_screens=hub_screen_list,
             playlists=playlists,
             locations=locations,
-            total_screen_count=total_screen_count,
-            pending_devices=pending_devices_list
+            total_screen_count=total_screen_count
         )
 
     # Build network data with stores (grouped by store_name)
@@ -406,8 +388,7 @@ def devices_page():
         hub_screens=[],
         playlists=playlists,
         locations=locations,
-        total_screen_count=total_screen_count,
-        pending_devices=pending_devices_list
+        total_screen_count=total_screen_count
     )
 
 

@@ -40,43 +40,6 @@ _pairing_state = {
 }
 
 
-def _run_migrations(app: Flask) -> None:
-    """
-    Run database migrations for schema changes.
-
-    SQLite doesn't support ALTER TABLE ADD COLUMN directly via SQLAlchemy
-    so we need to check for missing columns and add them manually.
-
-    Args:
-        app: Flask application instance
-    """
-    from sqlalchemy import inspect, text
-
-    inspector = inspect(db.engine)
-
-    # Migration: Add layout_json fields to devices table
-    if 'devices' in inspector.get_table_names():
-        columns = {col['name'] for col in inspector.get_columns('devices')}
-
-        migrations = [
-            ('layout_json', 'TEXT'),
-            ('layout_version', 'VARCHAR(50)'),
-            ('layout_synced_at', 'DATETIME'),
-        ]
-
-        for column_name, column_type in migrations:
-            if column_name not in columns:
-                try:
-                    db.session.execute(
-                        text(f'ALTER TABLE devices ADD COLUMN {column_name} {column_type}')
-                    )
-                    db.session.commit()
-                    app.logger.info(f'Migration: Added {column_name} column to devices table')
-                except Exception as e:
-                    app.logger.warning(f'Migration failed for {column_name}: {e}')
-                    db.session.rollback()
-
-
 def create_app(config_path: Optional[str] = None) -> Flask:
     """
     Create and configure the Flask application.
@@ -114,10 +77,9 @@ def create_app(config_path: Optional[str] = None) -> Flask:
     # Initialize extensions
     db.init_app(app)
 
-    # Create database tables and run migrations
+    # Create database tables
     with app.app_context():
         db.create_all()
-        _run_migrations(app)
 
     # Configure logging
     _configure_logging(app, config.log_path)
