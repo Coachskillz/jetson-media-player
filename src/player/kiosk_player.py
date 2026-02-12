@@ -582,7 +582,8 @@ class KioskPlayer:
             except Exception as e:
                 logger.error("Failed to start playback: %s", e)
         else:
-            logger.info("No content available - waiting for sync to deliver content")
+            logger.info("No content available - showing idle screen")
+            self._idle_label.show()
 
         try:
             self._start_background_services()
