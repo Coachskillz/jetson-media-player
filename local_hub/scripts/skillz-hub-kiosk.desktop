@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Skillz Hub Kiosk
+Comment=Auto-launch Hub pairing screen or dashboard
+Exec=/home/skillz/skillz-hub/scripts/hub-pairing-kiosk.sh
+Terminal=false
+Hidden=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
