@@ -719,6 +719,51 @@ def receive_heartbeats(hub_id):
 # HUB PAIRING ENDPOINTS
 # ============================================================================
 
+@hubs_bp.route('/migrate-store-fields', methods=['POST'])
+def migrate_store_fields():
+    """
+    Add store info columns to hubs table if they don't exist.
+
+    This is a one-time migration endpoint to add new columns.
+    Safe to call multiple times - checks if columns exist first.
+    """
+    from sqlalchemy import text
+
+    columns_to_add = [
+        ('store_address', 'VARCHAR(300)'),
+        ('store_city', 'VARCHAR(100)'),
+        ('store_state', 'VARCHAR(50)'),
+        ('store_zipcode', 'VARCHAR(20)'),
+        ('manager_name', 'VARCHAR(200)'),
+        ('store_phone', 'VARCHAR(30)'),
+    ]
+
+    added = []
+    skipped = []
+
+    for col_name, col_type in columns_to_add:
+        try:
+            # Try to add the column
+            db.session.execute(text(f'ALTER TABLE hubs ADD COLUMN {col_name} {col_type}'))
+            db.session.commit()
+            added.append(col_name)
+        except Exception as e:
+            db.session.rollback()
+            if 'duplicate column' in str(e).lower() or 'already exists' in str(e).lower():
+                skipped.append(col_name)
+            else:
+                return jsonify({
+                    'error': f'Failed to add {col_name}: {str(e)}'
+                }), 500
+
+    return jsonify({
+        'success': True,
+        'added': added,
+        'skipped': skipped,
+        'message': f'Added {len(added)} columns, skipped {len(skipped)} existing'
+    })
+
+
 @hubs_bp.route('/announce', methods=['POST'])
 def announce_hub():
     """
