@@ -96,6 +96,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     with app.app_context():
         db.create_all()
         _run_migrations(app)
+        _run_device_location_migration(app)
         _seed_default_users(app)
         # Only seed demo content if explicitly enabled (not in production)
         if os.environ.get('SEED_DEMO_CONTENT', '').lower() in ('true', '1', 'yes'):
@@ -181,6 +182,25 @@ def _init_security(app: Flask, config_class) -> None:
     else:
         app.logger.warning('Flask-Limiter not installed, rate limiting disabled')
 
+
+
+def _run_device_location_migration(app):
+    """Add location_id column to devices table if missing."""
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+    if 'devices' not in inspector.get_table_names():
+        return
+    columns = [c['name'] for c in inspector.get_columns('devices')]
+    if 'location_id' in columns:
+        return
+    app.logger.info('Migration: Adding location_id to devices table')
+    try:
+        db.session.execute(text('ALTER TABLE devices ADD COLUMN location_id VARCHAR(36)'))
+        db.session.commit()
+        app.logger.info('Migration: location_id column added successfully')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f'Migration failed: {e}')
 
 def _run_migrations(app: Flask) -> None:
     """Run lightweight schema migrations to add missing columns."""
