@@ -87,6 +87,9 @@ from cms.models.folder import Folder
 from cms.models.heartbeat import Heartbeat
 from cms.models.playback_log import PlaybackLog
 from cms.models.alert import Alert
+from cms.models.store_location import StoreLocation
+
+
 
 __all__ = [
     'db',

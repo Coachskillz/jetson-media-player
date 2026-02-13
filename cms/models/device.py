@@ -86,6 +86,7 @@ class Device(db.Model):
     store_state = db.Column(db.String(50), nullable=True)
     store_zipcode = db.Column(db.String(20), nullable=True)
     screen_location = db.Column(db.String(200), nullable=True)  # Location in store (entrance, checkout, aisle-1, etc.)
+    location_id = db.Column(db.String(36), db.ForeignKey('store_locations.id'), nullable=True, index=True)
     manager_name = db.Column(db.String(200), nullable=True)
     store_phone = db.Column(db.String(30), nullable=True)
 
@@ -93,6 +94,7 @@ class Device(db.Model):
     hub = db.relationship('Hub', backref=db.backref('devices', lazy='dynamic'))
     network = db.relationship('Network', backref=db.backref('devices', lazy='dynamic'))
     layout = db.relationship('ScreenLayout', backref=db.backref('devices', lazy='dynamic'))
+    store_location = db.relationship('StoreLocation', backref=db.backref('devices', lazy='dynamic'))
 
     def to_dict(self):
         """
@@ -134,6 +136,8 @@ class Device(db.Model):
             'store_state': self.store_state,
             'store_zipcode': self.store_zipcode,
             'screen_location': self.screen_location,
+            'location_id': self.location_id,
+            'location_name': self.store_location.name if self.location_id and hasattr(self, 'store_location') and self.store_location else self.screen_location,
             'manager_name': self.manager_name,
             'store_phone': self.store_phone
         }
