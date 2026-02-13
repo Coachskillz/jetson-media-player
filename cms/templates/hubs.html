@@ -330,6 +330,7 @@
             display: flex;
             gap: 10px;
             margin-top: 15px;
+            flex-wrap: wrap;
         }
 
         .btn-secondary {
@@ -356,6 +357,15 @@
 
         .btn-danger:hover {
             background: #fecaca;
+        }
+
+        .btn-locations {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .btn-locations:hover {
+            background: #d1fae5;
         }
 
         .empty-state {
@@ -451,12 +461,111 @@
             color: #64748b;
             margin-top: 5px;
         }
+
+        /* Location styles */
+        .location-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f0fdf4;
+            color: #166534;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            margin: 3px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .location-tag .delete-loc {
+            cursor: pointer;
+            color: #dc2626;
+            font-size: 14px;
+            font-weight: 700;
+            margin-left: 4px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .location-tag .delete-loc:hover {
+            opacity: 1;
+        }
+
+        .locations-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .locations-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .locations-card-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .add-location-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .add-location-form input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .add-location-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-location-form button {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .add-location-form button:hover {
+            background: #047857;
+        }
+
+        .locations-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            min-height: 30px;
+        }
+
+        .no-locations {
+            color: #94a3b8;
+            font-size: 12px;
+            font-style: italic;
+            padding: 8px 0;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="container">
-            <h1>🎬 Skillz Media Screens CMS</h1>
+            <h1>Skillz Media Screens CMS</h1>
             <div class="subtitle">AI-Powered Digital Signage Management</div>
             <div class="nav">
                 <a href="/">Dashboard</a>
@@ -470,7 +579,7 @@
     </div>
 
     <div class="container">
-        <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">🏢 Hub Manager</h2>
+        <h2 style="margin: 20px 0 15px 0; color: white; font-size: 24px; font-weight: 700;">Hub Manager</h2>
 
         <!-- Stats Row -->
         <div class="stats-row">
@@ -495,7 +604,7 @@
         <!-- Pending Hubs Section (if any) -->
         {% if pending_hubs and pending_hubs|length > 0 %}
         <div class="create-box" style="border: 2px solid #fbbf24; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
-            <h3 style="color: #92400e;">⏳ Hubs Waiting to be Paired ({{ pending_hubs|length }})</h3>
+            <h3 style="color: #92400e;">Hubs Waiting to be Paired ({{ pending_hubs|length }})</h3>
             <p style="color: #78350f; font-size: 13px; margin-bottom: 20px;">
                 These hubs have announced themselves and are displaying pairing codes. Click "Pair" to complete setup.
             </p>
@@ -521,7 +630,7 @@
                         </div>
                     </div>
                     <button class="btn" style="width: 100%;" onclick="openPairModal('{{ pending.pairing_code }}', '{{ pending.hardware_id }}')">
-                        🔗 Pair This Hub
+                        Pair This Hub
                     </button>
                 </div>
                 {% endfor %}
@@ -531,7 +640,7 @@
 
         <!-- Manual Pair Hub Box -->
         <div class="create-box">
-            <h3>🔗 Pair New Hub</h3>
+            <h3>Pair New Hub</h3>
             <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
                 Enter the pairing code displayed on the hub screen, then select the store to pair it with.
             </p>
@@ -559,39 +668,9 @@
                     <label>Or New Store Name</label>
                     <input type="text" id="storeName" placeholder="New store name (optional)">
                 </div>
-                <button type="submit" class="btn">✓ Pair Hub</button>
+                <button type="submit" class="btn">Pair Hub</button>
             </form>
             <div id="pairStatus"></div>
-        </div>
-
-
-        <!-- Legacy Create Hub Box (hidden by default) -->
-        <div class="create-box" style="display: none;">
-            <h3>➕ Register New Hub (Manual)</h3>
-            <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-                Manually create a hub without pairing. Use this only if automatic pairing is not available.
-            </p>
-            <form id="createHubForm" class="create-form">
-                <div class="form-group">
-                    <label>Hub Code (2-4 letters)</label>
-                    <input type="text" id="hubCode" placeholder="WM" maxlength="4" pattern="[A-Z]{2,4}" required>
-                </div>
-                <div class="form-group">
-                    <label>Hub Name</label>
-                    <input type="text" id="hubName" placeholder="e.g., West Marine Hub" required>
-                </div>
-                <div class="form-group">
-                    <label>Network</label>
-                    <select id="manualNetworkSelect" required>
-                        <option value="">Select a network...</option>
-                        {% for network in networks %}
-                        <option value="{{ network.id }}">{{ network.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="btn">✓ Create Hub</button>
-            </form>
-            <div id="createStatus"></div>
         </div>
 
         <!-- Hubs Grid -->
@@ -609,12 +688,12 @@
                             <div class="hub-meta">
                                 {% if item.hub.network %}
                                 <div class="hub-meta-item">
-                                    <span class="network-badge">🌐 {{ item.hub.network.name }}</span>
+                                    <span class="network-badge">{{ item.hub.network.name }}</span>
                                 </div>
                                 {% endif %}
                                 <div class="hub-meta-item">
                                     <span class="badge badge-{{ item.hub.status }}">
-                                        {% if item.hub.status == 'online' %}● ONLINE{% elif item.hub.status == 'active' %}● ACTIVE{% elif item.hub.status == 'pending' %}⏳ PENDING{% else %}○ OFFLINE{% endif %}
+                                        {% if item.hub.status == 'online' %}ONLINE{% elif item.hub.status == 'active' %}ACTIVE{% elif item.hub.status == 'pending' %}PENDING{% else %}OFFLINE{% endif %}
                                     </span>
                                 </div>
                                 {% if item.hub.wan_ip %}
@@ -634,15 +713,30 @@
                                 <div class="device-count-label">Connected Device{{ 's' if item.device_count != 1 else '' }}</div>
                             </div>
                         </div>
-                        <a href="/devices?hub={{ item.hub.id }}" class="view-devices-btn">View Devices →</a>
+                        <a href="/devices?hub={{ item.hub.id }}" class="view-devices-btn">View Devices</a>
+                    </div>
+
+                    <!-- Store Locations Section -->
+                    <div class="locations-card" id="locations-{{ item.hub.id }}">
+                        <div class="locations-card-header">
+                            <h4>Screen Locations</h4>
+                            <span id="loc-count-{{ item.hub.id }}" style="font-size: 12px; color: #94a3b8;">Loading...</span>
+                        </div>
+                        <div class="locations-list" id="loc-list-{{ item.hub.id }}">
+                            <span class="no-locations">Loading locations...</span>
+                        </div>
+                        <div class="add-location-form">
+                            <input type="text" id="new-loc-{{ item.hub.id }}" placeholder="e.g. Fishing Counter, Entrance, Checkout..." onkeydown="if(event.key==='Enter'){event.preventDefault();addLocation('{{ item.hub.id }}');}">
+                            <button onclick="addLocation('{{ item.hub.id }}')">+ Add</button>
+                        </div>
                     </div>
 
                     <div class="hub-actions">
                         <button class="btn-secondary" onclick="viewManifest('{{ item.hub.id }}', '{{ item.hub.code }}')">
-                            📋 Content Manifest
+                            Content Manifest
                         </button>
                         <button class="btn-secondary" onclick="toggleStatus('{{ item.hub.id }}', '{{ item.hub.status }}')">
-                            {% if item.hub.status == 'active' %}⏸ Deactivate{% else %}▶ Activate{% endif %}
+                            {% if item.hub.status == 'active' %}Deactivate{% else %}Activate{% endif %}
                         </button>
                         <button class="btn-secondary btn-danger" onclick="deleteHub('{{ item.hub.id }}', '{{ item.hub.name }}', '{{ item.hub.code }}')">
                             Delete
@@ -670,20 +764,116 @@
                 <h3 id="manifestModalTitle">Content Manifest</h3>
                 <button class="close-btn" onclick="closeManifestModal()">&times;</button>
             </div>
-
             <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
                 This manifest lists all content available for devices connected to this hub.
             </p>
-
             <div id="manifestContent" style="max-height: 400px; overflow-y: auto;">
-                <div style="text-align: center; padding: 40px; color: #94a3b8;">
-                    Loading...
-                </div>
+                <div style="text-align: center; padding: 40px; color: #94a3b8;">Loading...</div>
             </div>
         </div>
     </div>
 
     <script>
+        // ============================================================
+        // STORE LOCATIONS MANAGEMENT
+        // ============================================================
+
+        // Load locations for all hubs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const hubCards = document.querySelectorAll('.hub-card');
+            hubCards.forEach(card => {
+                const hubId = card.dataset.hubId;
+                if (hubId) loadLocations(hubId);
+            });
+        });
+
+        // Load locations for a specific hub
+        async function loadLocations(hubId) {
+            const listEl = document.getElementById('loc-list-' + hubId);
+            const countEl = document.getElementById('loc-count-' + hubId);
+
+            try {
+                const response = await fetch('/api/locations?hub_id=' + hubId);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const locations = data.locations || [];
+                    countEl.textContent = locations.length + ' location' + (locations.length !== 1 ? 's' : '');
+
+                    if (locations.length === 0) {
+                        listEl.innerHTML = '<span class="no-locations">No locations defined yet. Add screen locations below.</span>';
+                    } else {
+                        listEl.innerHTML = locations.map(loc =>
+                            '<span class="location-tag">' +
+                                loc.name +
+                                ' <span class="delete-loc" onclick="deleteLocation(\'' + loc.id + '\', \'' + hubId + '\')" title="Remove location">&times;</span>' +
+                            '</span>'
+                        ).join('');
+                    }
+                } else {
+                    listEl.innerHTML = '<span class="no-locations">Failed to load locations</span>';
+                    countEl.textContent = '';
+                }
+            } catch (error) {
+                listEl.innerHTML = '<span class="no-locations">Error loading locations</span>';
+                countEl.textContent = '';
+            }
+        }
+
+        // Add a new location
+        async function addLocation(hubId) {
+            const input = document.getElementById('new-loc-' + hubId);
+            const name = input.value.trim();
+
+            if (!name) {
+                input.focus();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hub_id: hubId, name: name })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    input.value = '';
+                    loadLocations(hubId);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to create location'));
+                }
+            } catch (error) {
+                alert('Failed to add location: ' + error.message);
+            }
+        }
+
+        // Delete a location
+        async function deleteLocation(locationId, hubId) {
+            if (!confirm('Remove this screen location?')) return;
+
+            try {
+                const response = await fetch('/api/locations/' + locationId, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadLocations(hubId);
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + (data.error || 'Failed to delete location'));
+                }
+            } catch (error) {
+                alert('Failed to delete location: ' + error.message);
+            }
+        }
+
+        // ============================================================
+        // HUB PAIRING
+        // ============================================================
+
         // Force uppercase for pairing code input
         document.getElementById('pairingCode').addEventListener('input', function(e) {
             this.value = this.value.toUpperCase();
@@ -706,17 +896,11 @@
         })();
         {% endfor %}
 
-        console.log('Hubs by network:', hubsByNetwork);
-
         // Load hubs for selected network
         function loadHubsForNetwork() {
             const networkId = document.getElementById('networkSelect').value;
             const storeSelect = document.getElementById('storeSelect');
 
-            console.log('Selected network ID:', networkId);
-            console.log('Available network keys:', Object.keys(hubsByNetwork));
-
-            // Clear existing options
             storeSelect.innerHTML = '<option value="">Select a store...</option>';
 
             if (!networkId) {
@@ -724,19 +908,11 @@
                 return;
             }
 
-            // Get hubs for this network (only unpaired ones - no hardware_id)
             const hubs = hubsByNetwork[networkId] || [];
-            console.log('Hubs for network:', hubs);
-
-            // Filter for unpaired hubs - explicitly check for empty/null/undefined hardware_id
             const unpairedHubs = hubs.filter(h => {
                 const hwId = h.hardware_id;
-                const isUnpaired = !hwId || hwId === '' || hwId === 'None' || hwId.trim() === '';
-                console.log(`Hub ${h.name}: hardware_id='${hwId}', isUnpaired=${isUnpaired}`);
-                return isUnpaired;
+                return !hwId || hwId === '' || hwId === 'None' || hwId.trim() === '';
             });
-
-            console.log('Unpaired hubs:', unpairedHubs);
 
             if (unpairedHubs.length === 0) {
                 storeSelect.innerHTML = '<option value="">No unpaired stores available</option>';
@@ -746,7 +922,7 @@
             unpairedHubs.forEach(hub => {
                 const option = document.createElement('option');
                 option.value = hub.id;
-                option.textContent = `${hub.code} - ${hub.name}`;
+                option.textContent = hub.code + ' - ' + hub.name;
                 option.dataset.name = hub.name;
                 option.dataset.code = hub.code;
                 storeSelect.appendChild(option);
@@ -770,7 +946,6 @@
             const newStoreName = document.getElementById('storeName').value.trim();
             const statusDiv = document.getElementById('pairStatus');
 
-            // Determine store name - either from selected hub or new name
             let storeName = newStoreName;
             if (selectedHubId && storeSelect.selectedOptions[0]) {
                 storeName = storeSelect.selectedOptions[0].dataset.name || newStoreName;
@@ -780,7 +955,7 @@
                 statusDiv.style.display = 'block';
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = '❌ Please enter a pairing code';
+                statusDiv.textContent = 'Please enter a pairing code';
                 return;
             }
 
@@ -788,19 +963,19 @@
                 statusDiv.style.display = 'block';
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = '❌ Please select a store or enter a new store name';
+                statusDiv.textContent = 'Please select a store or enter a new store name';
                 return;
             }
 
             statusDiv.style.display = 'block';
             statusDiv.style.background = '#e0e7ff';
             statusDiv.style.color = '#3730a3';
-            statusDiv.textContent = '⏳ Pairing hub...';
+            statusDiv.textContent = 'Pairing hub...';
 
             try {
                 const response = await fetch('/api/v1/hubs/pair', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         pairing_code: pairingCode,
                         store_name: storeName,
@@ -814,58 +989,59 @@
                 if (response.ok) {
                     statusDiv.style.background = '#d1fae5';
                     statusDiv.style.color = '#065f46';
-                    statusDiv.textContent = `✅ ${data.message}`;
+                    statusDiv.textContent = data.message;
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     statusDiv.style.background = '#fee2e2';
                     statusDiv.style.color = '#991b1b';
-                    statusDiv.textContent = `❌ Error: ${data.error || 'Failed to pair hub'}`;
+                    statusDiv.textContent = 'Error: ' + (data.error || 'Failed to pair hub');
                 }
             } catch (error) {
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = `❌ Failed: ${error.message}`;
+                statusDiv.textContent = 'Failed: ' + error.message;
             }
         });
 
-        // View content manifest
+        // ============================================================
+        // CONTENT MANIFEST
+        // ============================================================
+
         async function viewManifest(hubId, hubCode) {
-            document.getElementById('manifestModalTitle').textContent = `Content Manifest - ${hubCode}`;
+            document.getElementById('manifestModalTitle').textContent = 'Content Manifest - ' + hubCode;
             document.getElementById('manifestModal').classList.add('active');
 
             const contentDiv = document.getElementById('manifestContent');
             contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">Loading...</div>';
 
             try {
-                const response = await fetch(`/api/v1/hubs/${hubId}/content-manifest`);
+                const response = await fetch('/api/v1/hubs/' + hubId + '/content-manifest');
                 const data = await response.json();
 
                 if (response.ok) {
                     if (data.content && data.content.length > 0) {
-                        let html = '<div style="font-size: 13px; margin-bottom: 15px; color: #64748b;">Manifest Version: ' + data.manifest_version + ' • ' + data.count + ' items</div>';
+                        let html = '<div style="font-size: 13px; margin-bottom: 15px; color: #64748b;">Manifest Version: ' + data.manifest_version + ' - ' + data.count + ' items</div>';
                         html += '<table style="width: 100%; border-collapse: collapse;">';
                         html += '<thead><tr style="background: #f8fafc;"><th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Filename</th><th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Type</th><th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Size</th></tr></thead>';
                         html += '<tbody>';
-
-                        data.content.forEach(item => {
-                            const size = formatFileSize(item.file_size);
-                            html += `<tr style="border-bottom: 1px solid #e2e8f0;">`;
-                            html += `<td style="padding: 10px;"><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${item.filename}</code></td>`;
-                            html += `<td style="padding: 10px;">${item.mime_type}</td>`;
-                            html += `<td style="padding: 10px;">${size}</td>`;
-                            html += `</tr>`;
+                        data.content.forEach(function(item) {
+                            var size = formatFileSize(item.file_size);
+                            html += '<tr style="border-bottom: 1px solid #e2e8f0;">';
+                            html += '<td style="padding: 10px;"><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">' + item.filename + '</code></td>';
+                            html += '<td style="padding: 10px;">' + item.mime_type + '</td>';
+                            html += '<td style="padding: 10px;">' + size + '</td>';
+                            html += '</tr>';
                         });
-
                         html += '</tbody></table>';
                         contentDiv.innerHTML = html;
                     } else {
                         contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">No content assigned to this hub\'s network</div>';
                     }
                 } else {
-                    contentDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Error: ${data.error}</div>`;
+                    contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error: ' + data.error + '</div>';
                 }
             } catch (error) {
-                contentDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Failed to load manifest</div>`;
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Failed to load manifest</div>';
             }
         }
 
@@ -873,83 +1049,78 @@
             document.getElementById('manifestModal').classList.remove('active');
         }
 
-        // Format file size
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            var k = 1024;
+            var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            var i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Toggle hub status
+        // ============================================================
+        // HUB STATUS & DELETE
+        // ============================================================
+
         async function toggleStatus(hubId, currentStatus) {
-            const newStatus = (currentStatus === 'active' || currentStatus === 'online') ? 'offline' : 'online';
+            var newStatus = (currentStatus === 'active' || currentStatus === 'online') ? 'offline' : 'online';
 
             try {
-                const response = await fetch(`/api/v1/hubs/${hubId}`, {
+                var response = await fetch('/api/v1/hubs/' + hubId, {
                     method: 'PATCH',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: newStatus })
                 });
 
                 if (response.ok) {
                     location.reload();
                 } else {
-                    alert('❌ Failed to update hub status');
+                    alert('Failed to update hub status');
                 }
             } catch (error) {
-                alert('❌ Error: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
 
-        // Delete hub - requires typing "delete" to confirm
         async function deleteHub(hubId, hubName, hubCode) {
-            const confirmation = prompt(
-                `⚠️ DELETE HUB: ${hubCode} - ${hubName}\n\n` +
-                `This will permanently remove this hub from the CMS.\n` +
-                `Connected devices will become disconnected.\n\n` +
-                `To confirm, type "delete" below:`
+            var confirmation = prompt(
+                'DELETE HUB: ' + hubCode + ' - ' + hubName + '\n\n' +
+                'This will permanently remove this hub from the CMS.\n' +
+                'Connected devices will become disconnected.\n\n' +
+                'To confirm, type "delete" below:'
             );
 
-            if (confirmation === null) {
-                return; // User cancelled
-            }
+            if (confirmation === null) return;
 
             if (confirmation.toLowerCase() !== 'delete') {
-                alert('❌ Deletion cancelled. You must type "delete" to confirm.');
+                alert('Deletion cancelled. You must type "delete" to confirm.');
                 return;
             }
 
             try {
-                const response = await fetch(`/api/v1/hubs/${hubId}`, {
+                var response = await fetch('/api/v1/hubs/' + hubId, {
                     method: 'DELETE'
                 });
 
                 if (response.ok) {
-                    alert(`✅ Hub "${hubName}" deleted successfully.`);
+                    alert('Hub "' + hubName + '" deleted successfully.');
                     location.reload();
                 } else {
-                    const data = await response.json();
-                    alert('❌ Failed to delete hub: ' + (data.error || 'Unknown error'));
+                    var data = await response.json();
+                    alert('Failed to delete hub: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
-                alert('❌ Error: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
 
         // Close modal on backdrop click
         document.getElementById('manifestModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeManifestModal();
-            }
+            if (e.target === this) closeManifestModal();
         });
 
         // Close modal on Escape key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeManifestModal();
-            }
+            if (e.key === 'Escape') closeManifestModal();
         });
     </script>
 </body>
