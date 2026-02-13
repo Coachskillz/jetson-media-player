@@ -1,155 +1,173 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Skillz Media Screens CMS{% endblock %}
+{% block title %}Dashboard - Skillz Media CMS{% endblock %}
 
 {% block extra_styles %}
-/* Quick Actions */
-.quick-actions {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    margin: 30px 0;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.quick-actions h3 {
-    font-size: 20px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-/* Activity Feed */
-.activity-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 30px;
-    margin: 30px 0;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.activity-section h3 {
-    font-size: 20px;
-    color: #1e293b;
-    margin-bottom: 20px;
-    font-weight: 700;
-}
-
-.activity-item {
-    padding: 15px;
-    border-left: 3px solid #667eea;
-    background: #f8fafc;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    transition: all 0.2s;
-}
-
-.activity-item:hover {
-    background: #f1f5f9;
-    transform: translateX(4px);
-}
-
-.activity-time {
-    font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 5px;
-}
-
-.activity-text {
-    color: #1e293b;
-    font-size: 14px;
-    font-weight: 500;
-}
+.health-section { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.health-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.health-title { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: #1e293b; }
+.health-indicator { width: 12px; height: 12px; border-radius: 50%; animation: pulse 2s infinite; }
+.health-indicator.healthy { background: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
+.health-indicator.warning { background: #f59e0b; box-shadow: 0 0 10px rgba(245,158,11,0.5); }
+.health-indicator.error { background: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+.health-stats { display: flex; gap: 24px; font-size: 14px; color: #64748b; }
+.health-stat { display: flex; align-items: center; gap: 6px; }
+.health-stat-value { font-weight: 700; color: #1e293b; }
+.health-alerts { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.alert-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fef3c7; border-radius: 10px; margin-bottom: 8px; font-size: 14px; color: #92400e; }
+.alert-item:last-child { margin-bottom: 0; }
+.no-alerts { color: #10b981; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.overview-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.overview-stat { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+.overview-stat-value { font-size: 40px; font-weight: 800; color: #1e293b; line-height: 1; }
+.overview-stat-value.green { color: #10b981; }
+.overview-stat-value.red { color: #ef4444; }
+.overview-stat-value.purple { color: #7c3aed; }
+.overview-stat-label { font-size: 13px; color: #64748b; margin-top: 8px; font-weight: 500; }
+.quick-links { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.quick-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.2s; background: rgba(255,255,255,0.95); color: #475569; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.quick-link:hover { background: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.create-network-section { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.create-network-section h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 16px; }
+.create-network-form { display: flex; gap: 12px; align-items: end; }
+.create-network-form input { flex: 1; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; }
+.create-network-form input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+.create-network-form button { padding: 10px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.create-network-form button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+.network-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.network-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+.network-name { font-size: 20px; font-weight: 700; color: #1e293b; }
+.network-counts { display: flex; gap: 10px; flex-wrap: wrap; }
+.count-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.count-pill.total { background: #f1f5f9; color: #475569; }
+.count-pill.online { background: #d1fae5; color: #065f46; }
+.count-pill.offline { background: #fee2e2; color: #991b1b; }
+.device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.device-card { background: white; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #e2e8f0; transition: all 0.2s; text-decoration: none; color: inherit; }
+.device-card:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102,126,234,0.15); transform: translateY(-1px); }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.active { background: #10b981; }
+.status-dot.online { background: #10b981; }
+.status-dot.offline { background: #ef4444; }
+.status-dot.inactive { background: #94a3b8; }
+.device-card-info { flex: 1; min-width: 0; }
+.device-card-name { font-size: 14px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-card-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.empty-network { text-align: center; padding: 30px; color: #94a3b8; font-size: 14px; }
+.form-feedback { padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+.form-feedback.success { background: #d1fae5; color: #065f46; display: block; }
+.form-feedback.error { background: #fee2e2; color: #991b1b; display: block; }
 {% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero">
-    <h2>👋 Welcome back, Matt!</h2>
-    <p>Your media network is running smoothly. Here's what's happening across your devices.</p>
+<div class="health-section">
+    <div class="health-header">
+        <div class="health-title">
+            <span class="health-indicator {{ system_health.status }}"></span>
+            System Health
+        </div>
+        <div class="health-stats">
+            <div class="health-stat"><span class="health-stat-value">{{ system_health.total_screens }}</span> Total Screens</div>
+            <div class="health-stat"><span class="health-stat-value" style="color:#10b981;">{{ system_health.online_screens }}</span> Online</div>
+            {% if system_health.offline_screens > 0 %}
+            <div class="health-stat"><span class="health-stat-value" style="color:#ef4444;">{{ system_health.offline_screens }}</span> Offline</div>
+            {% endif %}
+        </div>
+    </div>
+    {% if system_health.alerts %}
+    <div class="health-alerts">
+        {% for alert in system_health.alerts[:5] %}
+        <div class="alert-item"><span>&#9888;</span><span>{{ alert.message }}</span></div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-alerts"><span>&#10003;</span> All systems operating normally</div>
+    {% endif %}
 </div>
 
-<!-- Stats Grid -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">📱</div>
-        <div class="stat-value">{{ device_count }}</div>
-        <div class="stat-label">Connected Devices</div>
-        <div class="stat-change neutral">{{ device_count }} active</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon">🎬</div>
-        <div class="stat-value">{{ content_count }}</div>
-        <div class="stat-label">Media Files</div>
-        <div class="stat-change positive">↑ Ready to deploy</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-value">{{ playlist_count }}</div>
-        <div class="stat-label">Active Playlists</div>
-        <div class="stat-change neutral">With triggers</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon">⚡</div>
-        <div class="stat-value">100%</div>
-        <div class="stat-label">System Health</div>
-        <div class="stat-change positive">↑ All systems go</div>
-    </div>
+<div class="overview-stats">
+    <div class="overview-stat"><div class="overview-stat-value">{{ networks|length }}</div><div class="overview-stat-label">Networks</div></div>
+    <div class="overview-stat"><div class="overview-stat-value purple">{{ hubs|length }}</div><div class="overview-stat-label">Hubs</div></div>
+    <div class="overview-stat"><div class="overview-stat-value">{{ system_health.total_screens }}</div><div class="overview-stat-label">Total Screens</div></div>
+    <div class="overview-stat"><div class="overview-stat-value green">{{ system_health.online_screens }}</div><div class="overview-stat-label">Online</div></div>
+    <div class="overview-stat"><div class="overview-stat-value red">{{ system_health.offline_screens }}</div><div class="overview-stat-label">Offline</div></div>
 </div>
 
-<!-- Quick Actions -->
-<div class="quick-actions">
-    <h3>⚡ Quick Actions</h3>
-    <div class="actions-grid">
-        <a href="/content" class="action-btn">
-            <span>📤</span>
-            Upload Content
-        </a>
-        <a href="/playlists" class="action-btn">
-            <span>➕</span>
-            Create Playlist
-        </a>
-        <a href="/devices" class="action-btn">
-            <span>🔗</span>
-            Pair Device
-        </a>
-        <a href="/devices" class="action-btn">
-            <span>🎯</span>
-            Assign Triggers
-        </a>
-    </div>
+<div class="quick-links">
+    <a href="/hubs" class="quick-link">Manage Hubs</a>
+    <a href="/devices" class="quick-link">Manage Screens</a>
+    <a href="/content" class="quick-link">Content Library</a>
+    <a href="/playlists" class="quick-link">Playlists</a>
+    <a href="/layouts" class="quick-link">Layouts</a>
 </div>
 
-<!-- Activity Feed -->
-<div class="activity-section">
-    <h3>📊 Recent Activity</h3>
-    <div class="activity-item">
-        <div class="activity-time">Just now</div>
-        <div class="activity-text">✅ Dashboard loaded successfully</div>
+<div class="create-network-section">
+    <h3>Create Network</h3>
+    <form id="create-network-form" class="create-network-form">
+        <input type="text" id="network-name" placeholder="e.g. High Octane Network, On The Wave TV" required>
+        <button type="submit">Create Network</button>
+    </form>
+    <div id="create-network-feedback" class="form-feedback"></div>
+</div>
+
+{% for network in networks %}
+<div class="network-card">
+    <div class="network-header">
+        <div class="network-name">{{ network.name }}</div>
+        <div class="network-counts">
+            <span class="count-pill total">{{ network.screen_count }} screen{{ 's' if network.screen_count != 1 else '' }}</span>
+            <span class="count-pill online">{{ network.online_count }} online</span>
+            {% if network.screen_count - network.online_count > 0 %}
+            <span class="count-pill offline">{{ network.screen_count - network.online_count }} offline</span>
+            {% endif %}
+        </div>
     </div>
-    <div class="activity-item">
-        <div class="activity-time">2 minutes ago</div>
-        <div class="activity-text">🎬 System ready for content management</div>
+    {% if network.screens|length == 0 %}
+    <div class="empty-network">No screens connected to this network yet.</div>
+    {% else %}
+    <div class="device-grid">
+        {% for screen in network.screens %}
+        <a href="/devices/{{ screen.device_id }}" class="device-card">
+            <span class="status-dot {{ screen.status }}"></span>
+            <div class="device-card-info">
+                <div class="device-card-name">{{ screen.name }}</div>
+                <div class="device-card-meta">{{ screen.current_playlist }}</div>
+            </div>
+        </a>
+        {% endfor %}
     </div>
-    <div class="activity-item">
-        <div class="activity-time">5 minutes ago</div>
-        <div class="activity-text">📱 All devices synced</div>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% if networks|length == 0 %}
+<div class="network-card">
+    <div class="empty-network">
+        <p style="font-size:18px;margin-bottom:8px;">No networks yet</p>
+        <p>Create a network above to get started.</p>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // Auto-refresh stats every 30 seconds
-    setInterval(() => {
-        location.reload();
-    }, 30000);
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('create-network-form');
+    var feedback = document.getElementById('create-network-feedback');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        feedback.className = 'form-feedback';
+        var name = document.getElementById('network-name').value.trim();
+        if (!name) { feedback.className = 'form-feedback error'; feedback.textContent = 'Please enter a network name'; return; }
+        try {
+            var response = await fetch('/api/v1/networks', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: name}) });
+            var data = await response.json();
+            if (response.ok) { feedback.className = 'form-feedback success'; feedback.textContent = 'Network created!'; form.reset(); setTimeout(function(){location.reload();}, 1500); }
+            else { feedback.className = 'form-feedback error'; feedback.textContent = data.error || 'Failed'; }
+        } catch (error) { feedback.className = 'form-feedback error'; feedback.textContent = 'Network error'; }
+    });
+});
 </script>
 {% endblock %}
