@@ -1431,7 +1431,8 @@ def register_from_hub():
     device = Device(
         hardware_id=hardware_id,
         device_id=device_id,
-        mode='hub',
+        mode='hub'
+        connection_mode='hub',
         hub_id=hub_id,
         network_id=hub.network_id,
         name=data.get('name'),
