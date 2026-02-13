@@ -716,20 +716,7 @@
                         <a href="/devices?hub={{ item.hub.id }}" class="view-devices-btn">View Devices</a>
                     </div>
 
-                    <!-- Store Locations Section -->
-                    <div class="locations-card" id="locations-{{ item.hub.id }}">
-                        <div class="locations-card-header">
-                            <h4>Screen Locations</h4>
-                            <span id="loc-count-{{ item.hub.id }}" style="font-size: 12px; color: #94a3b8;">Loading...</span>
-                        </div>
-                        <div class="locations-list" id="loc-list-{{ item.hub.id }}">
-                            <span class="no-locations">Loading locations...</span>
-                        </div>
-                        <div class="add-location-form">
-                            <input type="text" id="new-loc-{{ item.hub.id }}" placeholder="e.g. Fishing Counter, Entrance, Checkout..." onkeydown="if(event.key==='Enter'){event.preventDefault();addLocation('{{ item.hub.id }}');}">
-                            <button onclick="addLocation('{{ item.hub.id }}')">+ Add</button>
-                        </div>
-                    </div>
+
 
                     <div class="hub-actions">
                         <button class="btn-secondary" onclick="viewManifest('{{ item.hub.id }}', '{{ item.hub.code }}')">
