@@ -2292,6 +2292,8 @@ def assign_layout_to_device(layout_id):
 
     try:
         db.session.add(assignment)
+        # Also set device.layout_id so the UI renders zone assignments
+        device.layout_id = layout_id
         db.session.commit()
     except Exception as e:
         db.session.rollback()

@@ -676,6 +676,25 @@ def add_device_playlist(device_id):
 
 
 
+
+@devices_bp.route('/<device_id>/layout', methods=['PATCH'])
+@login_required
+def update_device_layout(device_id):
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+    data = request.get_json() or {}
+    layout_id = data.get('layout_id')
+    device.layout_id = layout_id
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'layout_id': device.layout_id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @devices_bp.route('/<device_id>/playlists/<assignment_id>/toggle', methods=['PATCH'])
 @login_required
 def toggle_device_playlist(device_id, assignment_id):
