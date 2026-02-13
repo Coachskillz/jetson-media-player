@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify
 from cms.models import db
 from cms.models.store_location import StoreLocation
 from cms.models.hub import Hub
-from cms.auth import login_required
+from cms.utils.auth import login_required
 import uuid
 
 locations_bp = Blueprint('locations', __name__)
