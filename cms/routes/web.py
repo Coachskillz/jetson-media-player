@@ -19,7 +19,7 @@ from flask_login import login_required, current_user
 
 from datetime import datetime, timezone
 from cms.models import db, Device, Hub, PendingHub, Content, Playlist, Network, DeviceAssignment, Folder
-from cms.routes.locations import Location
+from cms.models.store_location import StoreLocation
 from cms.models.device_assignment import TRIGGER_TYPES
 from cms.models.synced_content import SyncedContent
 from cms.services.content_sync_service import ContentSyncService
@@ -258,7 +258,7 @@ def devices_page():
     hubs = Hub.query.order_by(Hub.name).all()
     playlists = Playlist.query.filter_by(is_active=True).order_by(Playlist.name).all()
     try:
-        locations = Location.query.all()
+        locations = StoreLocation.query.all()
     except Exception:
         locations = []
     total_screen_count = len(devices)

@@ -88,7 +88,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
 
     # Import models defined outside cms/models/ so create_all() knows about them
     try:
-        from cms.routes.locations import Location  # noqa: F401
+        from cms.models.store_location import StoreLocation  # noqa: F401
     except ImportError:
         pass
 
