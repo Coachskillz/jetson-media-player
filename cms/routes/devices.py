@@ -675,6 +675,41 @@ def add_device_playlist(device_id):
     }), 201
 
 
+
+@devices_bp.route('/<device_id>/playlists/<assignment_id>/toggle', methods=['PATCH'])
+@login_required
+def toggle_device_playlist(device_id, assignment_id):
+    """Toggle a playlist assignment on/off."""
+    device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = db.session.get(Device, device_id)
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+
+    assignment = DeviceAssignment.query.filter_by(
+        id=assignment_id,
+        device_id=device.id
+    ).first()
+    if not assignment:
+        return jsonify({'error': 'Assignment not found'}), 404
+
+    data = request.get_json() or {}
+    is_enabled = data.get('is_enabled', True)
+    assignment.is_enabled = is_enabled
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': f'Playlist {"enabled" if is_enabled else "disabled"}',
+            'assignment_id': assignment.id,
+            'is_enabled': is_enabled
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 @devices_bp.route('/<device_id>/playlists/<assignment_id>', methods=['DELETE'])
 @login_required
 def remove_device_playlist(device_id, assignment_id):

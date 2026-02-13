@@ -97,6 +97,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         db.create_all()
         _run_migrations(app)
         _run_device_location_migration(app)
+        _run_assignment_is_enabled_migration(app)
         _seed_default_users(app)
         # Only seed demo content if explicitly enabled (not in production)
         if os.environ.get('SEED_DEMO_CONTENT', '').lower() in ('true', '1', 'yes'):
@@ -201,6 +202,26 @@ def _run_device_location_migration(app):
     except Exception as e:
         db.session.rollback()
         app.logger.warning(f'Migration failed: {e}')
+
+
+def _run_assignment_is_enabled_migration(app):
+    """Add is_enabled column to device_assignments table if missing."""
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+    if 'device_assignments' not in inspector.get_table_names():
+        return
+    columns = [c['name'] for c in inspector.get_columns('device_assignments')]
+    if 'is_enabled' in columns:
+        return
+    app.logger.info('Migration: Adding is_enabled to device_assignments table')
+    try:
+        db.session.execute(text('ALTER TABLE device_assignments ADD COLUMN is_enabled BOOLEAN DEFAULT FALSE'))
+        db.session.commit()
+        app.logger.info('Migration: is_enabled column added successfully')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f'Migration failed: {e}')
+
 
 def _run_migrations(app: Flask) -> None:
     """Run lightweight schema migrations to add missing columns."""
