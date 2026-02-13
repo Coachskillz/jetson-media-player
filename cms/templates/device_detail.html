@@ -3024,6 +3024,7 @@ input:disabled + .toggle-slider {
         try {
             const response = await fetch(`/api/v1/devices/${deviceId}/playlists`, {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     playlist_id: playlistId,
@@ -3048,6 +3049,7 @@ input:disabled + .toggle-slider {
         try {
             const response = await fetch(`/api/v1/devices/${deviceId}/playlists/${assignmentId}/toggle`, {
                 method: 'PATCH',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ is_enabled: isEnabled })
             });
@@ -3085,7 +3087,8 @@ input:disabled + .toggle-slider {
 
         try {
             const response = await fetch(`/api/v1/devices/${deviceId}/playlists/${assignmentId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                credentials: 'same-origin',
             });
 
             if (response.ok) {
@@ -3449,6 +3452,7 @@ input:disabled + .toggle-slider {
         try {
             const response = await fetch(`/api/v1/devices/${deviceId}/playlists`, {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     playlist_id: playlistId,
@@ -3504,6 +3508,7 @@ input:disabled + .toggle-slider {
         try {
             const response = await fetch(`/api/v1/devices/${deviceId}/playlists/${assignmentId}/toggle`, {
                 method: 'PATCH',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ is_enabled: isEnabled })
             });
@@ -3553,7 +3558,8 @@ input:disabled + .toggle-slider {
 
         try {
             const response = await fetch(`/api/v1/devices/${deviceId}/playlists/${assignmentId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                credentials: 'same-origin',
             });
 
             if (response.ok) {
