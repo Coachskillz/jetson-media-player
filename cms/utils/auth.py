@@ -27,6 +27,7 @@ from flask import request, jsonify, g
 from flask_login import current_user as flask_login_user
 
 from cms.models import db, User, UserSession
+from cms.models.hub import Hub
 
 
 def get_current_user():
@@ -184,6 +185,14 @@ def login_required(f):
         # Validate the session
         user, session = _validate_session(token)
         if not user:
+            # Check if this is a hub API token
+            if token.startswith('hub_'):
+                hub = Hub.query.filter_by(api_token=token).first()
+                if hub:
+                    g.current_user = None
+                    g.current_session = None
+                    g.current_hub = hub
+                    return f(*args, **kwargs)
             return jsonify({
                 'error': 'Invalid or expired session',
                 'code': 'invalid_session'
