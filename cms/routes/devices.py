@@ -1380,6 +1380,12 @@ def register_from_hub():
     existing_device = Device.query.filter_by(hardware_id=hardware_id).first()
     if existing_device:
         # Update device info from Hub
+        existing_device.hub_id = hub_id
+        existing_device.mode = 'hub'
+        existing_device.connection_mode = 'hub'
+        hub = db.session.get(Hub, hub_id)
+        if hub:
+            existing_device.network_id = hub.network_id
         if data.get('name'):
             existing_device.name = data.get('name')
         if data.get('pairing_code'):
