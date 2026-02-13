@@ -678,7 +678,6 @@ def add_device_playlist(device_id):
 
 
 @devices_bp.route('/<device_id>/layout', methods=['PATCH'])
-@login_required
 def update_device_layout(device_id):
     device = Device.query.filter_by(device_id=device_id).first()
     if not device:
