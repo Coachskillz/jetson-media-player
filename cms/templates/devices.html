@@ -505,29 +505,99 @@
     </div>
 </div>
 
-<!-- Pairing Box -->
-<div class="pairing-box">
-    <h3>🔗 Pair New Device</h3>
-    <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-        Enter the 6-digit code displayed on the device screen to approve pairing
+<!-- Pair Screen Box -->
+<div class="pairing-box" style="padding: 24px;">
+    <h3>🔗 Pair Screen</h3>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 20px;">
+        Connect a new screen to the network. All fields are required.
     </p>
-    <form id="pairingForm" class="pairing-form">
-        <div class="form-group">
-            <label>6-Digit Pairing Code</label>
-            <input type="text" id="pairingCode" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required>
+    <form id="pairingForm">
+        <!-- Row 1: Code, Network, Hub -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group">
+                <label>Pairing Code *</label>
+                <input type="text" id="pairingCode" placeholder="ABC123" maxlength="6" style="text-transform: uppercase; letter-spacing: 2px; text-align: center; font-size: 16px; font-weight: 600;" required>
+                <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Code displayed on screen</div>
+            </div>
+            <div class="form-group">
+                <label>Network *</label>
+                <select id="pairNetwork" onchange="updatePairHubSelect()" required>
+                    <option value="">Select network...</option>
+                    {% for network in networks %}
+                    <option value="{{ network.id }}">{{ network.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Hub (Optional)</label>
+                <select id="pairHub">
+                    <option value="">Direct connection</option>
+                </select>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Assign to Location</label>
-            <select id="locationSelect">
-                <option value="">No Location</option>
-                {% for location in locations %}
-                <option value="{{ location.id }}">{{ location.icon }} {{ location.name }}</option>
-                {% endfor %}
-            </select>
+        <!-- Row 2: Store & Location -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group">
+                <label>Store Name/Number *</label>
+                <input type="text" id="storeName" placeholder="Store #1234 or West Marine Fort Lauderdale" required>
+            </div>
+            <div class="form-group">
+                <label>Screen Location in Store *</label>
+                <input type="text" id="screenLocation" placeholder="Entrance, Checkout, Aisle 1, etc." required>
+            </div>
         </div>
-        <button type="submit" class="btn btn-primary">✓ Approve</button>
+        <!-- Row 3: Address -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group">
+                <label>Street Address *</label>
+                <input type="text" id="storeAddress" placeholder="123 Main Street" required>
+            </div>
+            <div class="form-group">
+                <label>City *</label>
+                <input type="text" id="storeCity" placeholder="Fort Lauderdale" required>
+            </div>
+            <div class="form-group">
+                <label>State *</label>
+                <select id="storeState" required>
+                    <option value="">State</option>
+                    <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option>
+                    <option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option>
+                    <option value="CT">CT</option><option value="DE">DE</option><option value="FL">FL</option>
+                    <option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
+                    <option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option>
+                    <option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option>
+                    <option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option>
+                    <option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option>
+                    <option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option>
+                    <option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option>
+                    <option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option>
+                    <option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option>
+                    <option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option>
+                    <option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option>
+                    <option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option>
+                    <option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option>
+                    <option value="WI">WI</option><option value="WY">WY</option><option value="DC">DC</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Zipcode *</label>
+                <input type="text" id="storeZipcode" placeholder="33301" maxlength="10" required>
+            </div>
+        </div>
+        <!-- Row 4: Manager -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <div class="form-group">
+                <label>Store Manager Name *</label>
+                <input type="text" id="managerName" placeholder="John Smith" required>
+            </div>
+            <div class="form-group">
+                <label>Store Phone *</label>
+                <input type="tel" id="storePhone" placeholder="(954) 555-1234" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 15px;">Pair Screen</button>
     </form>
-    <div id="pairingStatus"></div>
+    <div id="pairingStatus" style="margin-top: 12px;"></div>
 </div>
 
 <!-- Devices Grid -->
@@ -788,24 +858,90 @@
         document.getElementById('devicesHeader').textContent = `${locationName} (${visibleCount})`;
     }
 
+    // Hub select data
+    const pairHubsByNetwork = {
+        {% for network in networks %}
+        "{{ network.id }}": [
+            {% for hub in hubs if hub.network_id == network.id %}
+            { id: "{{ hub.id }}", code: "{{ hub.code }}", name: "{{ hub.name }}" }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function updatePairHubSelect() {
+        const networkId = document.getElementById('pairNetwork').value;
+        const hubSelect = document.getElementById('pairHub');
+        hubSelect.innerHTML = '<option value="">Direct connection</option>';
+        if (networkId && pairHubsByNetwork[networkId]) {
+            pairHubsByNetwork[networkId].forEach(function(hub) {
+                var opt = document.createElement('option');
+                opt.value = hub.id;
+                opt.textContent = hub.code + ' - ' + hub.name;
+                hubSelect.appendChild(opt);
+            });
+        }
+    }
+
     // Pairing
     document.getElementById('pairingForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const code = document.getElementById('pairingCode').value;
-        const locationId = document.getElementById('locationSelect').value || null;
+        const code = document.getElementById('pairingCode').value.trim().toUpperCase();
+        const networkId = document.getElementById('pairNetwork').value;
+        const hubId = document.getElementById('pairHub').value;
+        const storeName = document.getElementById('storeName').value.trim();
+        const screenLocation = document.getElementById('screenLocation').value.trim();
+        const storeAddress = document.getElementById('storeAddress').value.trim();
+        const storeCity = document.getElementById('storeCity').value.trim();
+        const storeState = document.getElementById('storeState').value;
+        const storeZipcode = document.getElementById('storeZipcode').value.trim();
+        const managerName = document.getElementById('managerName').value.trim();
+        const storePhone = document.getElementById('storePhone').value.trim();
         const statusDiv = document.getElementById('pairingStatus');
+
+        var missing = [];
+        if (!code) missing.push('Pairing Code');
+        if (!networkId) missing.push('Network');
+        if (!storeName) missing.push('Store Name');
+        if (!screenLocation) missing.push('Screen Location');
+        if (!storeAddress) missing.push('Address');
+        if (!storeCity) missing.push('City');
+        if (!storeState) missing.push('State');
+        if (!storeZipcode) missing.push('Zipcode');
+        if (!managerName) missing.push('Manager Name');
+        if (!storePhone) missing.push('Store Phone');
+
+        if (missing.length > 0) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#fee2e2';
+            statusDiv.style.color = '#991b1b';
+            statusDiv.textContent = 'Missing: ' + missing.join(', ');
+            return;
+        }
 
         statusDiv.style.display = 'block';
         statusDiv.style.background = '#e0e7ff';
         statusDiv.style.color = '#3730a3';
-        statusDiv.textContent = '⏳ Approving device...';
+        statusDiv.textContent = '⏳ Pairing screen...';
 
         try {
             const response = await fetch('/api/admin/pairing/approve', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ pairing_code: code, location_id: locationId })
+                body: JSON.stringify({
+                    pairing_code: code,
+                    network_id: networkId,
+                    hub_id: hubId || null,
+                    store_name: storeName,
+                    screen_location: screenLocation,
+                    store_address: storeAddress,
+                    store_city: storeCity,
+                    store_state: storeState,
+                    store_zipcode: storeZipcode,
+                    manager_name: managerName,
+                    store_phone: storePhone
+                })
             });
 
             const data = await response.json();
@@ -813,17 +949,18 @@
             if (response.ok) {
                 statusDiv.style.background = '#d1fae5';
                 statusDiv.style.color = '#065f46';
-                statusDiv.textContent = `✅ Device paired successfully! ${data.name}`;
-                setTimeout(() => location.reload(), 2000);
+                statusDiv.textContent = '✅ Screen paired successfully!';
+                document.getElementById('pairingForm').reset();
+                setTimeout(function() { location.reload(); }, 2000);
             } else {
                 statusDiv.style.background = '#fee2e2';
                 statusDiv.style.color = '#991b1b';
-                statusDiv.textContent = `❌ Error: ${data.error || 'Invalid pairing code'}`;
+                statusDiv.textContent = '❌ Error: ' + (data.error || 'Invalid pairing code');
             }
         } catch (error) {
             statusDiv.style.background = '#fee2e2';
             statusDiv.style.color = '#991b1b';
-            statusDiv.textContent = `❌ Failed: ${error.message}`;
+            statusDiv.textContent = '❌ Failed: ' + error.message;
         }
     });
 
