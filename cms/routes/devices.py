@@ -1379,11 +1379,24 @@ def register_from_hub():
     # Check if device already exists
     existing_device = Device.query.filter_by(hardware_id=hardware_id).first()
     if existing_device:
+        # Update device info from Hub
+        if data.get('name'):
+            existing_device.name = data.get('name')
+        if data.get('pairing_code'):
+            existing_device.pairing_code = data.get('pairing_code')
+        if data.get('ip_address'):
+            existing_device.ip_address = data.get('ip_address')
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
         return jsonify({
             'success': True,
             'device_id': existing_device.id,
             'device_code': existing_device.device_id,
-            'message': 'Device already exists'
+            'message': 'Device updated'
         }), 200
 
     # Validate hub exists
