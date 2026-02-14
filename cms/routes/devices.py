@@ -1274,19 +1274,22 @@ def assign_playlist_to_device(device_id):
     if not playlist:
         return jsonify({'error': 'Playlist not found'}), 404
 
-    # Remove existing default assignment(s) for this device
-    existing_default = DeviceAssignment.query.filter_by(
+    # Get trigger_type from request, default to 'default'
+    trigger_type = data.get('trigger_type', 'default')
+
+    # Remove existing assignment for this device + trigger_type combo
+    existing = DeviceAssignment.query.filter_by(
         device_id=device.id,
-        trigger_type='default'
+        trigger_type=trigger_type
     ).all()
-    for assignment in existing_default:
+    for assignment in existing:
         db.session.delete(assignment)
 
-    # Create new default assignment
+    # Create new assignment
     new_assignment = DeviceAssignment(
         device_id=device.id,
         playlist_id=playlist.id,
-        trigger_type='default',
+        trigger_type=trigger_type,
         priority=0
     )
     db.session.add(new_assignment)
