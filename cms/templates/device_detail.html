@@ -2646,7 +2646,7 @@ input:disabled + .toggle-slider {
 
             // Fetch layout preview data
             try {
-                const response = await fetch(`/api/v1/layouts/${selectedLayoutId}/preview`);
+                const response = await fetch(`/api/v1/layouts/${selectedLayoutId}/preview`, {credentials: "same-origin"});
                 if (response.ok) {
                     layoutData = await response.json();
 
@@ -3218,7 +3218,7 @@ input:disabled + .toggle-slider {
                 showSaveStatus('saved', 'Saved');
                 // Refresh layout data and overlays
                 if (layoutData) {
-                    const previewResponse = await fetch(`/api/v1/layouts/${layoutId}/preview`);
+                    const previewResponse = await fetch(`/api/v1/layouts/${layoutId}/preview`, {credentials: "same-origin"});
                     if (previewResponse.ok) {
                         layoutData = await previewResponse.json();
                         renderZoneOverlays();
@@ -3249,7 +3249,7 @@ input:disabled + .toggle-slider {
 
         // Fetch content list
         try {
-            const response = await fetch('/api/v1/content?limit=100');
+            const response = await fetch('/api/v1/content?limit=100', {credentials: 'same-origin'});
             if (response.ok) {
                 const data = await response.json();
                 allContent = data.content || data.items || data || [];
