@@ -30,6 +30,17 @@ from cms.services.device_id import DeviceIDGenerator
 devices_bp = Blueprint('devices', __name__)
 
 
+@devices_bp.route('/debug-auth', methods=['GET'])
+def debug_auth():
+    from flask_login import current_user as flu
+    return jsonify({
+        'flask_login_user': str(flu),
+        'is_authenticated': flu.is_authenticated if flu else False,
+        'is_anonymous': flu.is_anonymous if flu else True,
+        'user_id': str(flu.get_id()) if flu and hasattr(flu, 'get_id') else None
+    })
+
+
 @devices_bp.route('/register', methods=['POST'])
 def register_device():
     """
