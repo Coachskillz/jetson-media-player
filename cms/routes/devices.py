@@ -1305,6 +1305,8 @@ def assign_playlist_to_device(device_id):
 
     return jsonify({
         'status': 'ok',
+        'id': new_assignment.id,
+        'assignment_id': new_assignment.id,
         'device_id': device.device_id,
         'hardware_id': device.hardware_id,
         'playlist_id': playlist.id,
