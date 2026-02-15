@@ -2455,20 +2455,12 @@ def _push_layout_impl(layout_id):
     if not device_id:
         return jsonify({'error': 'device_id is required'}), 400
 
-    # Look up by primary key (UUID) first, then by display device_id
-    device = db.session.get(Device, device_id)
+    # Look up device - try both id (UUID) and device_id (display ID like SKZ-H-TST-0001)
+    device = Device.query.filter(
+        (Device.id == device_id) | (Device.device_id == device_id)
+    ).first()
     if not device:
-        device = Device.query.filter_by(device_id=device_id).first()
-    if not device:
-        device = Device.query.filter_by(id=device_id).first()
-    if not device:
-        # Debug: show what devices exist
-        all_devices = Device.query.limit(5).all()
-        debug_info = [{'id': d.id, 'device_id': d.device_id} for d in all_devices]
-        return jsonify({
-            'error': f'Device with id {device_id} not found',
-            'debug_devices': debug_info
-        }), 404
+        return jsonify({'error': f'Device with id {device_id} not found'}), 404
 
     # Get all layers for this layout
     layers = ScreenLayer.query.filter_by(layout_id=layout_id).order_by(ScreenLayer.z_index).all()
