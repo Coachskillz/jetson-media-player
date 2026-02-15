@@ -111,6 +111,9 @@ def register_device():
         }), 400
 
     ip_address = data.get('ip_address') or request.remote_addr
+    # Reject loopback - device on Hub itself should not register as a screen
+    if ip_address and ip_address.startswith('127.'):
+        ip_address = None
 
     # Register or get existing device
     device, created = Device.register(hardware_id, name, mode, ip_address)
@@ -821,8 +824,8 @@ def _push_update_to_device(device, update_data):
         logger.warning(f"Device {device.hardware_id} has no IP address, skipping push")
         return
 
-    # Jetson player listens on port 5000
-    jetson_url = f"http://{device.ip_address}:5000"
+    # Jetson player listens on port 8080
+    jetson_url = f"http://{device.ip_address}:8080"
 
     try:
         response = requests.post(

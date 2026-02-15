@@ -379,11 +379,11 @@ def screen_heartbeat(screen_id):
             'error': 'Screen not found'
         }), 404
 
-    # Capture IP address from request
+    # Capture IP address from request - reject loopback addresses
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     if client_ip and ',' in client_ip:
         client_ip = client_ip.split(',')[0].strip()
-    if client_ip and client_ip != screen.ip_address:
+    if client_ip and client_ip != screen.ip_address and not client_ip.startswith('127.'):
         screen.ip_address = client_ip
 
     screen.update_heartbeat()
