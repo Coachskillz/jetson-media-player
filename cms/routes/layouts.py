@@ -2455,12 +2455,27 @@ def _push_layout_impl(layout_id):
     if not device_id:
         return jsonify({'error': 'device_id is required'}), 400
 
-    # Look up device - try both id (UUID) and device_id (display ID like SKZ-H-TST-0001)
+    # Look up device
     device = Device.query.filter(
         (Device.id == device_id) | (Device.device_id == device_id)
     ).first()
     if not device:
-        return jsonify({'error': f'Device with id {device_id} not found'}), 404
+        # Root cause debugging - compare actual values
+        all_devices = Device.query.all()
+        debug = []
+        for d in all_devices:
+            debug.append({
+                'db_id': repr(d.id),
+                'db_device_id': repr(d.device_id),
+                'input': repr(device_id),
+                'id_match': d.id == device_id,
+                'device_id_match': d.device_id == device_id,
+                'id_type': type(d.id).__name__,
+                'input_type': type(device_id).__name__,
+                'id_len': len(d.id) if d.id else 0,
+                'input_len': len(device_id) if device_id else 0,
+            })
+        return jsonify({'error': f'Device lookup failed', 'debug': debug}), 404
 
     # Get all layers for this layout
     layers = ScreenLayer.query.filter_by(layout_id=layout_id).order_by(ScreenLayer.z_index).all()
