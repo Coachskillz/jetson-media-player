@@ -2460,7 +2460,15 @@ def _push_layout_impl(layout_id):
     if not device:
         device = Device.query.filter_by(device_id=device_id).first()
     if not device:
-        return jsonify({'error': f'Device with id {device_id} not found'}), 404
+        device = Device.query.filter_by(id=device_id).first()
+    if not device:
+        # Debug: show what devices exist
+        all_devices = Device.query.limit(5).all()
+        debug_info = [{'id': d.id, 'device_id': d.device_id} for d in all_devices]
+        return jsonify({
+            'error': f'Device with id {device_id} not found',
+            'debug_devices': debug_info
+        }), 404
 
     # Get all layers for this layout
     layers = ScreenLayer.query.filter_by(layout_id=layout_id).order_by(ScreenLayer.z_index).all()
