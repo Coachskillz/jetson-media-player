@@ -209,30 +209,18 @@ def _push_layout_to_device(device, layout_data, content_manifest):
         logger.warning(f"Device {device.hardware_id} has no IP, cannot push layout")
         return False
 
-    if device.status != 'online':
-        logger.info(f"Device {device.hardware_id} is {device.status}, layout cached for later")
-        return False
-
-    # Build playlist from layout's content layer
-    playlist_items = _extract_playlist_from_layout(layout_data)
-
     # Jetson player listens on port 8080
     jetson_url = f"http://{device.ip_address}:8080"
 
     try:
+        # Trigger the Jetson to sync - it pulls content from the Hub
         response = requests.post(
-            f"{jetson_url}/api/v1/sync/playlist",
-            json={
-                'layout_id': layout_data.get('id'),
-                'layout_name': layout_data.get('name'),
-                'items': playlist_items,
-                'version': datetime.utcnow().isoformat()
-            },
+            f"{jetson_url}/api/command/sync",
             timeout=10
         )
 
         if response.ok:
-            logger.info(f"Pushed layout to device {device.hardware_id}")
+            logger.info(f"Triggered sync on device {device.hardware_id}")
             return True
         else:
             logger.warning(f"Device {device.hardware_id} returned {response.status_code}")
