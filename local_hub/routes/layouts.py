@@ -216,8 +216,8 @@ def _push_layout_to_device(device, layout_data, content_manifest):
     # Build playlist from layout's content layer
     playlist_items = _extract_playlist_from_layout(layout_data)
 
-    # Jetson expects playlist at /api/v1/sync/playlist
-    jetson_url = f"http://{device.ip_address}:5000"
+    # Jetson player listens on port 8080
+    jetson_url = f"http://{device.ip_address}:8080"
 
     try:
         response = requests.post(
