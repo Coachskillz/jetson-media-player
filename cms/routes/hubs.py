@@ -421,6 +421,68 @@ def _push_store_info_to_hub(hub, data):
         logger.error(f"Failed to push store info to hub {hub.code}: {e}")
 
 
+@hubs_bp.route('/heartbeat', methods=['POST'])
+def hub_heartbeat():
+    """
+    Hub heartbeat endpoint - called by Hub on startup and periodically.
+
+    Authenticates via hub_id + api_token (no browser session needed).
+    Updates tunnel_url, wan_ip, status, and last_heartbeat.
+
+    Request Body:
+        {
+            "hub_id": "uuid",
+            "api_token": "token",
+            "tunnel_url": "https://xxx.trycloudflare.com",
+            "wan_ip": "76.23.45.189"
+        }
+
+    Returns:
+        200: {"success": true, "tunnel_url": "..."}
+        401: Invalid credentials
+        404: Hub not found
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+
+    hub_id = data.get('hub_id')
+    api_token = data.get('api_token')
+
+    if not hub_id:
+        return jsonify({'error': 'hub_id is required'}), 400
+
+    hub = db.session.get(Hub, hub_id)
+    if not hub:
+        return jsonify({'error': 'Hub not found'}), 404
+
+    # Authenticate via api_token
+    if api_token and hub.api_token and api_token != hub.api_token:
+        return jsonify({'error': 'Invalid api_token'}), 401
+
+    # Update fields
+    if data.get('tunnel_url'):
+        hub.tunnel_url = data['tunnel_url']
+    if data.get('wan_ip'):
+        hub.wan_ip = data['wan_ip']
+
+    hub.status = 'online'
+    hub.last_heartbeat = datetime.now(timezone.utc)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify({
+        'success': True,
+        'tunnel_url': hub.tunnel_url,
+        'hub_name': hub.name,
+        'hub_code': hub.code
+    }), 200
+
+
 @hubs_bp.route('/<hub_id>/content-manifest', methods=['GET'])
 def get_content_manifest(hub_id):
     """
