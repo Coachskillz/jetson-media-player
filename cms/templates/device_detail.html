@@ -3147,15 +3147,17 @@ input:disabled + .toggle-slider {
             if (response.ok) {
                 const contentCount = data.content_files_count || 0;
                 const playlistCount = data.playlists_count || 0;
+                const hubPush = data.hub_push;
+                const hubError = data.hub_error;
 
-                // Bump sync version so device picks up changes within 15 seconds
-                await fetch(`/api/v1/devices/{{ device.device_id }}/request-sync`, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                let statusMsg = `Layout pushed! ${contentCount} files, ${playlistCount} playlists.`;
+                if (hubPush) {
+                    statusMsg += ` Hub: ${hubPush.message || 'received'}`;
+                } else if (hubError) {
+                    statusMsg += ` Hub error: ${hubError}`;
+                }
 
-                showSaveStatus('saved', `Layout pushed! Device will sync within 15 seconds. (${contentCount} files, ${playlistCount} playlists)`);
+                showSaveStatus(hubError ? 'error' : 'saved', statusMsg);
             } else {
                 showSaveStatus('error', data.error || 'Failed to push layout');
             }

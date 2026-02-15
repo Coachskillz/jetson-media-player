@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, render_template, abort
 from flask_login import login_required
 
-from cms.models import db, ScreenLayout, ScreenLayer, LayerContent, LayerPlaylistAssignment, Device, Playlist, DeviceLayout, Content
+from cms.models import db, ScreenLayout, ScreenLayer, LayerContent, LayerPlaylistAssignment, Device, Playlist, DeviceLayout, Content, Hub
 from cms.models.layout import CONTENT_MODES, TICKER_DIRECTIONS, LAYER_TRIGGER_TYPES
 from cms.services.layout_service import LayoutService
 
@@ -2523,7 +2523,8 @@ def _push_layout_impl(layout_id):
                 'type': content.mime_type if hasattr(content, 'mime_type') else 'video',
                 'file_path': content.filename,
                 'file_size': content.file_size,
-                'checksum': content.checksum if hasattr(content, 'checksum') else None
+                'checksum': content.checksum if hasattr(content, 'checksum') else None,
+                'download_url': f'/api/v1/content/{content.id}/download'
             })
 
     # Create or update DeviceLayout assignment
@@ -2557,6 +2558,47 @@ def _push_layout_impl(layout_id):
         'pushed_at': datetime.now(timezone.utc).isoformat()
     }
 
+    # ── Push layout to Hub ──────────────────────────────────────────────
+    hub_push_result = None
+    hub_error = None
+
+    if device.hub_id:
+        hub = db.session.get(Hub, device.hub_id)
+        hub_url = hub.tunnel_url if hub else None
+
+        if hub and hub_url:
+            import requests as http_requests
+
+            push_payload = {
+                'device_id': device.id,
+                'device_hardware_id': device.hardware_id,
+                'layout': layout_package['layout'],
+                'content_manifest': content_files,
+                'playlists': playlists_to_sync
+            }
+
+            headers = {'Content-Type': 'application/json'}
+            if hub.api_token:
+                headers['Authorization'] = f'Bearer {hub.api_token}'
+
+            try:
+                resp = http_requests.post(
+                    f"{hub_url.rstrip('/')}/layouts/receive",
+                    json=push_payload,
+                    headers=headers,
+                    timeout=30
+                )
+                if resp.ok:
+                    hub_push_result = resp.json()
+                else:
+                    hub_error = f"Hub returned {resp.status_code}: {resp.text[:200]}"
+            except http_requests.Timeout:
+                hub_error = "Hub request timed out"
+            except http_requests.RequestException as e:
+                hub_error = f"Hub connection failed: {str(e)}"
+        else:
+            hub_error = "No tunnel_url configured for hub" if hub else "Hub not found"
+
     return jsonify({
         'status': 'success',
         'message': 'Layout push initiated',
@@ -2566,6 +2608,8 @@ def _push_layout_impl(layout_id):
         'content_files_count': len(content_files),
         'playlists_count': len(playlists_to_sync),
         'assignment_id': assignment.id,
+        'hub_push': hub_push_result,
+        'hub_error': hub_error,
         'package': layout_package
     }), 200
 
