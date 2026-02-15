@@ -3139,7 +3139,7 @@ input:disabled + .toggle-slider {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_id: '{{ device.id }}' })
+                body: JSON.stringify({ device_id: '{{ device.device_id }}' })
             });
 
             const data = await response.json();
