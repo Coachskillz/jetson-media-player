@@ -354,6 +354,12 @@ def update_hub(hub_id):
     if 'location' in data:
         hub.location = data['location']
 
+    # Network/connectivity fields
+    network_fields = ['tunnel_url', 'ip_address', 'wan_ip', 'mac_address', 'hostname']
+    for field in network_fields:
+        if field in data:
+            setattr(hub, field, data[field])
+
     # Store info fields
     store_info_changed = False
     store_fields = ['store_address', 'store_city', 'store_state', 'store_zipcode',
