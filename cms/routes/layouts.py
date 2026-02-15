@@ -2455,7 +2455,10 @@ def _push_layout_impl(layout_id):
     if not device_id:
         return jsonify({'error': 'device_id is required'}), 400
 
+    # Look up by primary key (UUID) first, then by display device_id
     device = db.session.get(Device, device_id)
+    if not device:
+        device = Device.query.filter_by(device_id=device_id).first()
     if not device:
         return jsonify({'error': f'Device with id {device_id} not found'}), 404
 
