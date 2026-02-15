@@ -1,4 +1,3 @@
-import random
 """
 CMS Devices Routes
 
@@ -29,16 +28,6 @@ from cms.services.device_id import DeviceIDGenerator
 # Create devices blueprint
 devices_bp = Blueprint('devices', __name__)
 
-
-@devices_bp.route('/debug-auth', methods=['GET'])
-def debug_auth():
-    from flask_login import current_user as flu
-    return jsonify({
-        'flask_login_user': str(flu),
-        'is_authenticated': flu.is_authenticated if flu else False,
-        'is_anonymous': flu.is_anonymous if flu else True,
-        'user_id': str(flu.get_id()) if flu and hasattr(flu, 'get_id') else None
-    })
 
 
 @devices_bp.route('/register', methods=['POST'])
@@ -689,6 +678,7 @@ def add_device_playlist(device_id):
 
 
 @devices_bp.route('/<device_id>/layout', methods=['PATCH'])
+@login_required
 def update_device_layout(device_id):
     device = Device.query.filter_by(device_id=device_id).first()
     if not device:

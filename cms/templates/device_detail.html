@@ -3470,7 +3470,7 @@ input:disabled + .toggle-slider {
                 const card = document.querySelector(`.zone-trigger-card[data-trigger="${triggerType}"]`);
                 if (card) {
                     card.classList.add('assigned');
-                    const assignmentId = data.assignment_id || data.id;
+                    const assignmentId = data.assignment?.id || data.assignment_id || data.id;
                     card.innerHTML = `
                         <div class="zone-trigger-header">
                             <span class="zone-trigger-icon">${card.querySelector('.zone-trigger-icon')?.textContent || '🎯'}</span>
