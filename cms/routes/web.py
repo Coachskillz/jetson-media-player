@@ -753,7 +753,25 @@ def device_detail_page(device_id):
 
     # Get all available layouts for assignment (exclude templates)
     from cms.models.layout import ScreenLayout
+    from cms.models.layout import LayerPlaylistAssignment
     all_layouts = ScreenLayout.query.filter_by(is_template=False).order_by(ScreenLayout.name).all()
+
+    # Build layer-level trigger playlist assignments (Layout > Layer > Playlist)
+    layer_trigger_map = {}
+    if device.layout_id:
+        layer_assignments = LayerPlaylistAssignment.query.filter_by(
+            device_id=device.id
+        ).all()
+        for la in layer_assignments:
+            if la.layer_id not in layer_trigger_map:
+                layer_trigger_map[la.layer_id] = {}
+            layer_trigger_map[la.layer_id][la.trigger_type] = {
+                'assignment_id': la.id,
+                'playlist_id': la.playlist_id,
+                'playlist_name': la.playlist.name if la.playlist else None,
+                'trigger_type': la.trigger_type,
+                'priority': la.priority,
+            }
 
     return render_template(
         'device_detail.html',
@@ -762,7 +780,8 @@ def device_detail_page(device_id):
         device_playlists=device_playlists,
         all_playlists=all_playlists,
         all_layouts=all_layouts,
-        trigger_types=trigger_info
+        trigger_types=trigger_info,
+        layer_trigger_map=layer_trigger_map
     )
 
 @web_bp.route('/logout')

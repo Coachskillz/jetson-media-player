@@ -2072,7 +2072,7 @@ input:disabled + .toggle-slider {
 
                 <div class="zone-trigger-grid" id="zoneTriggerGrid">
                     {% for trigger in trigger_types %}
-                    {% set assigned = device_playlists|selectattr('trigger_type', 'equalto', trigger.value)|first %}
+                    {% set assigned = layer_trigger_map.get(layer.id, {}).get(trigger.value) %}
                     <div class="zone-trigger-card {% if assigned %}assigned{% endif %}" data-trigger="{{ trigger.value }}">
                         <div class="zone-trigger-header">
                             <span class="zone-trigger-icon">{{ trigger.icon }}</span>
@@ -2081,13 +2081,9 @@ input:disabled + .toggle-slider {
                         {% if assigned %}
                         <div class="zone-trigger-assigned" data-assignment-id="{{ assigned.assignment_id }}">
                             <div class="zone-trigger-playlist">
-                                <span class="playlist-name {% if not assigned.is_enabled %}disabled{% endif %}">📋 {{ assigned.playlist_name }}</span>
+                                <span class="playlist-name">📋 {{ assigned.playlist_name }}</span>
                             </div>
                             <div class="zone-trigger-actions">
-                                <label class="toggle-switch-small" title="Toggle on/off">
-                                    <input type="checkbox" {% if assigned.is_enabled %}checked{% endif %} onchange="toggleTriggerPlaylist('{{ assigned.assignment_id }}', this.checked)">
-                                    <span class="toggle-slider-small"></span>
-                                </label>
                                 <button class="btn-remove-small" onclick="removeTriggerPlaylist('{{ assigned.assignment_id }}')" title="Remove">✕</button>
                             </div>
                         </div>
@@ -2400,6 +2396,8 @@ input:disabled + .toggle-slider {
 {% block extra_scripts %}
 <script>
     const deviceId = '{{ device.device_id }}';
+    const deviceUuid = '{{ device.id }}';
+    const layoutId = '{{ device.layout_id or "" }}';
     const originalConnectionMode = '{{ device.connection_mode or "direct" }}';
 
     // Layout zones data for visual preview (mutable for dynamic updates)
@@ -3416,11 +3414,16 @@ input:disabled + .toggle-slider {
     }
 
     // Open trigger modal for a specific trigger type
+    let currentLayerId = null;
     function openTriggerModalFor(triggerType, triggerLabel) {
         const modal = document.getElementById('triggerModal');
         const triggerSelect = document.getElementById('triggerTypeSelect');
         const playlistSelect = document.getElementById('triggerPlaylistSelect');
         const modalTitle = modal.querySelector('h3');
+
+        // Capture layer ID from the zone-triggers container
+        const zoneTriggers = document.querySelector('.zone-triggers');
+        currentLayerId = zoneTriggers ? zoneTriggers.dataset.layerId : null;
 
         // Set trigger type and update title
         triggerSelect.value = triggerType;
@@ -3447,14 +3450,20 @@ input:disabled + .toggle-slider {
             return;
         }
 
+        if (!layoutId || !currentLayerId) {
+            alert('No layout or layer selected. Assign a layout to this device first.');
+            return;
+        }
+
         showSaveStatus('saving', 'Adding trigger playlist...');
 
         try {
-            const response = await fetch(`/api/v1/devices/${deviceId}/playlists`, {
+            const response = await fetch(`/api/v1/layouts/${layoutId}/layers/${currentLayerId}/playlists`, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    device_id: deviceUuid,
                     playlist_id: playlistId,
                     trigger_type: triggerType
                 })
@@ -3470,7 +3479,7 @@ input:disabled + .toggle-slider {
                 const card = document.querySelector(`.zone-trigger-card[data-trigger="${triggerType}"]`);
                 if (card) {
                     card.classList.add('assigned');
-                    const assignmentId = data.assignment?.id || data.assignment_id || data.id;
+                    const assignmentId = data.id;
                     card.innerHTML = `
                         <div class="zone-trigger-header">
                             <span class="zone-trigger-icon">${card.querySelector('.zone-trigger-icon')?.textContent || '🎯'}</span>
@@ -3481,10 +3490,6 @@ input:disabled + .toggle-slider {
                                 <span class="playlist-name">📋 ${escapeHtml(playlistName)}</span>
                             </div>
                             <div class="zone-trigger-actions">
-                                <label class="toggle-switch-small" title="Toggle on/off">
-                                    <input type="checkbox" checked onchange="toggleTriggerPlaylist('${assignmentId}', this.checked)">
-                                    <span class="toggle-slider-small"></span>
-                                </label>
                                 <button class="btn-remove-small" onclick="removeTriggerPlaylist('${assignmentId}')" title="Remove">✕</button>
                             </div>
                         </div>
@@ -3554,10 +3559,19 @@ input:disabled + .toggle-slider {
             return;
         }
 
+        // Get layerId from the zone-triggers container
+        const zoneTriggers = document.querySelector('.zone-triggers');
+        const layerId = zoneTriggers ? zoneTriggers.dataset.layerId : currentLayerId;
+
+        if (!layoutId || !layerId) {
+            alert('Missing layout or layer information');
+            return;
+        }
+
         showSaveStatus('saving', 'Removing...');
 
         try {
-            const response = await fetch(`/api/v1/devices/${deviceId}/playlists/${assignmentId}`, {
+            const response = await fetch(`/api/v1/layouts/${layoutId}/layers/${layerId}/playlists/${assignmentId}`, {
                 method: 'DELETE',
                 credentials: 'same-origin',
             });
