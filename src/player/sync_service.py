@@ -175,12 +175,9 @@ class SyncService:
             # Check if content update is needed
             content_updated = False
 
-            # Check playlist version (ensure int for comparison)
-            try:
-                remote_version = int(remote_config.get('playlist_version', 0))
-            except (ValueError, TypeError):
-                remote_version = 0
-            local_version = self._config.playlist_version
+            # Check playlist version (compare as strings - versions may be hashes)
+            remote_version = str(remote_config.get('playlist_version', ''))
+            local_version = str(getattr(self._config, 'playlist_version', ''))
 
             # Detect version change for auto-purge
             version_changed = (
@@ -190,7 +187,7 @@ class SyncService:
 
             if version_changed:
                 logger.info(
-                    "Playlist version changed: v%d -> v%d - PURGING ALL media files",
+                    "Playlist version changed: %s -> %s - PURGING ALL media files",
                     self._current_playlist_version,
                     remote_version
                 )
@@ -201,9 +198,9 @@ class SyncService:
 
             # Always update on first sync or when version differs
             first_sync = self._current_playlist_version is None
-            if remote_version > local_version or version_changed or first_sync:
+            if remote_version != local_version or version_changed or first_sync:
                 logger.info(
-                    "Playlist update available: v%d -> v%d",
+                    "Playlist update available: %s -> %s",
                     local_version,
                     remote_version
                 )
