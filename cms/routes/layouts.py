@@ -2584,7 +2584,7 @@ def _push_layout_impl(layout_id):
                     layer_dict['items'].append({
                         'content_id': item.content_id,
                         'filename': content.filename if content else None,
-                        'duration': item.duration or 10,
+                        'duration': getattr(item, 'duration_override', None) or 10,
                         'order': item.position or 0,
                         'content_type': (content.mime_type if content and hasattr(content, 'mime_type') else 'video'),
                         'file_size': content.file_size if content else 0,
@@ -2614,7 +2614,7 @@ def _push_layout_impl(layout_id):
                     assignment_data['items'].append({
                         'content_id': item.content_id,
                         'filename': content.filename if content else None,
-                        'duration': item.duration or 10,
+                        'duration': getattr(item, 'duration_override', None) or 10,
                         'order': item.position or 0,
                         'content_type': (content.mime_type if content and hasattr(content, 'mime_type') else 'video'),
                         'file_size': content.file_size if content else 0,
