@@ -123,6 +123,7 @@ def receive_layout():
 def _download_content_for_device(device, content_manifest):
     """
     Download missing content from CMS to local cache.
+    Registers each item in the Content table so the Jetson can download it.
 
     Args:
         device: Device model instance
@@ -132,6 +133,7 @@ def _download_content_for_device(device, content_manifest):
         dict with download stats
     """
     from models import HubConfig
+    from models.content import Content
 
     if not content_manifest:
         return {'downloaded': 0, 'cached': 0, 'errors': []}
@@ -156,36 +158,65 @@ def _download_content_for_device(device, content_manifest):
         content_id = item.get('id')
         filename = item.get('filename')
         download_url = item.get('download_url')
+        content_type = item.get('type', 'video')
+        file_size = item.get('file_size', 0)
 
         if not content_id or not download_url:
             continue
 
-        # Check if content already cached
-        local_path = os.path.join(content_dir, f"{content_id}_{filename}")
+        # Use just filename for local storage (Jetson expects this)
+        local_path = os.path.join(content_dir, filename)
+
+        # Check if content already cached on disk
         if os.path.exists(local_path):
             cached += 1
-            continue
+        else:
+            # Download from CMS
+            full_url = f"{cms_url}{download_url}"
+            headers = {}
+            if hub_config and hub_config.hub_token:
+                headers['Authorization'] = f'Bearer {hub_config.hub_token}'
 
-        # Download from CMS
-        full_url = f"{cms_url}{download_url}"
-        headers = {}
-        if hub_config and hub_config.hub_token:
-            headers['Authorization'] = f'Bearer {hub_config.hub_token}'
+            try:
+                response = requests.get(full_url, headers=headers, timeout=300, stream=True)
+                if response.ok:
+                    with open(local_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    downloaded += 1
+                    logger.info(f"Downloaded content {filename} ({content_id})")
+                else:
+                    errors.append(f"{filename}: HTTP {response.status_code}")
+                    logger.warning(f"Failed to download {filename}: {response.status_code}")
+                    continue
+            except Exception as e:
+                errors.append(f"{filename}: {str(e)}")
+                logger.error(f"Error downloading {filename}: {e}")
+                continue
 
-        try:
-            response = requests.get(full_url, headers=headers, timeout=300, stream=True)
-            if response.ok:
-                with open(local_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                downloaded += 1
-                logger.info(f"Downloaded content {filename} ({content_id})")
-            else:
-                errors.append(f"{filename}: HTTP {response.status_code}")
-                logger.warning(f"Failed to download {filename}: {response.status_code}")
-        except Exception as e:
-            errors.append(f"{filename}: {str(e)}")
-            logger.error(f"Error downloading {filename}: {e}")
+        # Register in Content table so download endpoint can serve it
+        existing = Content.get_by_content_id(content_id)
+        if not existing:
+            try:
+                content_record = Content(
+                    content_id=content_id,
+                    filename=filename,
+                    content_type=content_type.split('/')[0] if '/' in content_type else content_type,
+                    file_size=file_size,
+                    local_path=local_path,
+                    cached_at=datetime.utcnow()
+                )
+                db.session.add(content_record)
+                db.session.commit()
+                logger.info(f"Registered content {content_id} in database")
+            except Exception as e:
+                db.session.rollback()
+                logger.warning(f"Failed to register content {content_id}: {e}")
+        else:
+            # Update existing record
+            existing.local_path = local_path
+            existing.cached_at = datetime.utcnow()
+            db.session.commit()
 
     return {
         'downloaded': downloaded,
