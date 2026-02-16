@@ -97,7 +97,30 @@ def receive_layout():
         }), 404
 
     # Store layout in device record (as JSON)
-    device.layout_json = json.dumps(layout_data)
+    # Merge content manifest items into the layout layers so the Jetson
+    # config endpoint can find them when it calls _get_playlist_for_screen
+    enriched_layout = dict(layout_data)
+    if content_manifest:
+        for layer in enriched_layout.get('layers', []):
+            if layer.get('content_source') == 'playlist' and layer.get('playlist_id'):
+                # Attach content items to this layer
+                layer['items'] = []
+                for idx, content in enumerate(content_manifest):
+                    layer['items'].append({
+                        'content_id': content.get('id'),
+                        'filename': content.get('filename'),
+                        'duration': content.get('duration', 10),
+                        'order': idx,
+                        'content_type': content.get('type', 'video'),
+                        'file_size': content.get('file_size', 0),
+                        'url': content.get('download_url', '')
+                    })
+                layer['playlist'] = {
+                    'id': layer.get('playlist_id'),
+                    'name': layer.get('playlist_name', 'default')
+                }
+
+    device.layout_json = json.dumps(enriched_layout)
     device.layout_updated_at = datetime.utcnow()
     db.session.commit()
 
