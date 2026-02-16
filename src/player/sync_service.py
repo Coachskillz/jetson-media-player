@@ -199,7 +199,9 @@ class SyncService:
                 if removed_files:
                     logger.info("Purged %d files for new playlist", len(removed_files))
 
-            if remote_version > local_version or version_changed:
+            # Always update on first sync or when version differs
+            first_sync = self._current_playlist_version is None
+            if remote_version > local_version or version_changed or first_sync:
                 logger.info(
                     "Playlist update available: v%d -> v%d",
                     local_version,
@@ -221,8 +223,9 @@ class SyncService:
             # Record success
             self._record_success()
 
-            # Notify if content was updated
-            if content_updated and self._on_content_updated:
+            # Notify if content was updated OR if content exists but player hasn't started
+            content_exists = len(self._get_required_content(remote_config)) > 0
+            if (content_updated or content_exists) and self._on_content_updated:
                 self._on_content_updated()
 
             logger.info("Sync completed successfully")

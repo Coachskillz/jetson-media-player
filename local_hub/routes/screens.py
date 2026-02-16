@@ -232,10 +232,8 @@ def _get_playlist_for_screen(screen, include_staging=False):
                         staging_items = []
                         for item in items:
                             content_id = item.get('content_id')
-                            # Use CMS URL for download
-                            download_url = f"{cms_url}{item.get('url')}" if item.get('url', '').startswith('/') else item.get('url')
-                            if not download_url and content_id:
-                                download_url = f"{cms_url}/api/v1/content/{content_id}/download"
+                            # Use Hub URL for download (Jetson talks to Hub, not CMS)
+                            download_url = f"/api/v1/content/{content_id}/download"
 
                             staging_items.append({
                                 'content_id': content_id,

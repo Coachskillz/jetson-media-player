@@ -436,7 +436,7 @@ def _register_blueprints(app: Flask) -> None:
 
     try:
         from routes import content_bp
-        app.register_blueprint(content_bp, url_prefix='/api/v1')
+        app.register_blueprint(content_bp, url_prefix='/api/v1/content')
         app.logger.info('Registered content blueprint')
     except ImportError:
         pass
