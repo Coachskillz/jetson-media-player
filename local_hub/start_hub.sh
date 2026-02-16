@@ -34,8 +34,16 @@ error() { echo -e "${RED}[HUB]${NC} $1"; }
 log "Cleaning up old processes..."
 pkill -f "cloudflared tunnel" 2>/dev/null || true
 pkill -f "python.*app" 2>/dev/null || true
+sleep 1
 fuser -k $HUB_PORT/tcp 2>/dev/null || true
 sleep 2
+
+# Verify port is free
+if fuser $HUB_PORT/tcp 2>/dev/null; then
+    error "Port $HUB_PORT still in use after cleanup!"
+    fuser -v $HUB_PORT/tcp
+    exit 1
+fi
 
 # ---- Step 1: Start Cloudflare quick tunnel ----
 log "Starting Cloudflare tunnel..."
