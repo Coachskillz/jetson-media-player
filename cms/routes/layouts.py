@@ -2554,8 +2554,76 @@ def _push_layout_impl(layout_id):
         return jsonify({'error': f'Failed to create assignment: {str(e)}'}), 500
 
     # Build layout package manifest
+    # Enrich each layer with its playlist items so the layout is self-contained
+    enriched_layout = layout.to_dict(include_layers=True)
+    for layer_dict in enriched_layout.get('layers', []):
+        layer_id = layer_dict.get('id')
+        if not layer_id:
+            continue
+
+        # Find the matching layer model
+        layer_model = next((l for l in layers if l.id == layer_id), None)
+        if not layer_model:
+            continue
+
+        # Embed playlist items into the layer
+        if layer_model.playlist_id:
+            playlist = db.session.get(Playlist, layer_model.playlist_id)
+            if playlist:
+                layer_dict['playlist'] = {
+                    'id': playlist.id,
+                    'name': playlist.name
+                }
+                from cms.models import PlaylistItem
+                items = PlaylistItem.query.filter_by(
+                    playlist_id=playlist.id
+                ).order_by(PlaylistItem.position).all()
+                layer_dict['items'] = []
+                for item in items:
+                    content = db.session.get(Content, item.content_id) if item.content_id else None
+                    layer_dict['items'].append({
+                        'content_id': item.content_id,
+                        'filename': content.filename if content else None,
+                        'duration': item.duration or 10,
+                        'order': item.position or 0,
+                        'content_type': (content.mime_type if content and hasattr(content, 'mime_type') else 'video'),
+                        'file_size': content.file_size if content else 0,
+                        'url': f'/api/v1/content/{item.content_id}/download' if item.content_id else None
+                    })
+
+        # Also check LayerPlaylistAssignments for trigger-based playlists
+        layer_assignments = LayerPlaylistAssignment.query.filter_by(layer_id=layer_id).all()
+        if layer_assignments:
+            layer_dict['playlist_assignments'] = []
+            for lpa in layer_assignments:
+                playlist = db.session.get(Playlist, lpa.playlist_id) if lpa.playlist_id else None
+                if not playlist:
+                    continue
+                from cms.models import PlaylistItem
+                items = PlaylistItem.query.filter_by(
+                    playlist_id=playlist.id
+                ).order_by(PlaylistItem.position).all()
+                assignment_data = {
+                    'playlist_id': playlist.id,
+                    'playlist_name': playlist.name,
+                    'trigger_type': lpa.trigger_type,
+                    'items': []
+                }
+                for item in items:
+                    content = db.session.get(Content, item.content_id) if item.content_id else None
+                    assignment_data['items'].append({
+                        'content_id': item.content_id,
+                        'filename': content.filename if content else None,
+                        'duration': item.duration or 10,
+                        'order': item.position or 0,
+                        'content_type': (content.mime_type if content and hasattr(content, 'mime_type') else 'video'),
+                        'file_size': content.file_size if content else 0,
+                        'url': f'/api/v1/content/{item.content_id}/download' if item.content_id else None
+                    })
+                layer_dict['playlist_assignments'].append(assignment_data)
+
     layout_package = {
-        'layout': layout.to_dict(include_layers=True),
+        'layout': enriched_layout,
         'playlists': playlists_to_sync,
         'content_manifest': content_files,
         'pushed_at': datetime.now(timezone.utc).isoformat()
