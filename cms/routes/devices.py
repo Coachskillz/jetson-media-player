@@ -1596,3 +1596,101 @@ def delete_device(device_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@devices_bp.route('/<device_id>/status', methods=['PUT'])
+def update_device_status(device_id):
+    """
+    Update device status. Called by Hub to activate device after pairing.
+    No auth required - Hub calls this directly.
+
+    Args:
+        device_id: Device UUID or device_id (SKZ format)
+
+    Request Body:
+        {
+            "status": "active",
+            "location": "Entrance" (optional)
+        }
+    """
+    data = request.get_json() or {}
+    new_status = data.get('status')
+
+    if not new_status:
+        return jsonify({'error': 'status is required'}), 400
+
+    if new_status not in ('active', 'offline', 'pending'):
+        return jsonify({'error': 'Invalid status'}), 400
+
+    # Try UUID first, then device_id format
+    device = db.session.get(Device, device_id)
+    if not device:
+        device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = Device.query.filter_by(hardware_id=device_id).first()
+
+    if not device:
+        return jsonify({'error': f'Device not found: {device_id}'}), 404
+
+    device.status = new_status
+
+    location = data.get('location')
+    if location:
+        device.screen_location = location
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'device_id': device.device_id,
+        'status': device.status
+    }), 200
+
+
+@devices_bp.route('/<device_id>/status', methods=['PUT'])
+def update_device_status(device_id):
+    """
+    Update device status. Called by Hub to activate device after pairing.
+    No auth required - Hub calls this directly.
+
+    Args:
+        device_id: Device UUID or device_id (SKZ format)
+
+    Request Body:
+        {
+            "status": "active",
+            "location": "Entrance" (optional)
+        }
+    """
+    data = request.get_json() or {}
+    new_status = data.get('status')
+
+    if not new_status:
+        return jsonify({'error': 'status is required'}), 400
+
+    if new_status not in ('active', 'offline', 'pending'):
+        return jsonify({'error': 'Invalid status'}), 400
+
+    # Try UUID first, then device_id format
+    device = db.session.get(Device, device_id)
+    if not device:
+        device = Device.query.filter_by(device_id=device_id).first()
+    if not device:
+        device = Device.query.filter_by(hardware_id=device_id).first()
+
+    if not device:
+        return jsonify({'error': f'Device not found: {device_id}'}), 404
+
+    device.status = new_status
+
+    location = data.get('location')
+    if location:
+        device.screen_location = location
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'device_id': device.device_id,
+        'status': device.status
+    }), 200

@@ -101,7 +101,7 @@ def request_pairing():
     cms_url = config.cms_url
     try:
         response = requests.post(
-            f"{cms_url}/api/v1/pairing/request",
+            f"{cms_url}/api/v1/devices/pairing/request",
             json={
                 "hardware_id": hardware_id,
                 "pairing_code": pairing_code,
