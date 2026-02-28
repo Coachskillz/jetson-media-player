@@ -34,7 +34,9 @@ from werkzeug.utils import secure_filename
 import requests
 from requests.exceptions import RequestException, Timeout, ConnectionError as ReqConnectionError
 
-from cms.models import db, Content, Network, ContentStatus
+from cms.models import db, Content, Network, ContentStatus, Device, Hub
+from cms.models.device_assignment import DeviceAssignment
+from cms.models.playlist import PlaylistItem
 from cms.utils.auth import login_required
 from cms.utils.audit import log_action
 from cms.services.content_sync_service import (
@@ -1513,3 +1515,188 @@ def resync_catalog_content():
         results['errors'].append(f"commit failed: {str(e)}")
 
     return jsonify(results), 200
+
+
+# ============================================================
+# CONTENT PACKAGE ENDPOINTS (Task 6)
+# Devices (Jetson/Hub) call these to get content assignments.
+# No authentication required.
+# ============================================================
+
+@content_bp.route('/package/version', methods=['GET'])
+def get_package_version():
+    """Quick version check - devices poll this every 5 minutes."""
+    device_id = request.args.get('device_id')
+    if not device_id:
+        return jsonify({'error': 'device_id query parameter required'}), 400
+
+    device = Device.query.filter_by(hardware_id=device_id).first()
+    if not device:
+        return jsonify({'error': f'Device not found: {device_id}'}), 404
+
+    assignments = DeviceAssignment.get_active_for_device(device.id)
+
+    version_parts = []
+    for assignment in assignments:
+        if assignment.playlist:
+            p = assignment.playlist
+            version_parts.append(f"{p.id}:{p.version}:{p.updated_at}")
+
+    version_string = "|".join(sorted(version_parts))
+    package_version = hashlib.sha256(version_string.encode()).hexdigest()[:16]
+
+    client_version = request.headers.get('X-Package-Version', '')
+    changed = (client_version != package_version) if client_version else True
+
+    return jsonify({
+        'device_id': device_id,
+        'package_version': package_version,
+        'changed': changed
+    }), 200
+
+
+@content_bp.route('/package', methods=['GET'])
+def get_content_package():
+    """Full content package for a device or all devices on a hub."""
+    device_id = request.args.get('device_id')
+    hub_id = request.args.get('hub_id')
+
+    if hub_id:
+        return _get_hub_package(hub_id)
+    elif device_id:
+        return _get_device_package(device_id)
+    else:
+        return jsonify({'error': 'device_id or hub_id query parameter required'}), 400
+
+
+def _get_device_package(hardware_id):
+    """Build content package for a single device."""
+    device = Device.query.filter_by(hardware_id=hardware_id).first()
+    if not device:
+        return jsonify({'error': f'Device not found: {hardware_id}'}), 404
+
+    package = _build_device_package(device)
+    return jsonify(package), 200
+
+
+def _get_hub_package(hub_id):
+    """Build content packages for all devices on a hub."""
+    hub = Hub.query.filter_by(code=hub_id).first()
+    if not hub:
+        hub = db.session.get(Hub, hub_id)
+    if not hub:
+        return jsonify({'error': f'Hub not found: {hub_id}'}), 404
+
+    devices = Device.query.filter_by(hub_id=hub.id).all()
+
+    packages = {}
+    all_files = {}
+
+    for device in devices:
+        pkg = _build_device_package(device)
+        packages[device.hardware_id] = pkg
+
+        for f in pkg.get('files', []):
+            all_files[f['content_id']] = f
+
+    return jsonify({
+        'hub_id': hub_id,
+        'packages': packages,
+        'all_files': list(all_files.values())
+    }), 200
+
+
+def _build_device_package(device):
+    """Build the full content package for a single device."""
+    assignments = DeviceAssignment.get_active_for_device(device.id)
+
+    # Build version hash
+    version_parts = []
+    for assignment in assignments:
+        if assignment.playlist:
+            p = assignment.playlist
+            version_parts.append(f"{p.id}:{p.version}:{p.updated_at}")
+
+    version_string = "|".join(sorted(version_parts))
+    package_version = hashlib.sha256(version_string.encode()).hexdigest()[:16]
+
+    # Build playlists and collect files
+    playlists = {}
+    all_files = {}
+    zone_playlists = []
+
+    for assignment in assignments:
+        if not assignment.playlist:
+            continue
+
+        playlist = assignment.playlist
+        playlist_key = str(playlist.id)
+
+        items = PlaylistItem.query.filter_by(
+            playlist_id=playlist.id
+        ).order_by(PlaylistItem.position).all()
+
+        playlist_items = []
+        for item in items:
+            content = item.content or item.synced_content
+            if not content:
+                continue
+
+            duration = item.duration_override or content.duration or 10
+
+            playlist_items.append({
+                'content_id': content.id,
+                'filename': content.filename,
+                'original_name': getattr(content, 'original_name', content.filename),
+                'duration': duration,
+                'order': item.position
+            })
+
+            if content.id not in all_files:
+                all_files[content.id] = {
+                    'content_id': content.id,
+                    'filename': content.filename,
+                    'original_name': getattr(content, 'original_name', content.filename),
+                    'size_bytes': content.file_size or 0,
+                    'duration': content.duration
+                }
+
+        playlists[playlist_key] = {
+            'name': playlist.name,
+            'loop': playlist.loop_mode in (True, 'loop', 'infinite'),
+            'trigger_type': assignment.trigger_type or 'default',
+            'priority': assignment.priority or 0,
+            'items': playlist_items
+        }
+
+        zone_playlists.append({
+            'playlist_id': playlist_key,
+            'trigger_type': assignment.trigger_type or 'default',
+            'priority': assignment.priority or 0
+        })
+
+    # Default playlist is trigger_type "default" or lowest priority
+    default_playlist_id = None
+    for zp in sorted(zone_playlists, key=lambda x: (x['trigger_type'] != 'default', x['priority'])):
+        default_playlist_id = zp['playlist_id']
+        break
+
+    layout = {
+        'layout_id': 'fullscreen-video',
+        'zones': [{
+            'id': 'main',
+            'type': 'video',
+            'x': 0, 'y': 0,
+            'width': 100, 'height': 100,
+            'playlist_id': default_playlist_id
+        }]
+    }
+
+    return {
+        'device_id': device.hardware_id,
+        'device_name': device.device_id or device.name or '',
+        'package_version': package_version,
+        'layout': layout,
+        'playlists': playlists,
+        'files': list(all_files.values())
+    }
