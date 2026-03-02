@@ -615,7 +615,7 @@
                 </div>
             </div>
 
-            {% if device.paired == 1 %}
+            {% if device.status == 'active' %}
             <div class="device-playlists">
                 <div class="section-title">📋 Assigned Playlists</div>
                 {% if device.assigned_playlists %}
