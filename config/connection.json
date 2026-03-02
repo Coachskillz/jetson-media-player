@@ -1,0 +1,6 @@
+{
+  "mode": "hub",
+  "hub_url": "http://10.10.10.1:5000",
+  "cms_url": "http://cms.skillzmedia.com",
+  "auto_discover": true
+}

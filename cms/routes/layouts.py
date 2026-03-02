@@ -2654,7 +2654,7 @@ def _push_layout_impl(layout_id):
 
             try:
                 resp = http_requests.post(
-                    f"{hub_url.rstrip('/')}/api/v1/receive",
+                    f"{hub_url.rstrip('/')}/api/v1/layouts/receive",
                     json=push_payload,
                     headers=headers,
                     timeout=30

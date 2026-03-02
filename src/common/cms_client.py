@@ -103,42 +103,57 @@ class CMSClient:
         return self.device_info['device_id']
 
     def request_pairing(self) -> Optional[str]:
-        """Request pairing with CMS and get a 6-digit code.
+        """Request pairing - works with both Hub and CMS.
 
-        The CMS generates the pairing code server-side.
-        Uses exponential backoff retry logic for connection errors.
+        Hub mode: Jetson generates code, sends to Hub, Hub forwards to CMS.
+        Direct mode: CMS generates the code server-side.
 
         Returns:
             The 6-digit pairing code if successful, None otherwise.
         """
         hardware_id = self._get_hardware_id()
 
-        def make_request():
-            return requests.post(
-                f"{self.cms_url}/api/v1/devices/pairing/request",
-                json={
-                    "hardware_id": hardware_id,
-                },
-                timeout=self.timeout
-            )
+        if self.is_hub:
+            # Hub mode: generate code locally, send to Hub
+            code = generate_pairing_code()
+            ip_address = self.device_info.get('ip_address')
+
+            def make_request():
+                return requests.post(
+                    f"{self.cms_url}/api/v1/pairing/request",
+                    json={
+                        "hardware_id": hardware_id,
+                        "pairing_code": code,
+                        "name": self.device_info.get('hostname', 'Jetson Device'),
+                        "ip_address": ip_address,
+                    },
+                    timeout=self.timeout
+                )
+        else:
+            # Direct mode: CMS generates the code
+            def make_request():
+                return requests.post(
+                    f"{self.cms_url}/api/v1/devices/pairing/request",
+                    json={
+                        "hardware_id": hardware_id,
+                    },
+                    timeout=self.timeout
+                )
 
         try:
             response = retry_with_backoff(make_request, max_retries=self.max_retries)
 
             if response.status_code == 200:
                 data = response.json()
-                self.pairing_code = data.get('pairing_code')
+                self.pairing_code = data.get('pairing_code') or code if self.is_hub else data.get('pairing_code')
                 if self.pairing_code:
                     logger.info(f"Pairing requested. Code: {self.pairing_code}")
                     return self.pairing_code
                 else:
-                    logger.error("CMS did not return a pairing code")
+                    logger.error("No pairing code received")
                     return None
             elif response.status_code == 404:
-                logger.error(
-                    f"Device not registered. Register first at "
-                    f"{self.cms_url}/api/v1/devices/register"
-                )
+                logger.error(f"Pairing endpoint not found at {self.cms_url}")
                 return None
             else:
                 logger.error(f"Pairing request failed: {response.status_code}")
