@@ -482,8 +482,6 @@ def hub_heartbeat():
             device = Device.query.filter_by(device_id=str(device_id)).first()
         if device:
             device.last_seen = datetime.now(timezone.utc)
-            if screen.get('status'):
-                device.status = screen.get('status')
             processed += 1
 
     try:
@@ -1267,8 +1265,6 @@ def global_heartbeat():
                 device = Device.query.filter_by(hardware_id=hw_id).first()
         if device:
             device.last_seen = datetime.now(timezone.utc)
-            if screen.get('status'):
-                device.status = screen.get('status')
             processed += 1
         else:
             errors.append(f'Device {device_id} not found')
