@@ -1243,6 +1243,10 @@ def global_heartbeat():
             continue
 
         device = Device.query.filter_by(device_id=str(device_id)).first()
+        if not device:
+            hw_id = screen.get('hardware_id')
+            if hw_id:
+                device = Device.query.filter_by(hardware_id=hw_id).first()
         if device:
             device.last_seen = datetime.now(timezone.utc)
             if screen.get('status'):
