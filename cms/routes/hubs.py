@@ -469,6 +469,23 @@ def hub_heartbeat():
     hub.status = 'online'
     hub.last_heartbeat = datetime.now(timezone.utc)
 
+    # Process screen heartbeats if included
+    screens = data.get('screens', [])
+    processed = 0
+    for screen in screens:
+        hw_id = screen.get('hardware_id')
+        device_id = screen.get('screen_id') or screen.get('device_id')
+        device = None
+        if hw_id:
+            device = Device.query.filter_by(hardware_id=hw_id).first()
+        if not device and device_id:
+            device = Device.query.filter_by(device_id=str(device_id)).first()
+        if device:
+            device.last_seen = datetime.now(timezone.utc)
+            if screen.get('status'):
+                device.status = screen.get('status')
+            processed += 1
+
     try:
         db.session.commit()
     except Exception as e:
@@ -479,7 +496,8 @@ def hub_heartbeat():
         'success': True,
         'tunnel_url': hub.tunnel_url,
         'hub_name': hub.name,
-        'hub_code': hub.code
+        'hub_code': hub.code,
+        'processed_screens': processed
     }), 200
 
 
