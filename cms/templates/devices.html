@@ -746,7 +746,7 @@
             if (el) el.textContent = counts[locationId];
         });
 
-        document.getElementById('count-all').textContent = cards.length;
+        const countAll = document.getElementById('count-all'); if (countAll) countAll.textContent = cards.length;
     }
 
     updateLocationCounts();
