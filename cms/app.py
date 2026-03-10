@@ -96,6 +96,7 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     with app.app_context():
         db.create_all()
         _run_migrations(app)
+        _run_hub_pending_payload_migration(app)
         _run_device_location_migration(app)
         _run_assignment_is_enabled_migration(app)
         _seed_default_users(app)
@@ -183,6 +184,33 @@ def _init_security(app: Flask, config_class) -> None:
     else:
         app.logger.warning('Flask-Limiter not installed, rate limiting disabled')
 
+
+
+
+
+def _run_hub_pending_payload_migration(app: Flask) -> None:
+    """Add pending_payload column to hubs table if missing."""
+    from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+
+    if 'hubs' not in inspector.get_table_names():
+        return
+
+    columns = [c['name'] for c in inspector.get_columns('hubs')]
+    if 'pending_payload' in columns:
+        return  # Already migrated
+
+    app.logger.info('Migration: Adding pending_payload column to hubs table')
+    db_url = str(db.engine.url)
+    is_postgres = 'postgresql' in db_url or 'postgres' in db_url
+
+    try:
+        db.session.execute(text('ALTER TABLE hubs ADD COLUMN pending_payload TEXT'))
+        db.session.commit()
+        app.logger.info('Migration: pending_payload column added successfully')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Migration failed: {e}')
 
 
 def _run_device_location_migration(app):
