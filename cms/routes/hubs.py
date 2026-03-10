@@ -490,12 +490,24 @@ def hub_heartbeat():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+    # Check for pending updates to deliver to Hub
+    pending = None
+    if hub.pending_payload:
+        import json as _json
+        try:
+            pending = _json.loads(hub.pending_payload)
+            hub.pending_payload = None  # Clear after delivery
+            db.session.commit()
+        except Exception:
+            pass
+
     return jsonify({
         'success': True,
         'tunnel_url': hub.tunnel_url,
         'hub_name': hub.name,
         'hub_code': hub.code,
-        'processed_screens': processed
+        'processed_screens': processed,
+        'pending_update': pending
     }), 200
 
 
@@ -1432,12 +1444,6 @@ def push_layout(hub_id):
     if not layout:
         return jsonify({'error': 'Layout not found'}), 404
 
-    # Get Hub's URL
-    if not hub.ip_address:
-        return jsonify({'error': 'Hub IP not available'}), 400
-
-    hub_url = f"http://{hub.ip_address}:5000"
-
     # Build layout payload
     layers_data = []
     content_items = []
@@ -1501,28 +1507,16 @@ def push_layout(hub_id):
         'content_manifest': content_items
     }
 
-    # Push to Hub
+    # Queue layout for Hub to pick up on next heartbeat
+    import json as _json
     try:
-        response = requests.post(
-            f"{hub_url}/api/v1/layouts/receive",
-            json=layout_payload,
-            timeout=30  # Longer timeout for layout push
-        )
-
-        if response.ok:
-            return jsonify({
-                'success': True,
-                'message': 'Layout pushed to hub',
-                'content_count': len(content_items)
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': f'Hub returned {response.status_code}',
-                'details': response.text
-            }), response.status_code
-
-    except requests.Timeout:
-        return jsonify({'error': 'Hub request timed out'}), 504
-    except requests.RequestException as e:
-        return jsonify({'error': f'Failed to reach hub: {str(e)}'}), 502
+        hub.pending_payload = _json.dumps(layout_payload)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Layout queued for hub — will be delivered on next heartbeat',
+            'content_count': len(content_items)
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to queue layout: {str(e)}'}), 500

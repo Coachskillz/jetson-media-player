@@ -146,6 +146,9 @@ class Hub(db.Model):
     manager_name = db.Column(db.String(200), nullable=True)
     store_phone = db.Column(db.String(30), nullable=True)
 
+    # Pending updates queue — CMS stores layout payload here, Hub picks up on next heartbeat
+    pending_payload = db.Column(db.Text, nullable=True)
+
     # Relationships
     network = db.relationship('Network', backref=db.backref('hubs', lazy='dynamic'))
     # devices = db.relationship('Device', backref='hub', lazy='dynamic')
@@ -185,6 +188,7 @@ class Hub(db.Model):
             'store_zipcode': self.store_zipcode,
             'manager_name': self.manager_name,
             'store_phone': self.store_phone,
+            'pending_payload': self.pending_payload,
         }
         if include_token:
             result['api_token'] = self.api_token
