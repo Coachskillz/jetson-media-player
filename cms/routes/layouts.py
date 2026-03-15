@@ -2637,8 +2637,8 @@ def _push_layout_impl(layout_id):
         hub = db.session.get(Hub, device.hub_id)
         hub_url = hub.tunnel_url if hub else None
 
-        if hub and hub_url:
-            import requests as http_requests
+        if hub:
+            import json as _json
 
             push_payload = {
                 'device_id': device.id,
@@ -2648,27 +2648,15 @@ def _push_layout_impl(layout_id):
                 'playlists': playlists_to_sync
             }
 
-            headers = {'Content-Type': 'application/json'}
-            if hub.api_token:
-                headers['Authorization'] = f'Bearer {hub.api_token}'
-
             try:
-                resp = http_requests.post(
-                    f"{hub_url.rstrip('/')}/api/v1/layouts/receive",
-                    json=push_payload,
-                    headers=headers,
-                    timeout=30
-                )
-                if resp.ok:
-                    hub_push_result = resp.json()
-                else:
-                    hub_error = f"Hub returned {resp.status_code}: {resp.text[:200]}"
-            except http_requests.Timeout:
-                hub_error = "Hub request timed out"
-            except http_requests.RequestException as e:
-                hub_error = f"Hub connection failed: {str(e)}"
+                hub.pending_payload = _json.dumps(push_payload)
+                db.session.commit()
+                hub_push_result = {'message': 'Layout queued — Hub will receive on next heartbeat'}
+            except Exception as e:
+                db.session.rollback()
+                hub_error = f"Failed to queue layout: {str(e)}"
         else:
-            hub_error = "No tunnel_url configured for hub" if hub else "Hub not found"
+            hub_error = "Hub not found for this device"
 
     return jsonify({
         'status': 'success',
