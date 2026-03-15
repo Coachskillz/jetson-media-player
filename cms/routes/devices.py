@@ -499,8 +499,11 @@ def update_device_settings(device_id):
     # Update allowed fields
     allowed_fields = [
         'name',
+        'layout_id',
         'camera1_enabled',
         'camera1_demographics',
+        'camera1_age',
+        'camera1_gender',
         'camera1_loyalty',
         'camera2_enabled',
         'camera2_ncmec'
