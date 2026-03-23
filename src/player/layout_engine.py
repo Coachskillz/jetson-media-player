@@ -323,8 +323,6 @@ class LayoutEngine:
             self._playlist_items = []
 
         self._active: Optional[_ZonePipeline] = None
-        self._standby: Optional[_ZonePipeline] = None  # Pre-built pipeline for smooth transitions
-        self._standby_filepath: Optional[str] = None
 
         self._playlist_index = 0
         self._playlist_reload_pending = False
@@ -369,21 +367,6 @@ class LayoutEngine:
             return str(self.media_dir / filename)
         return None
 
-    def _peek_next_uri(self) -> Optional[str]:
-        """Peek at next video URI without advancing index."""
-        if not self._playlist_items:
-            return None
-
-        peek_index = self._playlist_index
-        if peek_index >= len(self._playlist_items):
-            peek_index = 0
-
-        item = self._playlist_items[peek_index]
-        filename = item.get("filename")
-        if filename:
-            return str(self.media_dir / filename)
-        return None
-
     def _build_pipeline(self, filepath: str, window_xid: Optional[int] = None) -> Optional[_ZonePipeline]:
         """Build a pipeline (without pre-roll)."""
         pipe = _ZonePipeline(
@@ -412,32 +395,6 @@ class LayoutEngine:
             return None
         return pipe
 
-    def _prepare_next(self) -> None:
-        """Pre-build the next pipeline for faster transitions.
-
-        Build pipeline only (no preroll) to minimize GPU usage.
-        Preroll happens at swap time for minimal GPU overhead during playback.
-        """
-        if self._standby is not None:
-            return
-
-        filepath = self._peek_next_uri()
-        if not filepath:
-            return
-
-        if not Path(filepath).exists():
-            logger.warning("Next file not found: %s", Path(filepath).name)
-            return
-
-        # Build only - NO preroll to save GPU for AI/camera work
-        pipe = self._build_pipeline(filepath, window_xid=None)
-        if pipe:
-            self._standby = pipe
-            self._standby_filepath = filepath
-            logger.info("Standby built: %s", Path(filepath).name)
-        else:
-            logger.warning("Failed to build standby: %s", Path(filepath).name)
-
     def _on_active_eos(self) -> bool:
         """Handle EOS - schedule swap on idle to avoid state changes in callback."""
         logger.info("EOS received - scheduling swap")
@@ -445,75 +402,46 @@ class LayoutEngine:
         return False
 
     def _do_swap(self) -> bool:
-        """Execute the actual swap. Called from idle to avoid callback issues.
+        """Execute video swap. Called from idle to avoid callback issues.
 
-        Uses pre-built standby pipeline for faster transitions:
-        1. Destroy old pipeline (releases window)
-        2. Set window on pre-built standby, preroll, and play
-        3. Falls back to building new pipeline if no standby
+        Simple approach for 24/7 stability:
+        1. Destroy old pipeline completely (free GPU memory)
+        2. Wait briefly for GPU memory reclamation
+        3. Build new pipeline fresh
         """
         with self._lock:
             self._transition_count += 1
-            old_active = self._active
-            self._active = None
 
-            # Destroy old pipeline FIRST to release window
-            if old_active:
-                old_active.destroy()
+            # Destroy old pipeline completely to free GPU memory
+            if self._active:
+                self._active.destroy()
+                self._active = None
 
-            # Try to use pre-built standby (faster path - already built)
-            if self._standby is not None:
-                pipe = self._standby
-                filepath = self._standby_filepath
-                self._standby = None
-                self._standby_filepath = None
+            # Small delay to let GPU reclaim memory
+            import time
+            time.sleep(0.1)
 
-                # Set window, preroll, and play
-                pipe.set_eos_callback(lambda: GLib.idle_add(self._on_active_eos))
-                pipe.set_error_callback(lambda msg: GLib.idle_add(self._on_active_error, msg))
-                pipe.set_window(self._window_xid)
-
-                # Preroll and play
-                if pipe.preroll() and pipe.play():
+            # Build new pipeline fresh
+            filepath = self._get_next_uri()
+            if filepath and Path(filepath).exists():
+                pipe = self._build_and_preroll(filepath, window_xid=self._window_xid)
+                if pipe:
+                    pipe.set_eos_callback(lambda: GLib.idle_add(self._on_active_eos))
+                    pipe.set_error_callback(lambda msg: GLib.idle_add(self._on_active_error, msg))
+                    pipe.play()
                     self._active = pipe
-                    # Advance playlist index since we used the peeked item
-                    self._playlist_index += 1
-                    if self._playlist_index >= len(self._playlist_items):
-                        self._playlist_index = 0
-                    logger.info("Transition #%d: playing %s (fast)", self._transition_count, Path(filepath).name)
+                    logger.info("Transition #%d: %s", self._transition_count, Path(filepath).name)
                 else:
-                    logger.error("Transition #%d: failed to start standby", self._transition_count)
-                    pipe.destroy()
-                    # Fall through to build new pipeline
-                    pipe = None
-
-            # Fallback: build new pipeline (slower path)
-            if self._active is None:
-                filepath = self._get_next_uri()
-                if filepath and Path(filepath).exists():
-                    pipe = self._build_and_preroll(filepath, window_xid=self._window_xid)
-                    if pipe:
-                        pipe.set_eos_callback(lambda: GLib.idle_add(self._on_active_eos))
-                        pipe.set_error_callback(lambda msg: GLib.idle_add(self._on_active_error, msg))
-                        pipe.play()
-                        self._active = pipe
-                        logger.info("Transition #%d: playing %s (fallback)", self._transition_count, Path(filepath).name)
-                    else:
-                        logger.error("Transition #%d: failed to build pipeline", self._transition_count)
-                else:
-                    logger.error("Transition #%d: no next video available", self._transition_count)
+                    logger.error("Transition #%d: failed to build pipeline", self._transition_count)
+            else:
+                logger.error("Transition #%d: no next video", self._transition_count)
 
             # Log performance every 100 transitions
             if self._transition_count % 100 == 0:
                 self._log_performance()
 
-        # Prepare next standby immediately
-        GLib.idle_add(self._prepare_next_idle)
         return False
 
-    def _prepare_next_idle(self) -> bool:
-        self._prepare_next()
-        return False
 
     def _on_active_error(self, error_msg: str) -> bool:
         """Handle error - try to skip to next."""
@@ -574,20 +502,14 @@ class LayoutEngine:
             self._start_time = time.time()
             logger.info("LayoutEngine started")
 
-        # Prepare standby
-        GLib.idle_add(self._prepare_next_idle)
         return True
 
     def stop(self) -> None:
-        """Stop playback."""
+        """Stop playback and free all GPU resources."""
         with self._lock:
             if self._active:
                 self._active.destroy()
                 self._active = None
-            if self._standby:
-                self._standby.destroy()
-                self._standby = None
-            self._standby_filepath = None
             self._running = False
             self._log_performance()
             logger.info("LayoutEngine stopped")

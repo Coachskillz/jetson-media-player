@@ -123,6 +123,7 @@ class KioskPlayer:
         # LayoutEngine for hardware-accelerated playback with aspect ratio preservation
         self._layout_engine: Optional[LayoutEngine] = None
         self._use_layout_engine: bool = os.environ.get("USE_LAYOUT_ENGINE", "").lower() in ("1", "true", "yes")
+        self._current_layout_version: Optional[str] = None  # Track layout version to detect changes
 
         # Infrastructure services
         self._health_server: Optional[HealthServer] = None
@@ -387,12 +388,55 @@ class KioskPlayer:
         """Handle LayoutEngine end-of-stream (full playlist completed)."""
         logger.info("LayoutEngine playlist completed - will loop")
 
+    def _restart_layout_engine(self) -> bool:
+        """Full restart of LayoutEngine for new layout.
+
+        Stops and destroys the old engine completely to free GPU memory,
+        then creates a fresh engine with the new layout. This prevents
+        NVMM buffer leaks for 24/7 operation.
+        """
+        logger.info("Restarting LayoutEngine for new layout...")
+
+        # Stop and destroy old engine completely
+        if self._layout_engine:
+            logger.info("Stopping old LayoutEngine...")
+            self._layout_engine.cleanup()
+            self._layout_engine = None
+            # Give GPU time to reclaim memory
+            import time
+            time.sleep(0.5)
+
+        # Initialize fresh engine with new layout
+        if not self._initialize_layout_engine():
+            logger.error("Failed to initialize new LayoutEngine")
+            return False
+
+        # Set window handle
+        if self._video_area:
+            window = self._video_area.get_window()
+            if window:
+                xid = window.get_xid()
+                self._layout_engine.set_window_handle(xid)
+
+        # Start playback
+        if self._layout_engine.start():
+            logger.info("LayoutEngine restarted successfully")
+            return True
+        else:
+            logger.error("Failed to start new LayoutEngine")
+            return False
+
     def _start_playback_layout_engine(self) -> bool:
         """Start video playback using LayoutEngine."""
         if not self._layout_engine:
             if not self._initialize_layout_engine():
                 logger.error("Failed to initialize layout engine for playback")
                 return False
+
+        # Track initial layout version
+        if self._current_layout_version is None:
+            self._current_layout_version = self._config.layout_version or str(self._config.playlist_version)
+            logger.info("Initial layout version set: %s", self._current_layout_version)
 
         # Set window handle
         if self._video_area:
@@ -1034,30 +1078,22 @@ class KioskPlayer:
         if not self._playlist_manager or self._playlist_manager.default_playlist_length == 0:
             return
 
-        # Handle LayoutEngine mode
+        # Handle LayoutEngine mode - restart ONLY when layout actually changes
         if self._use_layout_engine:
-            if self._layout_engine and self._layout_engine.is_running:
-                # Get layout from config (pushed from Hub) or create fallback
-                new_layout = self._config.layout_json
-                if not new_layout or not new_layout.get("layers"):
-                    # Fallback: create layout from playlist items
-                    playlist_items = []
-                    items = getattr(self._playlist_manager, "_default_items", [])
-                    for item in items:
-                        playlist_items.append({
-                            "filename": item.filename,
-                            "duration": item.duration
-                        })
-                    new_layout = create_fallback_layout(playlist_items)
+            new_version = self._config.layout_version or str(self._config.playlist_version)
 
-                # Use default arg to capture new_layout by value, not reference
-                GLib.idle_add(lambda layout=new_layout: self._layout_engine.update_layout(layout))
-                item_count = len(new_layout.get("layers", [{}])[0].get("items", []))
-                logger.info("LayoutEngine layout update queued — %d items", item_count)
+            # First time or version changed → restart
+            if self._current_layout_version is None:
+                logger.info("Initial layout version: %s", new_version)
+                self._current_layout_version = new_version
+                GLib.idle_add(self._restart_layout_engine)
+            elif new_version != self._current_layout_version:
+                logger.info("Layout version changed: %s → %s — restarting",
+                           self._current_layout_version, new_version)
+                self._current_layout_version = new_version
+                GLib.idle_add(self._restart_layout_engine)
             else:
-                # LayoutEngine not running, start it
-                logger.info("Content arrived — starting LayoutEngine playback")
-                GLib.idle_add(self._late_start_playback)
+                logger.debug("Layout unchanged (version %s) — no restart needed", new_version)
             return
 
         # Legacy GStreamer player mode
