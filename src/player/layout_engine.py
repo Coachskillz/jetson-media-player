@@ -448,7 +448,17 @@ class LayoutEngine:
             time.sleep(0.3)
 
             # Build new pipeline fresh
-            filepath = self._get_next_uri()
+            # Retry loop: if file missing, wait for in-progress download to complete
+            filepath = None
+            for attempt in range(3):
+                filepath = self._get_next_uri()
+                if filepath and Path(filepath).exists():
+                    break
+                logger.warning("Transition #%d: file not ready (attempt %d/3), waiting 1s",
+                               self._transition_count, attempt + 1)
+                import time as _time
+                _time.sleep(1.0)
+
             if filepath and Path(filepath).exists():
                 pipe = self._build_and_preroll(filepath, window_xid=self._window_xid)
                 if pipe:

@@ -194,7 +194,20 @@ class SyncService:
 
             # Always update on first sync or when version differs
             first_sync = self._current_playlist_version is None
-            if remote_version != local_version or version_changed or first_sync:
+
+            # Also detect content change by comparing actual filenames
+            remote_items = remote_config.get('default_playlist', {}).get('items', [])
+            remote_filenames = set(i.get('filename', '') for i in remote_items)
+            local_items = getattr(self._config, 'default_playlist', {})
+            if isinstance(local_items, dict):
+                local_items = local_items.get('items', [])
+            local_filenames = set(i.get('filename', '') for i in (local_items or []))
+            filenames_changed = remote_filenames != local_filenames and bool(remote_filenames)
+
+            if filenames_changed:
+                logger.info("Content filenames changed — triggering update")
+
+            if remote_version != local_version or version_changed or first_sync or filenames_changed:
                 logger.info(
                     "Playlist update available: %s -> %s",
                     local_version,
@@ -334,6 +347,19 @@ class SyncService:
             # Extract layout data (primary format from Hub)
             layout_json = remote_config.get('layout_json')
             layout_version = remote_config.get('layout_version', '')
+
+            # If version hash unchanged but filenames differ, generate new hash
+            # This ensures kiosk_player detects the content change
+            current_items = getattr(self._config, 'default_playlist', {})
+            if isinstance(current_items, dict):
+                current_filenames = set(i.get('filename','') for i in current_items.get('items', []))
+            else:
+                current_filenames = set()
+            new_filenames = set(i.get('filename','') for i in default_playlist.get('items', []))
+            if new_filenames and new_filenames != current_filenames and str(playlist_version) == str(getattr(self._config, 'playlist_version', '')):
+                import hashlib
+                playlist_version = hashlib.md5(','.join(sorted(new_filenames)).encode()).hexdigest()[:8]
+                logger.info("Generated new playlist version from filenames: %s", playlist_version)
 
             # Update config
             self._config.default_playlist = default_playlist

@@ -123,7 +123,8 @@ class KioskPlayer:
         # LayoutEngine for hardware-accelerated playback with aspect ratio preservation
         self._layout_engine: Optional[LayoutEngine] = None
         self._use_layout_engine: bool = os.environ.get("USE_LAYOUT_ENGINE", "").lower() in ("1", "true", "yes")
-        self._current_layout_version: Optional[str] = None  # Track layout version to detect changes
+        self._current_layout_version: Optional[str] = None  # Track layout structure version
+        self._current_playlist_version_le: Optional[str] = None  # Track playlist content version
 
         # Infrastructure services
         self._health_server: Optional[HealthServer] = None
@@ -435,8 +436,10 @@ class KioskPlayer:
 
         # Track initial layout version
         if self._current_layout_version is None:
-            self._current_layout_version = self._config.layout_version or str(self._config.playlist_version)
-            logger.info("Initial layout version set: %s", self._current_layout_version)
+            self._current_layout_version = self._config.layout_version or ''
+            self._current_playlist_version_le = str(self._config.playlist_version or '')
+            logger.info("Initial layout version set: layout=%s playlist=%s",
+                        self._current_layout_version, self._current_playlist_version_le)
 
         # Set window handle
         if self._video_area:
@@ -1115,22 +1118,39 @@ class KioskPlayer:
         if not self._playlist_manager or self._playlist_manager.default_playlist_length == 0:
             return
 
-        # Handle LayoutEngine mode - restart ONLY when layout actually changes
+        # Handle LayoutEngine mode
         if self._use_layout_engine:
-            new_version = self._config.layout_version or str(self._config.playlist_version)
+            new_layout_version = self._config.layout_version or ''
+            new_playlist_version = str(self._config.playlist_version or '')
+            logger.info("VERSION CHECK: layout_current=%r layout_new=%r playlist_current=%r playlist_new=%r",
+                        self._current_layout_version, new_layout_version,
+                        self._current_playlist_version_le, new_playlist_version)
 
-            # First time or version changed → restart
+            # First time — full start
             if self._current_layout_version is None:
-                logger.info("Initial layout version: %s", new_version)
-                self._current_layout_version = new_version
+                logger.info("Initial layout start: layout=%s playlist=%s",
+                            new_layout_version, new_playlist_version)
+                self._current_layout_version = new_layout_version
+                self._current_playlist_version_le = new_playlist_version
                 GLib.idle_add(self._restart_layout_engine)
-            elif new_version != self._current_layout_version:
-                logger.info("Layout version changed: %s → %s — restarting",
-                           self._current_layout_version, new_version)
-                self._current_layout_version = new_version
+
+            # Layout structure changed (zones/canvas/dimensions) — must fully restart
+            elif new_layout_version and new_layout_version != self._current_layout_version:
+                logger.info("Layout structure changed: %s -> %s — full restart",
+                            self._current_layout_version, new_layout_version)
+                self._current_layout_version = new_layout_version
+                self._current_playlist_version_le = new_playlist_version
                 GLib.idle_add(self._restart_layout_engine)
+
+            # Always push current playlist items to layout engine
+            # This ensures transitions always use current files, even mid-download
             else:
-                logger.debug("Layout unchanged (version %s) — no restart needed", new_version)
+                if self._layout_engine and self._config.default_playlist:
+                    new_items = self._config.default_playlist.get('items', [])
+                    if new_items:
+                        self._layout_engine._new_playlist_items = new_items
+                        self._layout_engine._playlist_reload_pending = True
+                        logger.info("Updated layout engine playlist: %d items", len(new_items))
             return
 
         # Legacy GStreamer player mode
