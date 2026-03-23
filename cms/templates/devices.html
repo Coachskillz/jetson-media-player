@@ -468,15 +468,6 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.btn-assign {
-    background: #10b981;
-    width: 100%;
-    margin-top: 15px;
-}
-
-.btn-assign:hover {
-    background: #059669;
-}
 {% endblock %}
 
 {% block content %}
@@ -634,9 +625,6 @@
                 </div>
                 {% endif %}
 
-                <button class="btn btn-assign" onclick="openAssignPlaylist('{{ device.id }}', '{{ device.name }}')">
-                    ➕ Assign Playlist
-                </button>
             </div>
             {% else %}
             <button class="btn btn-primary" style="width: 100%;" onclick="quickPair('{{ device.pairing_code }}')">
@@ -655,34 +643,6 @@
     {% endif %}
 </div>
 
-<!-- Assign Playlist Modal -->
-<div class="modal" id="assignModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="assignModalTitle">Assign Playlist</h3>
-            <button class="close-btn" onclick="closeAssignModal()">&times;</button>
-        </div>
-
-        <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-            Select a playlist to assign to this device. The device will download and cache the content for offline playback.
-        </p>
-
-        <div class="form-group">
-            <label>Select Playlist</label>
-            <select id="playlistSelect" style="width: 100%;">
-                <option value="">Choose a playlist...</option>
-                {% for playlist in playlists %}
-                <option value="{{ playlist.id }}">
-                    {{ playlist.name }} ({{ playlist.trigger_type }}
-                    {% if playlist.trigger_value %} - {{ playlist.trigger_value }}{% endif %})
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <button class="btn btn-primary" onclick="assignPlaylist()">Assign to Device</button>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -707,8 +667,6 @@
             const timeEl = card.querySelector('[id^="time-"]');
 
             if (!statusEl || !badgeEl) return;
-
-            const isPaired = !card.querySelector('.btn-primary:not(.btn-assign)');
             const lastSeen = timeEl ? timeEl.textContent : null;
 
             if (!isPaired) {
@@ -983,17 +941,6 @@
         } catch (error) {
             alert('❌ Error: ' + error.message);
         }
-    }
-
-    // Assign Playlist Modal
-    function openAssignPlaylist(deviceId, deviceName) {
-        currentDeviceId = deviceId;
-        document.getElementById('assignModalTitle').textContent = `Assign Playlist to ${deviceName}`;
-        document.getElementById('assignModal').classList.add('active');
-    }
-
-    function closeAssignModal() {
-        document.getElementById('assignModal').classList.remove('active');
     }
 
     async function assignPlaylist() {
