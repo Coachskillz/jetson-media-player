@@ -158,12 +158,26 @@ class _ZonePipeline:
 
         # nveglglessink uses EGL/GLES for efficient rendering
         # Supports window embedding via GstVideoOverlay interface
+        # Must set window handle via bus sync message for GTK embedding
 
-        # Setup bus
+        # Setup bus with sync handler for window embedding
         self.bus = pipeline.get_bus()
         self.bus.add_signal_watch()
         self.bus.connect("message::eos", self._handle_eos)
         self.bus.connect("message::error", self._handle_error)
+
+        # Sync handler to catch prepare-window-handle before sink creates own window
+        def on_sync_message(bus, message):
+            if message.get_structure() is None:
+                return Gst.BusSyncReply.PASS
+            if message.get_structure().get_name() == "prepare-window-handle":
+                if self.window_xid:
+                    videosink.set_window_handle(self.window_xid)
+                    logger.debug("Set window handle via sync: %d", self.window_xid)
+                return Gst.BusSyncReply.DROP
+            return Gst.BusSyncReply.PASS
+
+        self.bus.set_sync_handler(on_sync_message)
 
         self.pipeline = pipeline
         self._built = True
