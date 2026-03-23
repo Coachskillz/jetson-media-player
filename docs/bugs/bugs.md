@@ -123,3 +123,22 @@ Also added focus grabber and global keyboard listener as fallbacks.
 2. Added `is_hub` flag to CMSClient to use correct endpoint for pairing status checks
 3. Updated all status/error messages to show Hub IP when in hub mode
 **Key files:** `src/common/cms_client.py`, `src/player/kiosk_player.py`
+
+## 2026-03-23 - GPU memory leak crashes player after ~188 transitions (CRITICAL)
+**Symptom:** Player runs for 30-40 minutes then stops. Logs show `NvMapMemAllocInternalTagged: error 12` (ENOMEM), `nvbufsurface: Unable to allocate HW buffer`. Player hit 188 transitions before crashing.
+**Root Cause:** The standby pipeline pre-building feature was causing NVMM (NVIDIA Memory Manager) buffer accumulation:
+1. Standby pipeline was pre-built during playback (allocated GPU buffers)
+2. When transitioning, old pipeline destroyed but standby already allocated new buffers
+3. Brief overlap caused GPU memory fragmentation
+4. After ~188 transitions, GPU memory exhausted
+**Fix:**
+1. Removed standby pipeline pre-building entirely — build on demand only
+2. Added 0.1s delay between pipeline destroy and create for GPU memory reclaim
+3. Added layout version tracking (`_current_layout_version`) to prevent unnecessary restarts
+4. Full engine restart only when layout version actually changes (not on every sync)
+5. Simplified `_do_swap()` to destroy→delay→build flow
+**Key changes:**
+- `layout_engine.py`: Removed `_standby`, `_prepare_next()`, `_peek_next_uri()`. Simplified swap logic.
+- `kiosk_player.py`: Added `_current_layout_version` tracking. `_restart_layout_engine()` only called when version changes.
+**Result:** GPU usage stays at 2-12% (under 20% target). Memory stable for 24/7 operation.
+**Key files:** `src/player/layout_engine.py`, `src/player/kiosk_player.py`
