@@ -793,6 +793,10 @@ class KioskPlayer:
         except Exception as e:
             logger.error("Failed to initialize analytics store: %s", e)
 
+        # Start memory watchdog (checks every 60s, restarts if RSS > 3GB)
+        # This handles GStreamer NVMM buffer leaks on Jetson
+        GLib.timeout_add_seconds(60, self._check_memory_usage)
+
         logger.info("Background services started")
 
     def _on_network_state_changed(self, is_online: bool) -> None:
@@ -974,6 +978,39 @@ class KioskPlayer:
         # Restart pairing flow
         self._pairing_screen.reset()
         self._start_pairing_flow()
+
+    def _check_memory_usage(self) -> bool:
+        """Memory watchdog - restart if RSS exceeds threshold.
+
+        GStreamer NVMM buffers leak on Jetson even with proper cleanup.
+        This watchdog ensures 24/7 stability by restarting before OOM.
+        """
+        try:
+            import resource
+            # Get RSS in KB, convert to MB
+            rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            rss_mb = rss_kb // 1024  # On Linux, ru_maxrss is in KB
+
+            # Threshold: 3GB (leaves 4GB+ free on 8GB Jetson)
+            threshold_mb = 3072
+
+            if rss_mb > threshold_mb:
+                logger.warning(
+                    "Memory watchdog: RSS %dMB exceeds %dMB threshold — restarting",
+                    rss_mb, threshold_mb
+                )
+                self._restart_player()
+                return False  # Stop watchdog (we're restarting)
+
+            # Log periodically for monitoring
+            if hasattr(self, '_layout_engine') and self._layout_engine:
+                transitions = self._layout_engine.transition_count
+                logger.debug("Memory watchdog: RSS %dMB, transitions %d", rss_mb, transitions)
+
+        except Exception as e:
+            logger.error("Memory watchdog error: %s", e)
+
+        return True  # Continue watchdog
 
     def _restart_player(self) -> None:
         """Restart the player application."""

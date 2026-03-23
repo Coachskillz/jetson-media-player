@@ -212,13 +212,21 @@ class _ZonePipeline:
     def destroy(self) -> None:
         """Full teardown - waits for NULL state, frees all resources."""
         if self.pipeline:
+            # Stop pipeline completely
             self.pipeline.set_state(Gst.State.NULL)
             self.pipeline.get_state(5 * Gst.SECOND)
         if self.bus:
             self.bus.remove_signal_watch()
             self.bus = None
+        # Clear all references to allow GC
         self.pipeline = None
+        self._videosink = None
+        self._audio_queue = None
+        self._audio_sink = None
+        self._on_eos = None
+        self._on_error = None
         self._built = False
+        self._audio_linked = False
         logger.info("Destroyed: %s", Path(self.filepath).name)
 
     def get_position(self) -> float:
@@ -417,9 +425,13 @@ class LayoutEngine:
                 self._active.destroy()
                 self._active = None
 
-            # Small delay to let GPU reclaim memory
+            # Force Python garbage collection to release GStreamer references
+            import gc
+            gc.collect()
+
+            # Delay to let GPU/NVMM reclaim memory
             import time
-            time.sleep(0.1)
+            time.sleep(0.3)
 
             # Build new pipeline fresh
             filepath = self._get_next_uri()

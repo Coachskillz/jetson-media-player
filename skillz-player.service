@@ -28,6 +28,9 @@ Environment=GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
 Environment=__NV_PRIME_RENDER_OFFLOAD=1
 Environment=__GLX_VENDOR_LIBRARY_NAME=nvidia
 
+# Use new LayoutEngine for hardware-accelerated playback with aspect ratio preservation
+Environment=USE_LAYOUT_ENGINE=1
+
 # Player configuration via environment (override device.json defaults)
 # Uncomment and set as needed:
 #Environment=JMP_CMS_URL=http://your-cms-server:5002
