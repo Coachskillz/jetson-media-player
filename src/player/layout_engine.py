@@ -5,7 +5,7 @@ Hardware-accelerated video playback with aspect ratio preservation.
 For Phase 1 (April launch), single-zone full-screen support.
 
 Architecture (single-zone):
-    filesrc → qtdemux → nvv4l2decoder → nvvidconv → nvdrmvideosink
+    filesrc → qtdemux → nvv4l2decoder → nvvidconv → nveglglessink
 
     At EOS, destroy old pipeline and build new one for next video.
     xvimagesink with force-aspect-ratio=true handles letterbox/pillarbox.
@@ -41,10 +41,10 @@ class _ZonePipeline:
     Built fresh every time. Destroyed completely after use.
 
     Pipeline (single-zone):
-        filesrc → qtdemux → h264parse → nvv4l2decoder → nvvidconv → nvdrmvideosink
+        filesrc → qtdemux → h264parse → nvv4l2decoder → nvvidconv → nveglglessink
 
-    nvdrmvideosink renders directly to display via DRM, minimizing GPU usage
-    to leave headroom for AI/camera processing.
+    nveglglessink uses EGL for efficient X11 rendering with lower GPU overhead
+    than xvimagesink, leaving headroom for AI/camera processing.
     """
 
     def __init__(
@@ -86,8 +86,8 @@ class _ZonePipeline:
         nvdecoder = Gst.ElementFactory.make("nvv4l2decoder", None)
         nvvidconv = Gst.ElementFactory.make("nvvidconv", "conv")
 
-        # === Output: direct DRM rendering (minimal GPU usage) ===
-        videosink = Gst.ElementFactory.make("nvdrmvideosink", "sink")
+        # === Output: nveglglessink for EGL/GLES rendering ===
+        videosink = Gst.ElementFactory.make("nveglglessink", "sink")
 
         # === Audio drain (only if video has audio) ===
         # Use queue2 with max-size-buffers=0 to not block if no audio
@@ -106,10 +106,11 @@ class _ZonePipeline:
         # Configure input
         filesrc.set_property("location", self.filepath)
 
-        # Configure nvdrmvideosink for direct DRM rendering
+        # Configure nveglglessink
         videosink.set_property("sync", True)
-        # set-mode=0 uses current display mode (no mode change)
-        videosink.set_property("set-mode", 0)
+        # Force aspect ratio preservation
+        if videosink.find_property("force-aspect-ratio"):
+            videosink.set_property("force-aspect-ratio", True)
         self._videosink = videosink
 
         # Audio drain
@@ -121,7 +122,7 @@ class _ZonePipeline:
         for el in elements:
             pipeline.add(el)
 
-        # Link static chain: decode → nvvidconv → nvdrmvideosink
+        # Link static chain: decode → nvvidconv → nveglglessink
         filesrc.link(qtdemux)
         vqueue.link(h264parse)
         h264parse.link(nvdecoder)
@@ -155,8 +156,8 @@ class _ZonePipeline:
 
         qtdemux.connect("pad-added", on_pad_added)
 
-        # nvdrmvideosink uses direct DRM rendering, no X11 window needed
-        # Video renders directly to display, bypassing GPU compositor
+        # nveglglessink uses EGL/GLES for efficient rendering
+        # Supports window embedding via GstVideoOverlay interface
 
         # Setup bus
         self.bus = pipeline.get_bus()
@@ -250,8 +251,12 @@ class _ZonePipeline:
         return True
 
     def set_window(self, xid: int) -> None:
-        """No-op for nvdrmvideosink (uses direct DRM rendering)."""
-        pass
+        """Set X11 window handle for video overlay."""
+        if self._videosink and xid:
+            try:
+                self._videosink.set_window_handle(xid)
+            except Exception:
+                pass  # Some sinks don't support window handle
 
     def set_eos_callback(self, callback: Callable) -> None:
         self._on_eos = callback
@@ -276,8 +281,8 @@ class LayoutEngine:
     Hardware-accelerated video player for single-zone layouts.
 
     Manages video pipeline lifecycle: build, preroll, play, destroy.
-    Uses nvdrmvideosink for direct DRM rendering, minimizing GPU usage
-    to leave headroom for AI/camera processing.
+    Uses nveglglessink for efficient X11/EGL rendering with lower GPU overhead
+    than xvimagesink, leaving headroom for AI/camera processing.
 
     Flow:
     1. Build pipeline with window handle
