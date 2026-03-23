@@ -586,7 +586,7 @@
     {% if devices %}
     <div class="devices-grid">
         {% for device in devices %}
-        <div class="device-card" data-location="{{ device.location_id or '' }}">
+        <div class="device-card" data-location="{{ device.location_id or '' }}" onclick="window.location.href='/devices/{{ device.id }}'" style="cursor:pointer;">
             <button class="delete-device" onclick="event.stopPropagation(); deleteDevice('{{ device.id }}', '{{ device.name }}')" title="Delete device">🗑️</button>
             <div class="device-header">
                 <div class="device-status" id="status-{{ device.id }}"></div>
