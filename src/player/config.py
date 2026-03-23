@@ -308,6 +308,26 @@ class PlayerConfig:
         """Set playlist updated timestamp."""
         self._playlist['updated_at'] = value
 
+    @property
+    def layout_json(self) -> Optional[Dict[str, Any]]:
+        """Get layout JSON with zones and layers."""
+        return self._playlist.get('layout_json')
+
+    @layout_json.setter
+    def layout_json(self, value: Optional[Dict[str, Any]]) -> None:
+        """Set layout JSON."""
+        self._playlist['layout_json'] = value
+
+    @property
+    def layout_version(self) -> str:
+        """Get layout version string."""
+        return self._playlist.get('layout_version', '')
+
+    @layout_version.setter
+    def layout_version(self, value: str) -> None:
+        """Set layout version."""
+        self._playlist['layout_version'] = value
+
     # Settings config accessors
 
     @property

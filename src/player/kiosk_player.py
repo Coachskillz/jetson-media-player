@@ -3,6 +3,14 @@ KioskPlayer - Production-ready Jetson Media Player with GTK3 kiosk interface.
 Integrates state machine, pairing flow, video playback, and menu overlay.
 """
 
+import logging
+# Configure root logger BEFORE importing modules that create loggers
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -25,6 +33,7 @@ from .ui.kiosk_window import KioskWindow
 from .ui.pairing_screen import PairingScreen
 from .ui.menu_overlay import MenuOverlay
 from .gstreamer_player import GStreamerPlayer, PlayerState
+from .layout_engine import LayoutEngine, create_fallback_layout
 from .playlist_manager import PlaylistManager, get_playlist_manager
 from .sync_service import SyncService, get_sync_service
 from .heartbeat import HeartbeatReporter
@@ -110,6 +119,10 @@ class KioskPlayer:
         self._playlist_manager: Optional[PlaylistManager] = None
         self._sync_service: Optional[SyncService] = None
         self._heartbeat: Optional[HeartbeatReporter] = None
+
+        # LayoutEngine for hardware-accelerated playback with aspect ratio preservation
+        self._layout_engine: Optional[LayoutEngine] = None
+        self._use_layout_engine: bool = os.environ.get("USE_LAYOUT_ENGINE", "").lower() in ("1", "true", "yes")
 
         # Infrastructure services
         self._health_server: Optional[HealthServer] = None
@@ -321,6 +334,80 @@ class KioskPlayer:
 
         except Exception as e:
             logger.error("Failed to initialize GStreamer: %s", e)
+            return False
+
+    def _initialize_layout_engine(self) -> bool:
+        """Initialize LayoutEngine for hardware-accelerated playback."""
+        try:
+            # Try to get layout_json from config (pushed from Hub)
+            layout = self._config.layout_json
+
+            if layout and layout.get("layers"):
+                # Use layout from Hub directly
+                logger.info("Using layout from Hub with %d layers", len(layout.get("layers", [])))
+            else:
+                # Fallback: create layout from playlist items
+                if not self._playlist_manager or self._playlist_manager.default_playlist_length == 0:
+                    logger.warning("No playlist items for layout engine")
+                    return False
+
+                playlist_items = []
+                items = getattr(self._playlist_manager, "_default_items", [])
+                for item in items:
+                    playlist_items.append({
+                        "filename": item.filename,
+                        "duration": item.duration
+                    })
+
+                if not playlist_items:
+                    logger.warning("Empty playlist for layout engine")
+                    return False
+
+                layout = create_fallback_layout(playlist_items)
+                logger.info("Using fallback layout with %d items", len(playlist_items))
+
+            # Initialize LayoutEngine with layout
+            self._layout_engine = LayoutEngine(
+                layout_json=layout,
+                media_dir=self._media_dir,
+                on_error=self._on_playback_error,
+                on_eos=self._on_layout_engine_eos
+            )
+
+            layer_count = len(layout.get("layers", []))
+            item_count = len(layout.get("layers", [{}])[0].get("items", []))
+            logger.info("LayoutEngine initialized: %d layers, %d items", layer_count, item_count)
+            return True
+
+        except Exception as e:
+            logger.error("Failed to initialize LayoutEngine: %s", e)
+            return False
+
+    def _on_layout_engine_eos(self) -> None:
+        """Handle LayoutEngine end-of-stream (full playlist completed)."""
+        logger.info("LayoutEngine playlist completed - will loop")
+
+    def _start_playback_layout_engine(self) -> bool:
+        """Start video playback using LayoutEngine."""
+        if not self._layout_engine:
+            if not self._initialize_layout_engine():
+                logger.error("Failed to initialize layout engine for playback")
+                return False
+
+        # Set window handle
+        if self._video_area:
+            window = self._video_area.get_window()
+            if window:
+                xid = window.get_xid()
+                self._layout_engine.set_window_handle(xid)
+                logger.info("LayoutEngine window XID: %s", xid)
+
+        # Start playback
+        if self._layout_engine.start():
+            logger.info("LayoutEngine playback started")
+            return True
+        else:
+            logger.error("Failed to start LayoutEngine playback")
             return False
 
     def _start_pairing_flow(self) -> None:
@@ -598,6 +685,12 @@ class KioskPlayer:
             self._idle_label.show()
             return False
 
+        # Use LayoutEngine for hardware-accelerated playback with aspect ratio preservation
+        if self._use_layout_engine:
+            self._idle_label.hide()
+            return self._start_playback_layout_engine()
+
+        # Legacy GStreamer player
         first_uri = self._playlist_manager.get_first_uri()
         if first_uri:
             logger.info("Starting playback: %s", first_uri)
@@ -941,6 +1034,33 @@ class KioskPlayer:
         if not self._playlist_manager or self._playlist_manager.default_playlist_length == 0:
             return
 
+        # Handle LayoutEngine mode
+        if self._use_layout_engine:
+            if self._layout_engine and self._layout_engine.is_running:
+                # Get layout from config (pushed from Hub) or create fallback
+                new_layout = self._config.layout_json
+                if not new_layout or not new_layout.get("layers"):
+                    # Fallback: create layout from playlist items
+                    playlist_items = []
+                    items = getattr(self._playlist_manager, "_default_items", [])
+                    for item in items:
+                        playlist_items.append({
+                            "filename": item.filename,
+                            "duration": item.duration
+                        })
+                    new_layout = create_fallback_layout(playlist_items)
+
+                # Use default arg to capture new_layout by value, not reference
+                GLib.idle_add(lambda layout=new_layout: self._layout_engine.update_layout(layout))
+                item_count = len(new_layout.get("layers", [{}])[0].get("items", []))
+                logger.info("LayoutEngine layout update queued — %d items", item_count)
+            else:
+                # LayoutEngine not running, start it
+                logger.info("Content arrived — starting LayoutEngine playback")
+                GLib.idle_add(self._late_start_playback)
+            return
+
+        # Legacy GStreamer player mode
         # Case 1: GStreamer never initialised (no content at boot)
         if not self._gst_player or not self._gst_player.is_initialized:
             logger.info("Content arrived — initialising GStreamer and starting playback")
@@ -972,7 +1092,14 @@ class KioskPlayer:
     def _get_playback_status(self) -> dict:
         """Get playback status for heartbeat."""
         status = "unknown"
-        if self._gst_player:
+
+        # Check LayoutEngine first if enabled
+        if self._use_layout_engine and self._layout_engine:
+            if self._layout_engine.is_running:
+                status = "playing"
+            else:
+                status = "stopped"
+        elif self._gst_player:
             if self._gst_player.is_playing:
                 status = "playing"
             elif self._gst_player.state == PlayerState.PAUSED:
@@ -1060,6 +1187,8 @@ class KioskPlayer:
         self._stop_background_services()
 
         # Stop playback
+        if self._layout_engine:
+            self._layout_engine.cleanup()
         if self._gst_player:
             self._gst_player.cleanup()
 

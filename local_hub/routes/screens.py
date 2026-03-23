@@ -130,8 +130,17 @@ def get_screen_config_by_device(screen_id):
     # Get playlist data from CMS (with staging items for content download)
     playlist_data = _get_playlist_for_screen(screen, include_staging=True)
 
-    # Build response in format expected by Jetson sync_service
-    # Jetson expects: {default_playlist: {name, items: [...]}, playlist_version, ...}
+    # Get layout_json from Device model (the proper layout format)
+    layout_json = None
+    try:
+        from models.device import Device
+        device = Device.query.filter_by(hardware_id=screen.hardware_id).first()
+        if device and device.layout_json:
+            layout_json = json.loads(device.layout_json) if isinstance(device.layout_json, str) else device.layout_json
+    except Exception:
+        pass
+
+    # Build response with layout_json as primary format
     response = {
         'device_id': str(screen.id),
         'hardware_id': screen.hardware_id,
@@ -140,9 +149,11 @@ def get_screen_config_by_device(screen_id):
         'camera_enabled': screen.camera_enabled,
         'ncmec_enabled': screen.ncmec_enabled,
         'loyalty_enabled': screen.loyalty_enabled,
+        'layout_json': layout_json,  # Primary: full layout with zones
+        'layout_version': playlist_data.get('version', '1'),
     }
 
-    # Build default_playlist with items in format Jetson expects
+    # Also include default_playlist for backward compatibility / content download
     staging_items = playlist_data.get('staging_items', [])
     playlist_items = []
     for item in staging_items:
@@ -154,7 +165,7 @@ def get_screen_config_by_device(screen_id):
             'order': item.get('position', 0),
             'content_type': item.get('content_type', 'video'),
             'file_size': item.get('file_size', 0),
-            'url': item.get('url')  # CMS download URL for content
+            'url': item.get('url')
         })
 
     response['default_playlist'] = {
@@ -164,15 +175,6 @@ def get_screen_config_by_device(screen_id):
     response['triggered_playlists'] = []
     response['playlist_version'] = playlist_data.get('version', '1')
     response['content_path'] = f"/playlists/{screen.hardware_id}"
-
-    # Also include the playlist summary for backward compatibility
-    if playlist_data.get('name'):
-        response['playlist'] = {
-            'name': playlist_data.get('name'),
-            'version': playlist_data.get('version', '1'),
-            'duration': playlist_data.get('duration', 0),
-            'loop': True
-        }
 
     return jsonify(response), 200
 

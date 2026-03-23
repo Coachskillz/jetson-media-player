@@ -302,20 +302,24 @@ class SyncService:
 
     def _update_playlist(self, remote_config: Dict[str, Any]) -> bool:
         """
-        Update local playlist configuration.
+        Update local playlist and layout configuration.
 
         Args:
             remote_config: Configuration from hub
 
         Returns:
-            True if playlist was updated
+            True if playlist/layout was updated
         """
         try:
-            # Extract playlist data
+            # Extract playlist data (for content download compatibility)
             default_playlist = remote_config.get('default_playlist', {})
             triggered_playlists = remote_config.get('triggered_playlists', [])
             playlist_version = remote_config.get('playlist_version', 0)
             updated_at = remote_config.get('updated_at', datetime.now().isoformat())
+
+            # Extract layout data (primary format from Hub)
+            layout_json = remote_config.get('layout_json')
+            layout_version = remote_config.get('layout_version', '')
 
             # Update config
             self._config.default_playlist = default_playlist
@@ -323,10 +327,16 @@ class SyncService:
             self._config.playlist_version = playlist_version
             self._config.playlist_updated_at = updated_at
 
+            # Save layout_json if provided (this is the proper layout format)
+            if layout_json:
+                self._config.layout_json = layout_json
+                self._config.layout_version = layout_version
+                logger.info("Layout updated to version %s", layout_version)
+
             # Save to disk
             self._config.save_playlist()
 
-            logger.info("Playlist updated to version %d", playlist_version)
+            logger.info("Playlist updated to version %s", playlist_version)
             return True
 
         except Exception as e:
