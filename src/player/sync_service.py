@@ -187,14 +187,10 @@ class SyncService:
 
             if version_changed:
                 logger.info(
-                    "Playlist version changed: %s -> %s - PURGING ALL media files",
+                    "Playlist version changed: %s -> %s - will purge AFTER download",
                     self._current_playlist_version,
                     remote_version
                 )
-                # Purge ALL content files - fresh download for new playlist
-                removed_files = self.purge_all_media()
-                if removed_files:
-                    logger.info("Purged %d files for new playlist", len(removed_files))
 
             # Always update on first sync or when version differs
             first_sync = self._current_playlist_version is None
@@ -213,6 +209,24 @@ class SyncService:
             # Download any missing content (force_download=True if version changed)
             if self._sync_content(remote_config, force_download=version_changed):
                 content_updated = True
+
+            # NOW purge old files — after new content is fully downloaded
+            if version_changed:
+                required = {item.get('filename') for item in self._get_required_content(remote_config) if item.get('filename')}
+                removed = []
+                media_path = self.media_dir
+                if media_path:
+                    import pathlib
+                    for f in pathlib.Path(media_path).glob('*.mp4'):
+                        if f.name not in required:
+                            try:
+                                f.unlink()
+                                removed.append(f.name)
+                                logger.info("Purged old file: %s", f.name)
+                            except Exception as e:
+                                logger.warning("Could not purge %s: %s", f.name, e)
+                    if removed:
+                        logger.info("Purged %d old files after download", len(removed))
 
             # Update settings if changed
             self._update_settings(remote_config)
