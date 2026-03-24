@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m cms.migrations.add_camera_and_trigger_columns:*)",
+      "Bash(python3:*)",
+      "Bash(done)",
+      "Bash(python -c:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(while read dir)",
+      "Bash(do if [ ! -f \"$dir/.auto-claude-status\" ])",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(for dir in /Users/skillzmedia/Projects/jetson-media-player/.auto-claude/specs/*/)",
+      "Bash(do basename:*)",
+      "Bash(python -m pytest tests/test_state_machine.py tests/test_pairing_config.py -v --tb=short)",
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(tree:*)",
+      "Bash(du:*)",
+      "Bash(sshpass:*)",
+      "Bash(head:*)",
+      "Bash(ssh:*)",
+      "Bash(arp:*)",
+      "Bash(ssh-add:*)",
+      "Bash(scp:*)",
+      "Bash(for i in 1 2 3 4 5)",
+      "Bash(do echo \"Attempt $i:\")",
+      "Bash(expect:*)",
+      "Bash(ping:*)",
+      "Bash(ip route get:*)",
+      "Bash(route get:*)",
+      "Bash(sudo route add:*)",
+      "Bash(for i in 1 2 3)",
+      "Bash(do ssh -o ConnectTimeout=10 skillz@10.10.10.141 \"pkill -f kiosk_player; echo killed\")",
+      "Bash(break)"
+    ]
+  }
+}
