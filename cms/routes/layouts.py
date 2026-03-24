@@ -2652,6 +2652,19 @@ def _push_layout_impl(layout_id):
                 hub.pending_payload = _json.dumps(push_payload)
                 db.session.commit()
                 hub_push_result = {'message': 'Layout queued — Hub will receive on next heartbeat'}
+
+                # Immediate push: wake Hub now instead of waiting for heartbeat
+                try:
+                    import requests as _requests
+                    hub_url = hub.tunnel_url or (f"http://{hub.ip_address}:5000" if hub.ip_address else None)
+                    if hub_url:
+                        _requests.post(
+                            f"{hub_url.rstrip('/')}/api/v1/hub/wake",
+                            timeout=3
+                        )
+                        hub_push_result = {'message': 'Layout pushed — Hub notified immediately'}
+                except Exception:
+                    pass  # Silent fail — heartbeat fallback always works
             except Exception as e:
                 db.session.rollback()
                 hub_error = f"Failed to queue layout: {str(e)}"
